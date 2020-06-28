@@ -69,10 +69,17 @@ fn load_clients_configuration(path :&Path) -> Result<Vec<config::Client>, Box<dy
     Ok(clients)
 }
 
-fn check(cfg :config::Config) -> Vec<config::Error> {
+pub fn check(cfg :config::Config) -> Vec<config::Error> {
     let mut errors :Vec<config::Error> = Vec::new();
 
-    if cfg.clients.len == 0 {
-
+    if cfg.clients.is_none() || cfg.clients.unwrap_or_default().is_empty() {
+        // TODO: Log
+        errors.push(config::Error {
+            key: "clients".to_string(),
+            level: config::ErrorLevel::Critical,
+            desc: "No clients defined".to_string(),
+        })
     }
+
+    errors
 }

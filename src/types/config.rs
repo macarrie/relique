@@ -40,21 +40,21 @@ impl Default for Config {
     }
 }
 
-enum ErrorLevel {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ErrorLevel {
     Warning,
     Critical,
 }
 
 #[derive(Debug, Clone)]
-struct Error {
-    key :String,
-    level :ErrorLevel,
-    desc :String
+pub struct Error {
+    pub key :String,
+    pub level :ErrorLevel,
+    pub desc :String
 }
 
-impl fmt::Display for DoubleError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid first item to double")
-        f.write_fmt(format_args!("Configuration {}", ))
+        f.write_fmt(format_args!("[{:?}] {} (key: '{}')", self.level, self.desc, self.key))
     }
 }

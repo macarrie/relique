@@ -13,6 +13,19 @@ fn main() {
     let cfg = config::load(Path::new(config_path)).unwrap();
     println!("Config struct: {:?}", cfg);
 
+    let cfg_checks = config::check(cfg);
+    let cfg_critical_errors :Vec<&types::config::Error> = cfg_checks.iter()
+        .filter(|e| e.level == types::config::ErrorLevel::Critical)
+        .collect();
+
+    if cfg_critical_errors.is_empty() {
+        // TODO: Log OK
+        println!("Configuration checks passed");
+    } else {
+        // TODO: Log KO
+        println!("Fatal configuration errors found. Exiting relique");
+        std::process::exit(exitcode::CONFIG);
+    }
 
     if let Some(_m) = matches.subcommand_matches("server") {
         println!("Server subcommand");
