@@ -1,39 +1,40 @@
 use std::path::Path;
 
+use log::*;
+
 mod app;
+mod client;
 mod config;
+mod logger;
+mod server;
 mod types;
 
 fn main() {
     let relique = app::get_app();
     let matches = relique.get_matches();
 
-    let config_path = matches.value_of("config").unwrap_or("relique.toml");
-    println!("Value for config path: {}", config_path);
-    let cfg = config::load(Path::new(config_path)).unwrap();
-    println!("Config struct: {:?}", cfg);
+    let debug_enabled = matches.is_present("debug");
+    logger::init(debug_enabled).unwrap();
 
-    let cfg_checks = config::check(cfg);
-    let cfg_critical_errors :Vec<&types::config::Error> = cfg_checks.iter()
-        .filter(|e| e.level == types::config::ErrorLevel::Critical)
-        .collect();
+    if let Some(server_cmd) = matches.subcommand_matches("server") {
+        let config_path = matches.value_of("config").unwrap_or("server.toml");
+        let cfg = config::load(Path::new(config_path), true).unwrap();
 
-    if cfg_critical_errors.is_empty() {
-        // TODO: Log OK
-        println!("Configuration checks passed");
-    } else {
-        // TODO: Log KO
-        println!("Fatal configuration errors found. Exiting relique");
-        std::process::exit(exitcode::CONFIG);
-    }
+        if let Some(start_cmd) = server_cmd.subcommand_matches("start") {
+            server::start(cfg).unwrap();
+        }
 
-    if let Some(_m) = matches.subcommand_matches("server") {
-        println!("Server subcommand");
         return;
     }
 
-    if let Some(_m) = matches.subcommand_matches("client") {
-        println!("Client subcommand");
+    if let Some(client_cmd) = matches.subcommand_matches("client") {
+        let config_path = matches.value_of("config").unwrap_or("client.toml");
+        let cfg = config::load(Path::new(config_path), false).unwrap();
+
+        if let Some(start_cmd) = client_cmd.subcommand_matches("start") {
+            client::start(cfg).unwrap();
+        }
+
         return;
     }
 
