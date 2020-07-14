@@ -1,16 +1,22 @@
+use actix_web::dev::Server;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use log::*;
-use std::error::Error;
 
-use crate::config;
 use crate::types;
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use crate::types::app::ReliqueApp;
+use crate::{config, lib};
+
+use anyhow::Result;
+use server_daemon::ServerDaemon;
+use std::sync::Mutex;
+use std::thread;
 
 mod routes;
+mod server_daemon;
 
 #[actix_rt::main]
-pub async fn start(cfg: types::config::Config) -> Result<(), Box<dyn Error>> {
+pub async fn start(cfg: types::config::Config) -> Result<()> {
     let cfg_checks = config::check(&cfg);
     let cfg_critical_errors: Vec<&types::config::Error> = cfg_checks
         .iter()
@@ -29,38 +35,48 @@ pub async fn start(cfg: types::config::Config) -> Result<(), Box<dyn Error>> {
         cfg.port.unwrap_or_default()
     );
 
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder
-        .set_private_key_file(cfg.ssl_key.unwrap_or_default(), SslFiletype::PEM)
-        .unwrap();
-    builder
-        .set_certificate_chain_file(cfg.ssl_cert.unwrap_or_default())
-        .unwrap();
+    let app = web::Data::new(Mutex::new(ServerDaemon::new(cfg.clone())?));
+    let signal = chan_signal::notify(ServerDaemon::signals());
 
-    HttpServer::new(|| {
+    let app_state = web::Data::clone(&app);
+    let app_thread = thread::spawn(move || {
+        types::app::run::<ServerDaemon>(app_state, signal).unwrap();
+    });
+
+    let http_state = web::Data::clone(&app);
+
+    let http_server = start_http_server::<ServerDaemon>(&cfg, http_state)?;
+
+    app_thread.join().unwrap();
+    http_server.stop(true).await;
+
+    Ok(())
+}
+
+pub fn start_http_server<T: 'static>(
+    cfg: &types::config::Config,
+    state: web::Data<Mutex<T>>,
+) -> Result<Server>
+where
+    T: ReliqueApp + Send + Sync,
+{
+    let builder = lib::web::get_actix_ssl_builder(cfg)?;
+    let http_server = HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .app_data(web::Data::clone(&state))
             .service(web::scope("/ui").service(routes::ui::index))
             .service(web::scope("/api/v1").service(routes::api::index))
     })
     .bind_openssl(
         format!(
             "{bind_addr}:{port}",
-            bind_addr = cfg.bind_addr.unwrap_or_default(),
+            bind_addr = cfg.bind_addr.as_ref().unwrap(),
             port = cfg.port.unwrap_or_default()
         ),
         builder,
     )?
-    .run()
-    .await;
+    .run();
 
-    //TODO: Stop on ctrlC
-
-    Ok(())
-}
-
-fn stop() -> Result<(), Box<dyn Error>> {
-    warn!("Stopping relique server");
-
-    Ok(())
+    Ok(http_server)
 }

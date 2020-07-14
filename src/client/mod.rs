@@ -1,52 +1,72 @@
+use actix_web::dev::Server;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use log::*;
-use std::error::Error;
 
-use crate::config;
+use crate::client::client_daemon::ClientDaemon;
+use crate::lib;
 use crate::types;
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use crate::types::app::ReliqueApp;
 
+use anyhow::Result;
+use std::sync::Mutex;
+use std::thread;
+
+mod client_daemon;
 mod routes;
 
 #[actix_rt::main]
-pub async fn start(cfg: types::config::Config) -> Result<(), Box<dyn Error>> {
+pub async fn start(cfg: types::config::Config) -> Result<()> {
     info!(
         "Starting relique client on port {}",
         cfg.port.unwrap_or_default()
     );
 
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder
-        .set_private_key_file(cfg.ssl_key.unwrap_or_default(), SslFiletype::PEM)
-        .unwrap();
-    builder
-        .set_certificate_chain_file(cfg.ssl_cert.unwrap_or_default())
-        .unwrap();
+    let app = web::Data::new(Mutex::new(ClientDaemon::new(cfg.clone()).unwrap()));
+    let signal = chan_signal::notify(ClientDaemon::signals());
 
-    HttpServer::new(|| {
-        App::new()
-            .wrap(Logger::default())
-            .service(web::scope("/api/v1").service(routes::api::index))
-    })
-    .bind_openssl(
-        format!(
-            "{bind_addr}:{port}",
-            bind_addr = cfg.bind_addr.unwrap_or_default(),
-            port = cfg.port.unwrap_or_default()
-        ),
-        builder,
-    )?
-    .run()
-    .await;
+    let app_state = web::Data::clone(&app);
+    let app_thread = thread::spawn(move || {
+        types::app::run::<ClientDaemon>(app_state, signal).unwrap();
+    });
 
-    //TODO: Stop on ctrlC
+    let http_state = web::Data::clone(&app);
+
+    let http_server = start_http_server::<ClientDaemon>(&cfg, http_state).unwrap();
+
+    app_thread.join().unwrap();
+    http_server.stop(true).await;
 
     Ok(())
 }
 
-fn stop() -> Result<(), Box<dyn Error>> {
-    warn!("Stopping relique server");
+pub fn start_http_server<T: 'static>(
+    cfg: &types::config::Config,
+    state: web::Data<Mutex<T>>,
+) -> Result<Server>
+where
+    T: ReliqueApp + Send + Sync,
+{
+    let builder = lib::web::get_actix_ssl_builder(cfg)?;
+    let http_server = HttpServer::new(move || {
+        App::new()
+            .wrap(Logger::default())
+            .app_data(web::Data::clone(&state))
+            .service(
+                web::scope("/api/v1")
+                    .service(routes::api::get_config_version)
+                    .service(routes::api::config),
+            )
+    })
+    .bind_openssl(
+        format!(
+            "{bind_addr}:{port}",
+            bind_addr = cfg.bind_addr.as_ref().unwrap(),
+            port = cfg.port.unwrap_or_default()
+        ),
+        builder,
+    )?
+    .run();
 
-    Ok(())
+    Ok(http_server)
 }

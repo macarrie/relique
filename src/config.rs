@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -6,14 +6,17 @@ use std::path::{Path, PathBuf};
 use crate::types::config;
 use log::*;
 
+use crate::types::config::Client;
+use uuid::Uuid;
 use walkdir::WalkDir;
 
-pub fn load(path: &Path, load_clients_conf: bool) -> Result<config::Config, Box<dyn Error>> {
+pub fn load(path: &Path, load_clients_conf: bool) -> Result<config::Config> {
     if !path.exists() {
-        return Err(Box::new(std::io::Error::new(
+        return Err(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             format!("Configuration file '{}' not found", path.display()),
-        )));
+        )
+        .into());
     }
 
     info!("Loading configuration file: '{}'", path.display());
@@ -23,17 +26,18 @@ pub fn load(path: &Path, load_clients_conf: bool) -> Result<config::Config, Box<
     file.read_to_string(&mut cfg_string)?;
 
     let mut cfg: config::Config = toml::from_str(cfg_string.as_str())?;
+    cfg.config_version = Some(Uuid::new_v4());
 
     if load_clients_conf {
         let clients_cfg_path_str = cfg
             .clone()
             .clients_cfg_path
-            .unwrap_or(String::from("clients"));
+            .unwrap_or_else(|| String::from("clients"));
         let clients_cfg_path = Path::new(&clients_cfg_path_str);
 
         let mut clients_path: PathBuf;
         if clients_cfg_path.is_relative() {
-            clients_path = path.clone().canonicalize().unwrap();
+            clients_path = path.canonicalize().unwrap();
             clients_path.pop();
             clients_path.push(clients_cfg_path);
         } else {
@@ -44,7 +48,15 @@ pub fn load(path: &Path, load_clients_conf: bool) -> Result<config::Config, Box<
             "Looking for clients configuration in '{}'",
             clients_path.display()
         );
-        let clients = load_clients_configuration(clients_path.as_ref()).unwrap();
+        let clients_from_cfg = load_clients_configuration(clients_path.as_ref()).unwrap();
+        let clients: Vec<Client> = clients_from_cfg
+            .iter()
+            .map(|c| Client {
+                config_version: cfg.config_version,
+                ..c.to_owned()
+            })
+            .collect();
+
         info!(
             "Found {} client declarations in configuration",
             clients.len()
@@ -57,7 +69,7 @@ pub fn load(path: &Path, load_clients_conf: bool) -> Result<config::Config, Box<
     Ok(cfg)
 }
 
-fn load_clients_configuration(path: &Path) -> Result<Vec<config::Client>, Box<dyn Error>> {
+fn load_clients_configuration(path: &Path) -> Result<Vec<config::Client>> {
     let mut clients: Vec<config::Client> = Vec::new();
 
     for entry in WalkDir::new(path) {
