@@ -2,14 +2,14 @@ use crate::client::client_daemon::ClientDaemon;
 use crate::types;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::*;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 #[post("/config")]
 pub async fn config(
-    state: web::Data<Mutex<ClientDaemon>>,
+    state: web::Data<RwLock<ClientDaemon>>,
     client_cfg: web::Json<types::config::Client>,
 ) -> impl Responder {
-    let mut state = state.lock().unwrap();
+    let mut state = state.write().unwrap();
     let client_config_opt = (*state).client_config.clone();
     let current_config_version = match client_config_opt {
         None => None,
@@ -29,8 +29,8 @@ pub async fn config(
 }
 
 #[get("/config/version")]
-pub async fn get_config_version(state: web::Data<Mutex<ClientDaemon>>) -> impl Responder {
-    let state = state.lock().unwrap();
+pub async fn get_config_version(state: web::Data<RwLock<ClientDaemon>>) -> impl Responder {
+    let state = state.read().unwrap();
     let client_config_opt = (*state).client_config.clone();
     let config_version = match client_config_opt {
         None => types::config::ConfigVersion { version: None },

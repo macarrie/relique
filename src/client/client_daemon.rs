@@ -5,8 +5,11 @@ use crate::types::app::{ReliqueApp, Stopping};
 use crate::types::backup_job::run_job;
 use crate::types::backup_job::{BackupJob, JobStatus};
 use crate::types::config;
+use crate::types::schedule::Schedule;
+use futures::executor::block_on;
 use std::sync::{Arc, RwLock};
 
+// TODO: Add last ping and alert if no ping from server
 pub struct ClientDaemon {
     pub config: config::Config,
     pub client_config: Option<config::Client>,
@@ -29,7 +32,8 @@ impl ReliqueApp for ClientDaemon {
         }
 
         if has_active_schedule(&self.client_config) {
-            start_backup_jobs(self).unwrap();
+            let jobs_future = start_backup_jobs(self);
+            block_on(jobs_future)?;
             for job_arc in &self.jobs {
                 let job = job_arc.read().unwrap();
                 info!("{}", job);
@@ -56,18 +60,32 @@ fn create_backup_jobs(cfg: &Option<config::Client>) -> Vec<Arc<RwLock<BackupJob>
         );
     }
 
-    // TODO: Check module schedules before starting jobs
     for module in &cfg.modules {
-        jobs.push(Arc::new(RwLock::new(BackupJob::new(
-            cfg.clone(),
-            module.clone(),
-        ))));
+        let schedules = cfg
+            .schedules
+            .clone()
+            .into_iter()
+            .filter(|s| {
+                module
+                    .schedules
+                    .as_ref()
+                    .unwrap_or(&vec![])
+                    .contains(&s.name)
+            })
+            .collect();
+        let active_schedules = get_active_schedules(schedules);
+        if !active_schedules.is_empty() {
+            jobs.push(Arc::new(RwLock::new(BackupJob::new(
+                cfg.clone(),
+                module.clone(),
+            ))));
+        }
     }
 
     jobs
 }
 
-fn start_backup_jobs(state: &mut ClientDaemon) -> Result<()> {
+async fn start_backup_jobs(state: &mut ClientDaemon) -> Result<()> {
     let jobs = create_backup_jobs(&state.client_config);
     for job_arc in jobs {
         let job = job_arc.read().unwrap();
@@ -83,7 +101,13 @@ fn start_backup_jobs(state: &mut ClientDaemon) -> Result<()> {
 
         let push_job = Arc::clone(&job_arc);
         let thread_job = Arc::clone(&job_arc);
-        let res = run_job(thread_job);
+        // TODO: Handle error
+        let res = run_job(
+            state.config.clone(),
+            state.client_config.as_ref().unwrap().clone(),
+            thread_job,
+        )
+        .await;
         if let Err(e) = res {
             error!("Error encountered when running backup job: '{}", e);
         }
@@ -94,19 +118,24 @@ fn start_backup_jobs(state: &mut ClientDaemon) -> Result<()> {
     Ok(())
 }
 
+fn get_active_schedules(schedules: Vec<Schedule>) -> Vec<String> {
+    // Check if at least one schedule is active
+    let active_schedules: Vec<String> = schedules
+        .iter()
+        .filter(|sched| sched.is_active())
+        .map(|sched| sched.name.clone())
+        .collect();
+
+    active_schedules
+}
+
 fn has_active_schedule(client: &Option<config::Client>) -> bool {
     if client.is_none() {
         return false;
     }
 
     let cfg_schedules = client.clone().unwrap().schedules;
-
-    // Check if at least one schedule is active
-    let active_schedules: Vec<String> = cfg_schedules
-        .iter()
-        .filter(|sched| sched.is_active())
-        .map(|sched| sched.name.clone())
-        .collect();
+    let active_schedules = get_active_schedules(cfg_schedules);
 
     if active_schedules.is_empty() {
         debug!("No active schedules");

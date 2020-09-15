@@ -7,7 +7,7 @@ use ticker::Ticker;
 
 use crate::types::config;
 use log::*;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -51,13 +51,13 @@ pub trait ReliqueApp: Sized {
 /// where `run_once` is repeatedly called on the `T`. Between calls, any
 /// arriving signals are checked for and passed to the application via
 /// `received_signal`.
-pub fn run<T>(app: web::Data<Mutex<T>>, signal: Receiver<Signal>) -> Result<()>
+pub fn run<T>(app: web::Data<RwLock<T>>, signal: Receiver<Signal>) -> Result<()>
 where
     T: ReliqueApp,
 {
     let mut ticker = Ticker::new(0.., Duration::from_secs(10)).into_iter();
     'main: loop {
-        if let Stopping::Yes = app.lock().unwrap().loop_func()? {
+        if let Stopping::Yes = app.write().unwrap().loop_func()? {
             break;
         }
 
@@ -66,7 +66,7 @@ where
             chan_select! {
                 default => { break; },
                 signal.recv() -> sig => {
-                    let stopping = sig.map(|s| app.lock().unwrap().received_signal(s));
+                    let stopping = sig.map(|s| app.write().unwrap().received_signal(s));
                     if let Some(s) = stopping {
                         if let Stopping::Yes = s.unwrap_or(Stopping::Yes) {
                             info!("Signal ({:?}) received. Shutting down app", sig.unwrap());
@@ -80,6 +80,6 @@ where
         ticker.next();
     }
 
-    app.lock().unwrap().shutdown()?;
+    app.write().unwrap().shutdown()?;
     Ok(())
 }

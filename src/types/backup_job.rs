@@ -2,21 +2,22 @@ use anyhow::Result;
 use log::*;
 use uuid::Uuid;
 
+use crate::lib;
 use crate::types::backup_module;
 use crate::types::config;
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
-use std::time;
 use std::{fmt, thread};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BackupJob {
     pub id: Uuid,
     pub client: config::Client,
-    pub module: backup_module::BackupModuleDef,
+    pub module: backup_module::BackupModule,
     pub status: JobStatus,
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum JobStatus {
     Pending,
     Active,
@@ -45,7 +46,7 @@ impl fmt::Display for BackupJob {
 }
 
 impl BackupJob {
-    pub fn new(client: config::Client, module: backup_module::BackupModuleDef) -> Self {
+    pub fn new(client: config::Client, module: backup_module::BackupModule) -> Self {
         BackupJob {
             id: Uuid::new_v4(),
             client,
@@ -59,7 +60,14 @@ impl BackupJob {
     }
 }
 
-pub fn run_job(job_arc: Arc<RwLock<BackupJob>>) -> Result<()> {
+pub async fn run_job(
+    cfg: config::Config,
+    client_cfg: config::Client,
+    job_arc: Arc<RwLock<BackupJob>>,
+) -> Result<()> {
+    // TODO: Handle thread crash
+    let arc_config = Arc::new(RwLock::new(cfg));
+    let arc_client_config = Arc::new(RwLock::new(client_cfg));
     thread::spawn(move || {
         {
             let job = job_arc.read().unwrap();
@@ -74,17 +82,34 @@ pub fn run_job(job_arc: Arc<RwLock<BackupJob>>) -> Result<()> {
         job_arc.write().unwrap().set_status(JobStatus::Active);
 
         // TODO: Launch prebackup script
-        // TODO: Perform backup
-        for _i in 0..130 {
-            {
-                let job = job_arc.read().unwrap();
-                warn!("Job {id} run loop iter", id = job.id);
-            }
-            thread::sleep(time::Duration::from_secs(1))
+        {
+            let job = job_arc.read().unwrap();
+            info!(
+                "Launching prebackup script '{path}' for job ID '{id}' on client {client} for module {module}",
+                path = job.module.pre_backup_script.as_ref().unwrap_or(&String::from("")),
+                id = job.id,
+                client = job.client,
+                module = job.module
+            );
         }
-        // TODO: Launch postbackup script
 
-        job_arc.write().unwrap().set_status(JobStatus::Done);
+        // TODO: Perform backup
+        let lib_job = Arc::clone(&job_arc);
+        // TODO: Handle error
+        let _start_res = lib::backup::start(arc_config, arc_client_config, lib_job);
+        // TODO: Clean async
+        //block_on(start_res);
+        // TODO: Launch postbackup script
+        {
+            let job = job_arc.read().unwrap();
+            info!(
+                "Launching postbackup script '{path}' for job ID '{id}' on client {client} for module {module}",
+                path = job.module.post_backup_script.as_ref().unwrap_or(&String::from("")),
+                id = job.id,
+                client = job.client,
+                module = job.module
+            );
+        }
     });
 
     // TODO: Remove log

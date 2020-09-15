@@ -9,7 +9,7 @@ use crate::{config, lib};
 
 use anyhow::Result;
 use server_daemon::ServerDaemon;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::thread;
 
 mod routes;
@@ -35,7 +35,7 @@ pub async fn start(cfg: types::config::Config) -> Result<()> {
         cfg.port.unwrap_or_default()
     );
 
-    let app = web::Data::new(Mutex::new(ServerDaemon::new(cfg.clone())?));
+    let app = web::Data::new(RwLock::new(ServerDaemon::new(cfg.clone())?));
     let signal = chan_signal::notify(ServerDaemon::signals());
 
     let app_state = web::Data::clone(&app);
@@ -55,7 +55,7 @@ pub async fn start(cfg: types::config::Config) -> Result<()> {
 
 pub fn start_http_server<T: 'static>(
     cfg: &types::config::Config,
-    state: web::Data<Mutex<T>>,
+    state: web::Data<RwLock<T>>,
 ) -> Result<Server>
 where
     T: ReliqueApp + Send + Sync,
@@ -66,7 +66,11 @@ where
             .wrap(Logger::default())
             .app_data(web::Data::clone(&state))
             .service(web::scope("/ui").service(routes::ui::index))
-            .service(web::scope("/api/v1").service(routes::api::index))
+            .service(
+                web::scope("/api/v1")
+                    .service(routes::api::backup_jobs_register)
+                    .service(routes::api::update_backup_jobs_status),
+            )
     })
     .bind_openssl(
         format!(

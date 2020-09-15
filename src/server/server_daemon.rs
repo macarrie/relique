@@ -1,20 +1,26 @@
+use anyhow::anyhow;
 use anyhow::Result;
 use log::*;
 
 use crate::lib;
 use crate::types;
 use crate::types::app::{ReliqueApp, Stopping};
+use crate::types::backup_job::JobStatus;
 use crate::types::config::ConfigVersion;
 use futures::executor::block_on;
 use uuid::Uuid;
 
 pub struct ServerDaemon {
     pub config: types::config::Config,
+    pub active_jobs: Vec<types::backup_job::BackupJob>,
 }
 
 impl ReliqueApp for ServerDaemon {
     fn new(config: types::config::Config) -> Result<Self> {
-        Ok(ServerDaemon { config })
+        Ok(ServerDaemon {
+            config,
+            active_jobs: vec![],
+        })
     }
 
     fn loop_func(&mut self) -> Result<Stopping> {
@@ -28,6 +34,24 @@ impl ReliqueApp for ServerDaemon {
         block_on(config_send_future).unwrap_or_else(|err| {
             warn!("An error occurred when sending configuration to some clients ({}). See previous log entries for more details", err);
         });
+
+        let active_jobs_count = self
+            .active_jobs
+            .iter()
+            .filter(|j| j.status == JobStatus::Active)
+            .count();
+        if active_jobs_count == 0 {
+            info!("No active backup jobs on clients");
+        } else {
+            info!("{} backup jobs active on clients", active_jobs_count);
+            for job in &self.active_jobs {
+                debug!(
+                    "Backup job '{job}' active on client '{client}'",
+                    job = job,
+                    client = job.client
+                );
+            }
+        }
 
         Ok(Stopping::No)
     }
@@ -78,11 +102,16 @@ async fn get_config_version(
         port = client.port.unwrap()
     );
 
-    let client = lib::web::get_http_client(cfg.ssl_cert, cfg.strict_ssl_certificate_check)?;
-    let res = client.get(&url).send().await?;
-    let config_version = res.json::<ConfigVersion>().await?;
+    let client = lib::web::get_http_client(cfg.strict_ssl_certificate_check)?;
+    let res = client.get(&url).send().await;
 
-    Ok(config_version.version)
+    match res {
+        Ok(mut response) => {
+            let config_version = response.json::<ConfigVersion>().await?;
+            Ok(config_version.version)
+        }
+        Err(e) => Err(anyhow!("{}", e)),
+    }
 }
 
 #[actix_rt::main]
@@ -96,17 +125,8 @@ async fn send_config_to_client(
         port = client.port.unwrap()
     );
 
-    let http_client =
-        lib::web::get_http_client(cfg.ssl_cert, cfg.strict_ssl_certificate_check).unwrap();
-    let res = http_client
-        .post(&url)
-        .json(&client)
-        .send()
-        .await?
-        .error_for_status();
-    if let Err(e) = res {
-        return Err(e.into());
-    }
+    let http_client = lib::web::get_http_client(cfg.strict_ssl_certificate_check).unwrap();
+    let res = http_client.post(&url).send_json(&client).await;
 
-    Ok(())
+    res.map_err(|e| anyhow!("{}", e)).and(Ok(()))
 }

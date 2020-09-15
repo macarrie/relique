@@ -1,4 +1,4 @@
-use crate::types::backup_module::BackupModuleDef;
+use crate::types::backup_module::BackupModule;
 use crate::types::schedule::Schedule;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -10,9 +10,11 @@ pub struct Client {
     pub name: String,
     pub address: String,
     pub port: Option<u32>,
-    pub modules: Vec<BackupModuleDef>,
+    pub modules: Vec<BackupModule>,
     pub schedules: Vec<Schedule>,
     pub config_version: Option<Uuid>,
+    pub server_address: String,
+    pub server_port: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,6 +24,7 @@ pub struct Config {
     pub clients: Option<Vec<Client>>,
     pub schedules: Option<Vec<Schedule>>,
     pub bind_addr: Option<String>,
+    pub public_address: String,
     pub port: Option<u32>,
     pub ssl_cert: Option<String>,
     pub ssl_key: Option<String>,
@@ -30,7 +33,7 @@ pub struct Config {
     pub schedules_cfg_path: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigVersion {
     pub version: Option<Uuid>,
 }
@@ -41,7 +44,9 @@ impl Default for Client {
             config_version: None,
             name: "".to_string(),
             address: "".to_string(),
-            port: Some(8433),
+            port: Some(8434),
+            server_address: "".to_string(),
+            server_port: Some(8433),
             modules: vec![],
             schedules: vec![],
         }
@@ -61,6 +66,7 @@ impl Default for Config {
             clients: None,
             schedules: None,
             bind_addr: Some("0.0.0.0".to_string()),
+            public_address: "localhost".to_string(),
             port: Some(8433),
             ssl_cert: Some(String::from("/etc/relique/cert.pem")),
             ssl_key: Some(String::from("/etc/relique/key.pem")),

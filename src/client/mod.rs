@@ -9,7 +9,7 @@ use crate::types;
 use crate::types::app::ReliqueApp;
 
 use anyhow::Result;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::thread;
 
 mod client_daemon;
@@ -22,7 +22,7 @@ pub async fn start(cfg: types::config::Config) -> Result<()> {
         cfg.port.unwrap_or_default()
     );
 
-    let app = web::Data::new(Mutex::new(ClientDaemon::new(cfg.clone()).unwrap()));
+    let app = web::Data::new(RwLock::new(ClientDaemon::new(cfg.clone()).unwrap()));
     let signal = chan_signal::notify(ClientDaemon::signals());
 
     let app_state = web::Data::clone(&app);
@@ -42,7 +42,7 @@ pub async fn start(cfg: types::config::Config) -> Result<()> {
 
 pub fn start_http_server<T: 'static>(
     cfg: &types::config::Config,
-    state: web::Data<Mutex<T>>,
+    state: web::Data<RwLock<T>>,
 ) -> Result<Server>
 where
     T: ReliqueApp + Send + Sync,

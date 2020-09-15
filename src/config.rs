@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::types::config;
 use log::*;
 
-use crate::types::backup_module::BackupModuleDef;
+use crate::types::backup_module::BackupModule;
 use crate::types::config::Client;
 use crate::types::schedule::Schedule;
 use serde::de::DeserializeOwned;
@@ -40,10 +40,11 @@ pub fn load(path: &Path, is_server: bool) -> Result<config::Config> {
             clients_path.display()
         );
         let mut clients = load_folder_configuration::<Client>(clients_path.as_ref()).unwrap();
-        let default_module_configuration = load_modules_default_config(&clients).unwrap_or_else(|err| {
-            error!("{}", err);
-            std::process::exit(exitcode::CONFIG);
-        });
+        let default_module_configuration =
+            load_modules_default_config(&clients).unwrap_or_else(|err| {
+                error!("{}", err);
+                std::process::exit(exitcode::CONFIG);
+            });
 
         info!(
             "Found {} clients declarations in configuration",
@@ -72,6 +73,8 @@ pub fn load(path: &Path, is_server: bool) -> Result<config::Config> {
         for client in &mut clients {
             (*client).schedules = schedules.clone();
             (*client).config_version = cfg.config_version;
+            (*client).server_address = cfg.public_address.clone();
+            (*client).server_port = cfg.port;
             for module in &mut client.modules {
                 let default_module_cfg = default_module_configuration.get(&module.module_type);
                 if default_module_cfg.is_none() {
@@ -106,10 +109,8 @@ fn get_load_path(base_path: &Path, path: Option<String>, default: &str) -> PathB
     item_path
 }
 
-fn merge_module_definitions(def :&mut BackupModuleDef, default_values :&BackupModuleDef) -> BackupModuleDef {
-    let mut new = BackupModuleDef {
-        ..def.to_owned()
-    };
+fn merge_module_definitions(def: &mut BackupModule, default_values: &BackupModule) -> BackupModule {
+    let mut new = BackupModule { ..def.to_owned() };
 
     if new.backup_paths.is_none() {
         new.backup_paths = default_values.backup_paths.clone();
@@ -134,28 +135,35 @@ fn merge_module_definitions(def :&mut BackupModuleDef, default_values :&BackupMo
     new
 }
 
-fn load_modules_default_config(clients :&[Client]) -> Result<HashMap<String, BackupModuleDef>> {
-    let mut defaults: HashMap<String, BackupModuleDef> = HashMap::new();
+fn load_modules_default_config(clients: &[Client]) -> Result<HashMap<String, BackupModule>> {
+    let mut defaults: HashMap<String, BackupModule> = HashMap::new();
 
     for client in clients {
         for module in &client.modules {
-            let path_str = format!("/var/lib/relique/modules/{}/default.toml", module.module_type);
+            let path_str = format!(
+                "/var/lib/relique/modules/{}/default.toml",
+                module.module_type
+            );
             let path = Path::new(&path_str);
 
             if !path.exists() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    format!("Default module parameters file not found for module '{}' in '{}'", module.module_type, path.display()),
+                    format!("Default module parameters file not found for module '{}' in '{}'. Check that this module is correctly installed and/or spelled", module.module_type, path.display()),
                 ).into());
             }
 
-            info!("Loading default parameters for module '{}': '{}'", module.module_type, path.display());
+            info!(
+                "Loading default parameters for module '{}': '{}'",
+                module.module_type,
+                path.display()
+            );
 
             let mut file = File::open(path)?;
             let mut cfg_string = String::new();
             file.read_to_string(&mut cfg_string)?;
 
-            let def: BackupModuleDef = toml::from_str(cfg_string.as_str())?;
+            let def: BackupModule = toml::from_str(cfg_string.as_str())?;
             if !defaults.contains_key(&module.module_type) {
                 defaults.insert(module.module_type.clone(), def);
             }
@@ -213,6 +221,7 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
     }
 
     // Check: Client duplicates
+    // Check: Client schedules exists
     let clients = cfg.clients.clone().unwrap_or_else(Vec::new);
     let mut clients_name_map: HashMap<String, bool> = HashMap::new();
     let mut clients_addr_port_map: HashMap<(String, u32), bool> = HashMap::new();
@@ -247,11 +256,47 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
                 desc: msg,
             });
         }
+
+        if client.modules.is_empty() {
+            let msg = format!(
+                "No backup modules defined for client '{}'. No backup will be performed on this client",
+                client
+            );
+            warn!("{}", msg);
+            errors.push(config::Error {
+                key: "clients.modules".to_string(),
+                level: config::ErrorLevel::Warning,
+                desc: msg,
+            });
+        }
+
+        for module in client.modules {
+            for schedule_name in module.schedules.unwrap_or_default() {
+                if client
+                    .schedules
+                    .iter()
+                    .filter(|s| s.name == schedule_name)
+                    .count()
+                    == 0
+                {
+                    let msg = format!(
+                        "Unknown schedule '{}' defined on module '{}' of client '{}'",
+                        schedule_name, module.name, client.name,
+                    );
+                    error!("{}", msg);
+                    errors.push(config::Error {
+                        key: "clients.modules.schedules".to_string(),
+                        level: config::ErrorLevel::Critical,
+                        desc: msg,
+                    });
+                }
+            }
+        }
     }
-    // TODO: Check client modules empty
     // TODO: Check unknown client modules
     // TODO: Check schedule ranges coherence
-    // TODO: Check unknown schedules in clients config
+    // TODO: Error if server public_address is empty
+    // TODO: Warning if server public_address is localhost
 
     errors
 }

@@ -1,10 +1,10 @@
 use crate::types;
 
+use actix_web::client::{ClientBuilder, Connector};
 use anyhow::Result;
-use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
-use reqwest::ClientBuilder;
-use std::fs::File;
-use std::io::Read;
+use openssl::ssl::{
+    SslAcceptor, SslAcceptorBuilder, SslConnector, SslFiletype, SslMethod, SslVerifyMode,
+};
 
 pub fn get_actix_ssl_builder(cfg: &types::config::Config) -> Result<SslAcceptorBuilder> {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
@@ -14,25 +14,15 @@ pub fn get_actix_ssl_builder(cfg: &types::config::Config) -> Result<SslAcceptorB
     Ok(builder)
 }
 
-pub fn get_http_client(
-    ssl_cert_path: Option<String>,
-    check_ssl_cert: Option<bool>,
-) -> Result<reqwest::Client> {
-    let mut buf = Vec::new();
-    let mut file =
-        File::open(ssl_cert_path.unwrap_or_else(|| String::from("/etc/relique/cert.pem")))?;
-    file.read_to_end(&mut buf)?;
-    let cert = reqwest::Certificate::from_pem(&buf)?;
+pub fn get_http_client(check_ssl_cert: Option<bool>) -> Result<actix_web::client::Client> {
+    let mut ssl_connector_builder = SslConnector::builder(SslMethod::tls_client())?;
+    if !check_ssl_cert.unwrap_or(true) {
+        ssl_connector_builder.set_verify(SslVerifyMode::NONE);
+    }
+    let ssl_connector = ssl_connector_builder.build();
 
-    let client_builder: ClientBuilder = if !check_ssl_cert.unwrap_or(false) {
-        ClientBuilder::new()
-            .danger_accept_invalid_certs(true)
-            .add_root_certificate(cert)
-    } else {
-        ClientBuilder::new()
-    };
-
-    let client = client_builder.build()?;
+    let connector = Connector::new().ssl(ssl_connector).finish();
+    let client = ClientBuilder::new().connector(connector).finish();
 
     Ok(client)
 }
