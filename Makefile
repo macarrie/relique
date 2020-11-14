@@ -2,7 +2,7 @@ build:
 	cargo build --verbose --all --release
 
 check:
-	cargo clippy --all-targets --all-features -- -D warnings
+	cargo clippy --workspace -- -Wclippy::all -Wclippy::pedantic -D warnings
 
 test:
 	cargo test --verbose --all

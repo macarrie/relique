@@ -1,5 +1,6 @@
 use crate::client::client_daemon::ClientDaemon;
-use crate::types;
+use crate::types::config::client::Client as CfgClient;
+use crate::types::config::config_version::ConfigVersion;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use log::*;
 use std::sync::RwLock;
@@ -7,7 +8,7 @@ use std::sync::RwLock;
 #[post("/config")]
 pub async fn config(
     state: web::Data<RwLock<ClientDaemon>>,
-    client_cfg: web::Json<types::config::Client>,
+    client_cfg: web::Json<CfgClient>,
 ) -> impl Responder {
     let mut state = state.write().unwrap();
     let client_config_opt = (*state).client_config.clone();
@@ -33,8 +34,8 @@ pub async fn get_config_version(state: web::Data<RwLock<ClientDaemon>>) -> impl 
     let state = state.read().unwrap();
     let client_config_opt = (*state).client_config.clone();
     let config_version = match client_config_opt {
-        None => types::config::ConfigVersion { version: None },
-        Some(client_config) => types::config::ConfigVersion {
+        None => ConfigVersion { version: None },
+        Some(client_config) => ConfigVersion {
             version: client_config.config_version,
         },
     };

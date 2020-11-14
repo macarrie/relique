@@ -5,6 +5,7 @@ use std::path::Path;
 mod cli;
 mod client;
 mod config;
+mod db;
 mod lib;
 mod logger;
 mod server;

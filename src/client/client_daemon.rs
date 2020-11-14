@@ -3,8 +3,10 @@ use log::*;
 
 use crate::types::app::{ReliqueApp, Stopping};
 use crate::types::backup_job::run_job;
-use crate::types::backup_job::{BackupJob, JobStatus};
+use crate::types::backup_job::BackupJob;
 use crate::types::config;
+use crate::types::db;
+use crate::types::job_status::JobStatus;
 use crate::types::schedule::Schedule;
 use futures::executor::block_on;
 use std::sync::{Arc, RwLock};
@@ -12,16 +14,18 @@ use std::sync::{Arc, RwLock};
 // TODO: Add last ping and alert if no ping from server
 pub struct ClientDaemon {
     pub config: config::Config,
-    pub client_config: Option<config::Client>,
+    pub client_config: Option<config::client::Client>,
     pub jobs: Vec<Arc<RwLock<BackupJob>>>,
+    pub db_pool: Option<db::Pool>,
 }
 
 impl ReliqueApp for ClientDaemon {
-    fn new(config: config::Config) -> Result<Self> {
+    fn new(config: config::Config, _db_pool: Option<db::Pool>) -> Result<Self> {
         Ok(ClientDaemon {
             config,
             client_config: None,
             jobs: Vec::new(),
+            db_pool: None,
         })
     }
 
@@ -46,7 +50,7 @@ impl ReliqueApp for ClientDaemon {
     }
 }
 
-fn create_backup_jobs(cfg: &Option<config::Client>) -> Vec<Arc<RwLock<BackupJob>>> {
+fn create_backup_jobs(cfg: &Option<config::client::Client>) -> Vec<Arc<RwLock<BackupJob>>> {
     let cfg = match cfg {
         None => return Vec::new(),
         Some(c) => c,
@@ -129,7 +133,7 @@ fn get_active_schedules(schedules: Vec<Schedule>) -> Vec<String> {
     active_schedules
 }
 
-fn has_active_schedule(client: &Option<config::Client>) -> bool {
+fn has_active_schedule(client: &Option<config::client::Client>) -> bool {
     if client.is_none() {
         return false;
     }
@@ -142,7 +146,7 @@ fn has_active_schedule(client: &Option<config::Client>) -> bool {
         return false;
     }
 
-    info!("Active schedules: {}", active_schedules.join(", "));
+    debug!("Active schedules: {}", active_schedules.join(", "));
 
     true
 }

@@ -22,7 +22,7 @@ pub async fn start(cfg: types::config::Config) -> Result<()> {
         cfg.port.unwrap_or_default()
     );
 
-    let app = web::Data::new(RwLock::new(ClientDaemon::new(cfg.clone()).unwrap()));
+    let app = web::Data::new(RwLock::new(ClientDaemon::new(cfg.clone(), None).unwrap()));
     let signal = chan_signal::notify(ClientDaemon::signals());
 
     let app_state = web::Data::clone(&app);

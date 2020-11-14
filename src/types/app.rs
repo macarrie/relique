@@ -6,6 +6,7 @@ use chan_signal::Signal;
 use ticker::Ticker;
 
 use crate::types::config;
+use crate::types::db;
 use log::*;
 use std::sync::RwLock;
 use std::time::Duration;
@@ -22,7 +23,7 @@ pub enum Stopping {
 /// The application; domain-specific program logic
 pub trait ReliqueApp: Sized {
     /// Create a new instance given the options and config
-    fn new(_: config::Config) -> Result<Self>;
+    fn new(_: config::Config, _: Option<db::Pool>) -> Result<Self>;
 
     /// Called repeatedly in the main loop of the application.
     fn loop_func(&mut self) -> Result<Stopping>;

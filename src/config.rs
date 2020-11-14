@@ -7,7 +7,6 @@ use crate::types::config;
 use log::*;
 
 use crate::types::backup_module::BackupModule;
-use crate::types::config::Client;
 use crate::types::schedule::Schedule;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -39,7 +38,8 @@ pub fn load(path: &Path, is_server: bool) -> Result<config::Config> {
             "Looking for clients configuration in '{}'",
             clients_path.display()
         );
-        let mut clients = load_folder_configuration::<Client>(clients_path.as_ref()).unwrap();
+        let mut clients =
+            load_folder_configuration::<config::client::Client>(clients_path.as_ref()).unwrap();
         let default_module_configuration =
             load_modules_default_config(&clients).unwrap_or_else(|err| {
                 error!("{}", err);
@@ -135,7 +135,9 @@ fn merge_module_definitions(def: &mut BackupModule, default_values: &BackupModul
     new
 }
 
-fn load_modules_default_config(clients: &[Client]) -> Result<HashMap<String, BackupModule>> {
+fn load_modules_default_config(
+    clients: &[config::client::Client],
+) -> Result<HashMap<String, BackupModule>> {
     let mut defaults: HashMap<String, BackupModule> = HashMap::new();
 
     for client in clients {
@@ -201,10 +203,10 @@ where
     Ok(item_list)
 }
 
-pub fn check(cfg: &config::Config) -> Vec<config::Error> {
+pub fn check(cfg: &config::Config) -> Vec<config::error::Error> {
     debug!("Starting configuration checks");
 
-    let mut errors: Vec<config::Error> = Vec::new();
+    let mut errors: Vec<config::error::Error> = Vec::new();
 
     // Check: No clients
     let clients_count = match &cfg.clients {
@@ -213,9 +215,9 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
     };
     if clients_count == 0 {
         warn!("No client declaration found in configuration");
-        errors.push(config::Error {
+        errors.push(config::error::Error {
             key: "clients".to_string(),
-            level: config::ErrorLevel::Warning,
+            level: config::error::ErrorLevel::Warning,
             desc: "No clients defined".to_string(),
         });
     }
@@ -234,9 +236,9 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
                 client.name.clone()
             );
             error!("{}", msg);
-            errors.push(config::Error {
+            errors.push(config::error::Error {
                 key: "clients.name".to_string(),
-                level: config::ErrorLevel::Critical,
+                level: config::error::ErrorLevel::Critical,
                 desc: msg,
             });
         }
@@ -250,9 +252,9 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
                 port
             );
             error!("{}", msg);
-            errors.push(config::Error {
+            errors.push(config::error::Error {
                 key: "clients.address, clients.port".to_string(),
-                level: config::ErrorLevel::Critical,
+                level: config::error::ErrorLevel::Critical,
                 desc: msg,
             });
         }
@@ -263,9 +265,9 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
                 client
             );
             warn!("{}", msg);
-            errors.push(config::Error {
+            errors.push(config::error::Error {
                 key: "clients.modules".to_string(),
-                level: config::ErrorLevel::Warning,
+                level: config::error::ErrorLevel::Warning,
                 desc: msg,
             });
         }
@@ -284,9 +286,9 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
                         schedule_name, module.name, client.name,
                     );
                     error!("{}", msg);
-                    errors.push(config::Error {
+                    errors.push(config::error::Error {
                         key: "clients.modules.schedules".to_string(),
-                        level: config::ErrorLevel::Critical,
+                        level: config::error::ErrorLevel::Critical,
                         desc: msg,
                     });
                 }
@@ -294,9 +296,11 @@ pub fn check(cfg: &config::Config) -> Vec<config::Error> {
         }
     }
     // TODO: Check unknown client modules
+    // TODO: Check missing backup_type
     // TODO: Check schedule ranges coherence
     // TODO: Error if server public_address is empty
     // TODO: Warning if server public_address is localhost
+    // TODO: Check if backup_storage_path existence and accessibility. If not, create the folder
 
     errors
 }

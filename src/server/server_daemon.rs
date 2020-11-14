@@ -1,25 +1,25 @@
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::*;
 
 use crate::lib;
-use crate::types;
 use crate::types::app::{ReliqueApp, Stopping};
-use crate::types::backup_job::JobStatus;
-use crate::types::config::ConfigVersion;
+use crate::types::backup_job::BackupJob;
+use crate::types::config;
+use crate::types::config::config_version::ConfigVersion;
+use crate::types::db;
 use futures::executor::block_on;
 use uuid::Uuid;
 
 pub struct ServerDaemon {
-    pub config: types::config::Config,
-    pub active_jobs: Vec<types::backup_job::BackupJob>,
+    pub config: config::Config,
+    pub db_pool: db::Pool,
 }
 
 impl ReliqueApp for ServerDaemon {
-    fn new(config: types::config::Config) -> Result<Self> {
+    fn new(config: config::Config, db_pool: Option<db::Pool>) -> Result<Self> {
         Ok(ServerDaemon {
             config,
-            active_jobs: vec![],
+            db_pool: db_pool.unwrap(),
         })
     }
 
@@ -35,16 +35,12 @@ impl ReliqueApp for ServerDaemon {
             warn!("An error occurred when sending configuration to some clients ({}). See previous log entries for more details", err);
         });
 
-        let active_jobs_count = self
-            .active_jobs
-            .iter()
-            .filter(|j| j.status == JobStatus::Active)
-            .count();
-        if active_jobs_count == 0 {
+        let active_jobs = BackupJob::get_active_jobs(self.db_pool.clone()).unwrap_or(vec![]);
+        if active_jobs.is_empty() {
             info!("No active backup jobs on clients");
         } else {
-            info!("{} backup jobs active on clients", active_jobs_count);
-            for job in &self.active_jobs {
+            info!("{} backup jobs active on clients", active_jobs.len());
+            for job in active_jobs {
                 debug!(
                     "Backup job '{job}' active on client '{client}'",
                     job = job,
@@ -58,8 +54,8 @@ impl ReliqueApp for ServerDaemon {
 }
 
 async fn send_configuration_to_clients(
-    cfg: &types::config::Config,
-    clients: &[types::config::Client],
+    cfg: &config::Config,
+    clients: &[config::client::Client],
 ) -> Result<()> {
     for client in clients {
         let client_cfg_version = get_config_version(cfg.clone(), client.clone());
@@ -93,8 +89,8 @@ async fn send_configuration_to_clients(
 
 #[actix_rt::main]
 async fn get_config_version(
-    cfg: types::config::Config,
-    client: types::config::Client,
+    cfg: config::Config,
+    client: config::client::Client,
 ) -> Result<Option<Uuid>> {
     let url = format!(
         "https://{address}:{port}/api/v1/config/version",
@@ -115,10 +111,7 @@ async fn get_config_version(
 }
 
 #[actix_rt::main]
-async fn send_config_to_client(
-    cfg: types::config::Config,
-    client: types::config::Client,
-) -> Result<()> {
+async fn send_config_to_client(cfg: config::Config, client: config::client::Client) -> Result<()> {
     let url = format!(
         "https://{address}:{port}/api/v1/config",
         address = client.address,
