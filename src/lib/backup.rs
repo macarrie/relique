@@ -205,7 +205,6 @@ async fn send_files(
 }
 
 // TODO: Merge with send delta func
-#[actix_rt::main]
 pub async fn start(
     cfg: Arc<RwLock<Config>>,
     client_cfg: Arc<RwLock<config::client::Client>>,

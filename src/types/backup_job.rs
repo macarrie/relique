@@ -21,6 +21,14 @@ pub struct BackupJob {
     pub backup_type: BackupType,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BackupJobSearchParameters {
+    pub client_name: Option<String>,
+    pub module_name: Option<String>,
+    pub backup_type: Option<BackupType>,
+    pub limit: Option<u32>,
+}
+
 impl fmt::Display for BackupJob {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.status {
@@ -56,6 +64,39 @@ impl BackupJob {
 
     pub fn set_status(&mut self, status: JobStatus) {
         self.status = status;
+    }
+
+    pub fn search(pool: db::Pool, limit: Option<u32>) -> Result<Vec<BackupJob>> {
+        let conn = pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT \
+                uuid  \
+             FROM jobs \
+             JOIN clients ON client_id = clients.id \
+             JOIN modules ON module_id = modules.id\
+             LIMIT :limit",
+        )?;
+        let uuids: Vec<Uuid> = stmt
+            .query_map_named(named_params![":limit": limit.unwrap_or(500)], |row| {
+                Ok(row.get(0)?)
+            })?
+            .map(Result::unwrap)
+            .collect();
+
+        if uuids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let jobs = uuids
+            .iter()
+            .map(|uuid| BackupJob::find_by_uuid(*uuid, pool.clone()))
+            .filter(|res| res.is_ok())
+            .map(Result::unwrap)
+            .filter(|opt| opt.is_some())
+            .map(Option::unwrap)
+            .collect();
+
+        Ok(jobs)
     }
 
     pub fn get_active_jobs(pool: db::Pool) -> Result<Vec<BackupJob>> {

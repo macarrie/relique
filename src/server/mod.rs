@@ -10,7 +10,9 @@ use crate::types::app;
 use crate::types::app::ReliqueApp;
 use crate::types::config;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use futures::executor::block_on;
+use futures::join;
 use server_daemon::ServerDaemon;
 use std::sync::RwLock;
 use std::thread;
@@ -61,6 +63,19 @@ pub async fn start(cfg: config::Config) -> Result<()> {
     Ok(())
 }
 
+#[actix_rt::main]
+pub async fn ping(cfg: config::Config) -> Result<()> {
+    let url = format!(
+        "https://localhost:{port}/api/v1/ping",
+        port = cfg.port.unwrap_or(8433),
+    );
+
+    let http_client = lib::web::get_http_client(cfg.strict_ssl_certificate_check).unwrap();
+    let res = http_client.post(&url).send().await;
+
+    res.map_err(|e| anyhow!("{}", e)).and(Ok(()))
+}
+
 pub fn start_http_server<T: 'static>(
     cfg: &config::Config,
     state: web::Data<RwLock<T>>,
@@ -76,6 +91,7 @@ where
             .service(web::scope("/ui").service(routes::ui::index))
             .service(
                 web::scope("/api/v1")
+                    .service(routes::api::ping)
                     .service(routes::api::post_backup_jobs_register)
                     .service(routes::api::put_backup_jobs_id_status)
                     .service(routes::api::get_backup_jobs_id_signature)

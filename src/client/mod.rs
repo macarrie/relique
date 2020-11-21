@@ -9,13 +9,13 @@ use crate::types;
 use crate::types::app::ReliqueApp;
 
 use anyhow::Result;
-use std::sync::RwLock;
+use futures::executor::block_on;
+use std::sync::{mpsc, RwLock};
 use std::thread;
 
 mod client_daemon;
 mod routes;
 
-#[actix_rt::main]
 pub async fn start(cfg: types::config::Config) -> Result<()> {
     info!(
         "Starting relique client on port {}",

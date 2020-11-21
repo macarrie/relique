@@ -24,6 +24,7 @@ impl ReliqueApp for ServerDaemon {
     }
 
     fn loop_func(&mut self) -> Result<Stopping> {
+        error!("APP LOOP FUNC");
         if self.config.clients.is_none() {
             info!("No clients found in configuration");
             return Ok(Stopping::No);

@@ -30,14 +30,15 @@ impl ReliqueApp for ClientDaemon {
     }
 
     fn loop_func(&mut self) -> Result<Stopping> {
+        error!("APP LOOP FUNC");
         if self.client_config.is_none() {
             info!("Waiting for configuration from relique server");
             return Ok(Stopping::No);
         }
 
         if has_active_schedule(&self.client_config) {
-            let jobs_future = start_backup_jobs(self);
-            block_on(jobs_future)?;
+            let jobs_future = start_backup_jobs(self).await?;
+
             for job_arc in &self.jobs {
                 let job = job_arc.read().unwrap();
                 info!("{}", job);

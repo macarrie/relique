@@ -56,6 +56,7 @@ pub fn run<T>(app: web::Data<RwLock<T>>, signal: Receiver<Signal>) -> Result<()>
 where
     T: ReliqueApp,
 {
+    error!("STARTING APP");
     let mut ticker = Ticker::new(0.., Duration::from_secs(10)).into_iter();
     'main: loop {
         if let Stopping::Yes = app.write().unwrap().loop_func()? {

@@ -3,7 +3,7 @@ use crate::lib::backup::get_diff_reference_file_path;
 use crate::lib::rsync;
 use crate::server::server_daemon::ServerDaemon;
 use crate::types::backup_file::BackupFile;
-use crate::types::backup_job::BackupJob;
+use crate::types::backup_job::{BackupJob, BackupJobSearchParameters};
 use crate::types::job_status::JobStatus;
 use actix_web::web::Bytes;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
@@ -12,6 +12,48 @@ use log::*;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use uuid::Uuid;
+
+#[post("/ping")]
+pub async fn ping() -> impl Responder {
+    HttpResponse::Ok().body("pong")
+}
+
+#[get("/jobs/search")]
+pub async fn jobs_search(
+    state: web::Data<RwLock<ServerDaemon>>,
+    params: web::Json<BackupJobSearchParameters>,
+) -> impl Responder {
+    let state = state.read().unwrap();
+    let search_jobs = BackupJob::search(state.db_pool.clone(), params.limit).unwrap_or(vec![]);
+    let return_jobs: Vec<BackupJob> = search_jobs
+        .into_iter()
+        .filter(|job| {
+            let mut filter_pass = true;
+            if params.client_name.is_some() {
+                let client_name = params.client_name.clone().unwrap();
+                if job.client.name != client_name {
+                    filter_pass = false;
+                }
+            }
+            if params.module_name.is_some() {
+                let module_name = params.module_name.clone().unwrap();
+                if job.module.name != module_name {
+                    filter_pass = false;
+                }
+            }
+            if params.backup_type.is_some() {
+                let backup_type = params.backup_type.unwrap();
+                if job.backup_type != backup_type {
+                    filter_pass = false;
+                }
+            }
+
+            filter_pass
+        })
+        .collect();
+
+    HttpResponse::Ok().json(return_jobs)
+}
 
 #[post("/backup/jobs/register")]
 pub async fn post_backup_jobs_register(
