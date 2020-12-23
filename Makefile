@@ -1,8 +1,22 @@
-build:
-	cargo build --verbose --all --release
+all: clean bin/relique-client bin/relique-server
 
-check:
-	cargo clippy --workspace -- -Wclippy::all -Wclippy::pedantic -D warnings
+build/bin:
+	mkdir -p $@
 
-test:
-	cargo test --verbose --all
+build/bin/relique-server: build/bin
+	go build -o $@ cmd/relique-server/main.go
+
+build/bin/relique-client: build/bin
+	go build -o $@ cmd/relique-client/main.go
+
+build/bin/relique: build/bin
+	go build -o $@ cmd/relique/main.go
+
+server: build/bin/relique-server
+client: build/bin/relique-client
+cli: build/bin/relique
+
+clean:
+	rm -rf build
+
+.PHONY: clean server client
