@@ -1,5 +1,7 @@
 package job_status
 
+import "fmt"
+
 const (
 	Pending = iota
 	Active
@@ -33,4 +35,24 @@ func (s *JobStatus) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func FromString(val string) (JobStatus, error) {
+	s := JobStatus{}
+	switch val {
+	case "pending":
+		s.Status = Pending
+	case "active":
+		s.Status = Active
+	case "success":
+		s.Status = Success
+	case "incomplete":
+		s.Status = Incomplete
+	case "error":
+		s.Status = Error
+	default:
+		return s, fmt.Errorf("unknown variant '%s'", val)
+	}
+
+	return s, nil
 }

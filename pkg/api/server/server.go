@@ -48,7 +48,7 @@ func GetConfigVersion(client client.Client) (string, error) {
 func SendConfiguration(client client.Client) error {
 	version, err := GetConfigVersion(client)
 	if err != nil {
-		return errors.Wrap(err, "cannot get urrent config version for client")
+		return errors.Wrap(err, "cannot get current config version for client")
 	}
 
 	if version != config.Config.Version {

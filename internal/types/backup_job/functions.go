@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/macarrie/relique/internal/types/backup_type"
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/macarrie/relique/internal/db"
 	log "github.com/macarrie/relique/internal/logging"
@@ -28,23 +31,27 @@ func GetByUuid(uuid string) (BackupJob, error) {
 		"uuid": uuid,
 	}).Trace("Looking for job in database")
 
-	request := `SELECT 
-		id,
-		uuid, 
-		status, 
-		backup_type, 
-		module_id,
-		client_id,
-        done,
-        start_time,
-        end_time
-	FROM jobs 
-	WHERE uuid = $1`
-	row := db.Read().QueryRow(request, uuid)
+	request := sq.Select(
+		"id",
+		"uuid",
+		"status",
+		"backup_type",
+		"module_id",
+		"client_id",
+		"done",
+		"start_time",
+		"end_time",
+	).From("jobs").Where("uuid = ?", uuid)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return BackupJob{}, errors.Wrap(err, "cannot build sql query")
+	}
+
+	row := db.Read().QueryRow(query, args...)
 	defer db.RUnlock()
 
 	var job BackupJob
-	err := row.Scan(&job.ID,
+	if err := row.Scan(&job.ID,
 		&job.Uuid,
 		&job.Status.Status,
 		&job.BackupType.Type,
@@ -53,8 +60,7 @@ func GetByUuid(uuid string) (BackupJob, error) {
 		&job.Done,
 		&job.StartTime,
 		&job.EndTime,
-	)
-	if err == sql.ErrNoRows {
+	); err == sql.ErrNoRows {
 		return BackupJob{}, nil
 	} else if err != nil {
 		return BackupJob{}, errors.Wrap(err, "cannot retrieve job from db")
@@ -91,17 +97,29 @@ func GetByUuid(uuid string) (BackupJob, error) {
 func GetPreviousJob(job BackupJob) (BackupJob, error) {
 	log.Trace("Looking for previous full backup job")
 
-	request := `SELECT uuid
-		FROM jobs 
-		JOIN clients 
-			ON jobs.client_id = clients.id 
-		JOIN modules 
-		    ON jobs.module_id = modules.id 
-		WHERE modules.module_type = $1 
-		    AND jobs.done = $3 
-			AND clients.name = $4 
-		ORDER BY jobs.id DESC`
-	rows, err := db.Read().Query(request, job.Module.ModuleType, true, job.Client.Name)
+	request := sq.Select(
+		"uuid",
+	).From(
+		"jobs",
+	).Join(
+		"clients ON jobs.client_id = clients.id",
+	).Join(
+		"modules ON jobs.module_id = modules.id",
+	).Where(
+		"modules.module_type = ?", job.Module.ModuleType,
+	).Where(
+		"jobs.done = ?", true,
+	).Where(
+		"clients.name = ?", job.Client.Name,
+	).OrderBy(
+		"jobs.id DESC",
+	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return BackupJob{}, errors.Wrap(err, "cannot build sql query")
+	}
+
+	rows, err := db.Read().Query(query, args...)
 	defer db.RUnlock()
 	if err == sql.ErrNoRows {
 		return BackupJob{}, nil
@@ -111,14 +129,14 @@ func GetPreviousJob(job BackupJob) (BackupJob, error) {
 
 	uuids := make([]string, 0)
 	for rows.Next() {
-		var uuid string
-		if err := rows.Scan(&uuid); err != nil {
+		var jobUuid string
+		if err := rows.Scan(&jobUuid); err != nil {
 			log.WithFields(log.Fields{
 				"err": err,
 			}).Error("Cannot parse job Uuid from db")
 		}
-		if uuid != "" {
-			uuids = append(uuids, uuid)
+		if jobUuid != "" {
+			uuids = append(uuids, jobUuid)
 		}
 	}
 
@@ -149,10 +167,21 @@ func GetPreviousJob(job BackupJob) (BackupJob, error) {
 func GetActiveJobs() ([]BackupJob, error) {
 	log.Trace("Looking for active jobs in database")
 
-	request := `SELECT uuid
-		FROM jobs 
-		WHERE status = $1`
-	rows, err := db.Read().Query(request, job_status.Active)
+	request := sq.Select(
+		"uuid",
+	).From(
+		"jobs",
+	).Where(
+		"status = ?", job_status.Active,
+	).OrderBy(
+		"jobs.id DESC",
+	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return []BackupJob{}, errors.Wrap(err, "cannot build sql query")
+	}
+
+	rows, err := db.Read().Query(query, args...)
 	if err == sql.ErrNoRows {
 		return []BackupJob{}, nil
 	} else if err != nil {
@@ -199,13 +228,51 @@ func Search(params JobSearchParams) ([]BackupJob, error) {
 	params.GetLog().Trace("Searching for jobs in db")
 	var jobs []BackupJob
 
-	// TODO: Handle search parameters
-	request := `SELECT uuid
-		FROM jobs 
-		JOIN clients ON jobs.client_id = clients.id 
-		JOIN modules ON jobs.module_id = modules.id 
-		ORDER BY jobs.id DESC`
-	rows, err := db.Read().Query(request)
+	// TODO: Prepare request and clean data to avoid SQL injections
+	// TODO: handle status and backup type
+	request := sq.Select(
+		"uuid",
+	).From(
+		"jobs",
+	).Join(
+		"clients ON jobs.client_id = clients.id",
+	).Join(
+		"modules ON jobs.module_id = modules.id",
+	)
+	if params.BackupType != "" {
+		bType, err := backup_type.FromString(params.BackupType)
+		if err != nil {
+			return []BackupJob{}, errors.Wrap(err, "cannot parse backup type filter")
+		}
+		request = request.Where("jobs.backup_type = ?", bType.Type)
+	}
+	if params.Status != "" {
+		status, err := job_status.FromString(params.Status)
+		if err != nil {
+			return []BackupJob{}, errors.Wrap(err, "cannot parse status filter")
+		}
+		request = request.Where("jobs.status = ?", status.Status)
+	}
+	if params.Uuid != "" {
+		request = request.Where("jobs.uuid = ?", params.Uuid)
+	}
+	if params.Module != "" {
+		request = request.Where("modules.name = ?", params.Module)
+	}
+	if params.Client != "" {
+		request = request.Where("clients.name = ?", params.Client)
+	}
+	request = request.OrderBy("jobs.id DESC")
+	if params.Limit > 0 {
+		request = request.Limit(uint64(params.Limit))
+	}
+
+	query, args, err := request.ToSql()
+	if err != nil {
+		return []BackupJob{}, errors.Wrap(err, "cannot build sql query")
+	}
+
+	rows, err := db.Read().Query(query, args...)
 	defer db.RUnlock()
 	if err == sql.ErrNoRows {
 		return jobs, nil
@@ -227,7 +294,7 @@ func Search(params JobSearchParams) ([]BackupJob, error) {
 	}
 
 	if len(uuids) == 0 {
-		// No previous full job found
+		// No previous job found
 		return jobs, nil
 	}
 

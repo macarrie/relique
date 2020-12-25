@@ -12,9 +12,15 @@ build/bin/relique-client: build/bin
 build/bin/relique: build/bin
 	go build -o $@ cmd/relique/main.go
 
-server: build/bin/relique-server
-client: build/bin/relique-client
-cli: build/bin/relique
+server:
+	rm -f build/bin/relique-server
+	$(MAKE) build/bin/relique-server
+client:
+	rm -f build/bin/relique-client
+	$(MAKE) build/bin/relique-client
+cli:
+	rm -f build/bin/relique
+	$(MAKE) build/bin/relique
 
 clean:
 	rm -rf build

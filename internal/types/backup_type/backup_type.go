@@ -1,6 +1,8 @@
 package backup_type
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	Diff = iota

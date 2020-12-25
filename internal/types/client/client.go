@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"github.com/macarrie/relique/internal/db"
 	"github.com/pkg/errors"
 
@@ -101,12 +103,24 @@ func LoadFromPath(p string) ([]Client, error) {
 }
 
 func GetID(name string) (int64, error) {
-	row := db.Write().QueryRow("SELECT id FROM clients WHERE name = $1", name)
-	defer db.Unlock()
+	request := sq.Select(
+		"id",
+	).From(
+		"clients",
+	).Where(
+		"name = ?",
+		name,
+	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
+	}
+
+	row := db.Read().QueryRow(query, args...)
+	defer db.RUnlock()
 
 	var id int64
-	err := row.Scan(&id)
-	if err == sql.ErrNoRows {
+	if err := row.Scan(&id); err == sql.ErrNoRows {
 		return 0, nil
 	} else if err != nil {
 		return 0, errors.Wrap(err, "cannot search retrieve client ID in db")
@@ -120,29 +134,37 @@ func GetByID(id int64) (Client, error) {
 		"id": id,
 	}).Trace("Looking for client in database")
 
-	request := `SELECT
-        id,
-        config_version, 
-        name, 
-        address, 
-        port, 
-        server_address, 
-        server_port 
-	FROM clients 
-	WHERE id = $1`
-	row := db.Read().QueryRow(request, id)
+	request := sq.Select(
+		"id",
+		"config_version",
+		"name",
+		"address",
+		"port",
+		"server_address",
+		"server_port",
+	).From(
+		"clients",
+	).Where(
+		"id = ?",
+		id,
+	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return Client{}, errors.Wrap(err, "cannot build sql query")
+	}
+
+	row := db.Read().QueryRow(query, args...)
 	defer db.RUnlock()
 
 	var cl Client
-	err := row.Scan(&cl.ID,
+	if err := row.Scan(&cl.ID,
 		&cl.Version,
 		&cl.Name,
 		&cl.Address,
 		&cl.Port,
 		&cl.ServerAddress,
 		&cl.ServerPort,
-	)
-	if err == sql.ErrNoRows {
+	); err == sql.ErrNoRows {
 		return Client{}, nil
 	} else if err != nil {
 		return Client{}, errors.Wrap(err, "cannot retrieve client from db")
@@ -172,24 +194,29 @@ func (c *Client) Save() (int64, error) {
 
 	c.GetLog().Debug("Saving client into database")
 
-	sql := `INSERT INTO clients ( config_version, name, address, port, server_address, server_port ) 
-VALUES ( 
-	$1, 
-	$2, 
-	$3, 
-	$4, 
-	$5, 
-	$6
-)`
-
-	result, err := db.Write().Exec(
-		sql,
+	request := sq.Insert("clients").Columns(
+		"config_version",
+		"name",
+		"address",
+		"port",
+		"server_address",
+		"server_port",
+	).Values(
 		c.Version,
 		c.Name,
 		c.Address,
 		c.Port,
 		c.ServerAddress,
 		c.ServerPort,
+	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
+	}
+
+	result, err := db.Write().Exec(
+		query,
+		args...,
 	)
 	defer db.Unlock()
 	if err != nil {
@@ -208,25 +235,23 @@ func (c *Client) Update() (int64, error) {
 		return 0, fmt.Errorf("cannot update client with ID 0")
 	}
 
-	sql := `UPDATE clients
-SET config_version = $1,
-	name = $2,
-	address = $3,
-	port = $4,
-	server_address = $5,
-	server_port = $6
-WHERE id = $7`
-
-	_, err := db.Write().Exec(
-		sql,
-		c.Version,
-		c.Name,
-		c.Address,
-		c.Port,
-		c.ServerAddress,
-		c.ServerPort,
+	request := sq.Update("clients").SetMap(sq.Eq{
+		"config_version": c.Version,
+		"name":           c.Name,
+		"address":        c.Address,
+		"port":           c.Port,
+		"server_address": c.ServerAddress,
+		"server_port":    c.ServerPort,
+	}).Where(
+		" id = ?",
 		c.ID,
 	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
+	}
+
+	_, err = db.Write().Exec(query, args...)
 	defer db.Unlock()
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot update client into db")

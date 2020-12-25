@@ -3,6 +3,8 @@ package backup_job
 import (
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"github.com/macarrie/relique/internal/db"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/backup_type"
@@ -82,16 +84,18 @@ func (j *BackupJob) Save() (int64, error) {
 func (j *BackupJob) UpdateStatus() (int64, error) {
 	j.GetLog().Debug("Updating job status into database")
 
-	request := `UPDATE jobs  
-		SET status = $1
-		WHERE uuid = $2`
-
-	// TODO: Save get module and client ID
-	result, err := db.Write().Exec(
-		request,
-		j.Status.Status,
+	request := sq.Update("jobs").SetMap(sq.Eq{
+		"status": j.Status.Status,
+	}).Where(
+		"uuid = ?",
 		j.Uuid,
 	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
+	}
+
+	result, err := db.Write().Exec(query, args...)
 	defer db.Unlock()
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot update job status into db")
@@ -118,27 +122,24 @@ func (j *BackupJob) Update() (int64, error) {
 		return 0, errors.Wrap(err, "cannot save job inner client")
 	}
 
-	sql := `UPDATE jobs  
-SET status = $1, 
-	backup_type = $2, 
-	module_id = $3, 
-	client_id = $4,
-    done = $5,
-    start_time = $6,
-    end_time = $7
-WHERE uuid = $8;`
-
-	result, err := db.Write().Exec(
-		sql,
-		j.Status.Status,
-		j.BackupType.Type,
-		moduleId,
-		clientId,
-		j.Done,
-		j.StartTime,
-		j.EndTime,
+	request := sq.Update("jobs").SetMap(sq.Eq{
+		"status":      j.Status.Status,
+		"backup_type": j.BackupType.Type,
+		"module_id":   moduleId,
+		"client_id":   clientId,
+		"done":        j.Done,
+		"start_time":  j.StartTime,
+		"end_time":    j.EndTime,
+	}).Where(
+		"uuid = ?",
 		j.Uuid,
 	)
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
+	}
+
+	result, err := db.Write().Exec(query, args...)
 	defer db.Unlock()
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot update job into db")

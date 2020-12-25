@@ -79,7 +79,8 @@ func Init() {
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Client, "client", "c", "", "Client name")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Status, "status", "s", "", "Job status")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.BackupType, "backup_type", "t", "", "Backup type (diff, full)")
-	jobListCmd.Flags().IntVar(&jobSearchParams.Limit, "limit", 250, "Limit job search to LIMIT items (0 corresponds to no limit)")
+	jobListCmd.Flags().StringVarP(&jobSearchParams.Uuid, "uuid", "u", "", "Job with UUID")
+	jobListCmd.Flags().IntVar(&jobSearchParams.Limit, "limit", 0, "Limit job search to LIMIT items (0 corresponds to no limit)")
 
 }
 
