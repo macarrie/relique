@@ -1,0 +1,12 @@
+name = "example_module"
+
+module_type = "example"
+backup_type = "full"
+backup_paths = [
+    "/tmp/example",
+]
+
+pre_backup_script = "/tmp/prebackup.sh"
+post_backup_script = "/tmp/postbackup.sh"
+pre_restore_script = "/tmp/prerestore.sh"
+post_restore_script = "/tmp/postrestore.sh"

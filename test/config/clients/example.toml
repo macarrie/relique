@@ -1,0 +1,25 @@
+name = "example"
+address = "example"
+port = 1234
+
+[[modules]]
+name = "example-diff"
+module_type = "default_test"
+backup_type = "diff"
+schedules = [
+ "daily",
+]
+backup_paths = [
+ "/tmp/example",
+]
+
+[[modules]]
+name = "example-full"
+module_type = "default_test"
+backup_type = "full"
+schedules = [
+ "daily",
+]
+backup_paths = [
+ "/tmp/example",
+]
