@@ -1,7 +1,7 @@
 package server_daemon_config
 
 import (
-	client2 "github.com/macarrie/relique/internal/types/client"
+	clientObject "github.com/macarrie/relique/internal/types/client"
 
 	"github.com/macarrie/relique/internal/types/schedule"
 
@@ -11,9 +11,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	log "github.com/macarrie/relique/internal/logging"
 )
-
-var customConfigFilePath string
-var customConfigFile bool
 
 var Config common.Configuration
 
@@ -29,7 +26,7 @@ func Load(filePath string) error {
 		return err
 	}
 
-	clients, err := client2.LoadFromPath(conf.ClientCfgPath)
+	clients, err := clientObject.LoadFromPath(conf.ClientCfgPath)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err":  err,
@@ -56,6 +53,7 @@ func Load(filePath string) error {
 	return nil
 }
 
+// TODO: Configuration validity checks
 func Check() error {
 	var errorList *multierror.Error
 

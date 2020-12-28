@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/macarrie/relique/internal/types/custom_errors"
+
 	"github.com/macarrie/relique/internal/types/backup_type"
 
 	sq "github.com/Masterminds/squirrel"
@@ -74,7 +76,7 @@ func GetByUuid(uuid string) (BackupJob, error) {
 	}
 
 	mod, err := module.GetByID(job.ModuleID)
-	if err == nil && mod.ID == 0 {
+	if custom_errors.IsDBNotFoundError(err) {
 		return BackupJob{}, errors.Wrap(err, "job linked module not found in db")
 	}
 	if err != nil || mod.ID == 0 {
@@ -83,7 +85,7 @@ func GetByUuid(uuid string) (BackupJob, error) {
 	job.Module = mod
 
 	cl, err := clientObject.GetByID(job.ClientID)
-	if err == nil && cl.ID == 0 {
+	if custom_errors.IsDBNotFoundError(err) {
 		return BackupJob{}, errors.Wrap(err, "job linked client not found in db")
 	}
 	if err != nil || cl.ID == 0 {
@@ -240,10 +242,7 @@ func Search(params JobSearchParams) ([]BackupJob, error) {
 		"modules ON jobs.module_id = modules.id",
 	)
 	if params.BackupType != "" {
-		bType, err := backup_type.FromString(params.BackupType)
-		if err != nil {
-			return []BackupJob{}, errors.Wrap(err, "cannot parse backup type filter")
-		}
+		bType := backup_type.FromString(params.BackupType)
 		request = request.Where("jobs.backup_type = ?", bType.Type)
 	}
 	if params.Status != "" {

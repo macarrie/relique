@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/config"
+	"github.com/pelletier/go-toml"
 )
 
 type Schedule struct {
@@ -52,7 +52,7 @@ func LoadFromPath(p string) ([]Schedule, error) {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"path": path,
-			}).Warn("Cannot load client configuration from file")
+			}).Error("Cannot load schedule configuration from file")
 			return err
 		}
 
@@ -64,16 +64,16 @@ func LoadFromPath(p string) ([]Schedule, error) {
 
 	var schedules []Schedule
 	for _, file := range files {
-		client, err := loadFromFile(file)
+		sched, err := loadFromFile(file)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"path": file,
-			}).Warn("Cannot load client configuration from file")
+			}).Error("Cannot load schedule configuration from file")
 			continue
 		}
 
-		schedules = append(schedules, client)
+		schedules = append(schedules, sched)
 	}
 
 	return schedules, nil

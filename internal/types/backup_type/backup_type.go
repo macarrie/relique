@@ -1,11 +1,8 @@
 package backup_type
 
-import (
-	"fmt"
-)
-
 const (
-	Diff = iota
+	Unknown = iota
+	Diff
 	Full
 )
 
@@ -24,16 +21,29 @@ func (t *BackupType) String() string {
 	}
 }
 
-func FromString(val string) (BackupType, error) {
+func FromString(val string) BackupType {
 	t := BackupType{}
+
 	switch val {
 	case "diff":
 		t.Type = Diff
 	case "full":
 		t.Type = Full
 	default:
-		return t, fmt.Errorf("unknown variant '%s'", val)
+		t.Type = Unknown
 	}
 
-	return t, nil
+	return t
+}
+
+func (t *BackupType) UnmarshalText(b []byte) error {
+	tmp := FromString(string(b))
+
+	*t = tmp
+
+	return nil
+}
+
+func (t BackupType) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
 }

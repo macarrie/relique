@@ -64,7 +64,7 @@ func setDefaultValues() {
 	viper.SetDefault("port", 8433)
 	viper.SetDefault("ssl_cert", "/etc/relique/cert.pem")
 	viper.SetDefault("ssl_key", "/etc/relique/key.pem")
-	viper.SetDefault("ssl_strict_check_certificate", true)
+	viper.SetDefault("strict_ssl_certificate_check", true)
 	viper.SetDefault("client_cfg_path", "clients")
 	viper.SetDefault("schedules_cfg_path", "schedules")
 	viper.SetDefault("backup_storage_path", "/opt/relique")
@@ -78,6 +78,7 @@ func UseFile(filePath string) {
 	customConfigFilePath = filePath
 }
 
+// TODO: Configuration validity checks
 func Check() error {
 	var errorList *multierror.Error
 

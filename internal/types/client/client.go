@@ -3,8 +3,11 @@ package client
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/macarrie/relique/internal/types/custom_errors"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -13,21 +16,20 @@ import (
 
 	"github.com/macarrie/relique/internal/types/module"
 
-	"github.com/spf13/viper"
-
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/config"
+	"github.com/pelletier/go-toml"
 )
 
 type Client struct {
 	ID            int64
-	Name          string `mapstructure:"name"`
-	Address       string `mapstructure:"address"`
-	Port          uint32 `mapstructure:"port"`
+	Name          string `json:"name" toml:"name"`
+	Address       string `json:"address" toml:"address"`
+	Port          uint32 `json:"port" toml:"port"`
 	Modules       []module.Module
 	Version       string
-	ServerAddress string `mapstructure:"server_address"`
-	ServerPort    uint32 `mapstructure:"server_port"`
+	ServerAddress string `json:"server_address" toml:"server_address"`
+	ServerPort    uint32 `json:"server_port" toml:"server_port"`
 }
 
 func (c *Client) String() string {
@@ -39,28 +41,35 @@ func loadFromFile(file string) (Client, error) {
 		"path": file,
 	}).Debug("Loading client configuration from file")
 
-	clientViper := viper.New()
-	clientViper.SetConfigType("toml")
-	clientViper.SetConfigFile(file)
-
-	if err := clientViper.ReadInConfig(); err != nil {
-		return Client{}, err
+	f, err := os.Open(file)
+	defer f.Close()
+	if err != nil {
+		return Client{}, errors.Wrap(err, "cannot open file")
 	}
+
+	content, _ := ioutil.ReadAll(f)
 
 	var client Client
-	if err := clientViper.Unmarshal(&client); err != nil {
-		return Client{}, err
+	if err := toml.Unmarshal(content, &client); err != nil {
+		return Client{}, errors.Wrap(err, "cannot parse toml file")
 	}
 
-	for i := range client.Modules {
-		client.Modules[i].ComputeBackupTypeFromString()
-		if err := client.Modules[i].LoadDefaultConfiguration(); err != nil {
+	modules := client.Modules
+	var filteredModulesList []module.Module
+	for i := range modules {
+		if err := modules[i].LoadDefaultConfiguration(); err != nil {
 			log.WithFields(log.Fields{
 				"err":    err,
 				"module": client.Modules[i].ModuleType,
-			}).Fatal("Cannot find default configuration parameters for module. Make sure that this module is correctly installed")
+			}).Error("Cannot find default configuration parameters for module. Make sure that this module is correctly installed")
+		}
+		if modules[i].Valid() {
+			filteredModulesList = append(filteredModulesList, modules[i])
+		} else {
+			modules[i].GetLog().Error("Module has invalid configuration. This module will not be loaded into configuration")
 		}
 	}
+	client.Modules = filteredModulesList
 
 	return client, nil
 }
@@ -75,7 +84,7 @@ func LoadFromPath(p string) ([]Client, error) {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"path": path,
-			}).Warn("Cannot load client configuration from file")
+			}).Error("Cannot load client configuration from file")
 			return err
 		}
 
@@ -92,11 +101,15 @@ func LoadFromPath(p string) ([]Client, error) {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"path": file,
-			}).Warn("Cannot load client configuration from file")
+			}).Error("Cannot load client configuration from file")
 			continue
 		}
 
-		clients = append(clients, client)
+		if client.Valid() {
+			clients = append(clients, client)
+		} else {
+			client.GetLog().Error("Client has invalid configuration. This client will not be loaded into configuration")
+		}
 	}
 
 	return clients, nil
@@ -121,7 +134,10 @@ func GetID(name string) (int64, error) {
 
 	var id int64
 	if err := row.Scan(&id); err == sql.ErrNoRows {
-		return 0, nil
+		return 0, &custom_errors.DBNotFoundError{
+			ID:       id,
+			ItemType: "client",
+		}
 	} else if err != nil {
 		return 0, errors.Wrap(err, "cannot search retrieve client ID in db")
 	}
@@ -165,7 +181,10 @@ func GetByID(id int64) (Client, error) {
 		&cl.ServerAddress,
 		&cl.ServerPort,
 	); err == sql.ErrNoRows {
-		return Client{}, nil
+		return Client{}, &custom_errors.DBNotFoundError{
+			ID:       id,
+			ItemType: "client",
+		}
 	} else if err != nil {
 		return Client{}, errors.Wrap(err, "cannot retrieve client from db")
 	}
@@ -183,7 +202,7 @@ func (c *Client) GetLog() *log.Entry {
 
 func (c *Client) Save() (int64, error) {
 	id, err := GetID(c.Name)
-	if err != nil {
+	if err != nil && !custom_errors.IsDBNotFoundError(err) {
 		return 0, errors.Wrap(err, "cannot search for possibly existing client ID")
 	}
 
@@ -258,4 +277,12 @@ func (c *Client) Update() (int64, error) {
 	}
 
 	return c.ID, nil
+}
+
+func (c *Client) Valid() bool {
+	if c.Name == "" || c.Address == "" {
+		return false
+	}
+
+	return true
 }

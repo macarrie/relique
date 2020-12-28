@@ -11,6 +11,8 @@ import (
 
 var logger *log.Logger
 
+const TEST_LOG_PATH = "/tmp/relique_tests.log"
+
 func Setup(debug bool, filePath string) {
 	logger = log.New()
 

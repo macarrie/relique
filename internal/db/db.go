@@ -16,6 +16,9 @@ import (
 
 var pool *sql.DB
 var lock sync.RWMutex
+
+const TEST_DB_PATH = "/tmp/relique_tests.db"
+
 var dbPath = "/var/lib/relique/db/server.db"
 
 func Init() error {
@@ -27,6 +30,31 @@ func Init() error {
 	}
 	if err := Migrate(); err != nil {
 		return errors.Wrap(err, "cannot perform DB migrations")
+	}
+
+	return nil
+}
+
+// Used for unit tests
+func InitTestDB() error {
+	dbPath = TEST_DB_PATH
+	if err := ResetTestDB(); err != nil {
+		return errors.Wrap(err, "cannot reset test DB")
+	}
+
+	return Init()
+}
+
+// Used for unit tests
+func ResetTestDB() error {
+	dbPath = TEST_DB_PATH
+	if _, err := os.Lstat(dbPath); os.IsNotExist(err) {
+		// DB not created, nothing to do
+		return nil
+	}
+
+	if err := os.Remove(dbPath); err != nil {
+		return errors.Wrap(err, "cannot delete db file")
 	}
 
 	return nil

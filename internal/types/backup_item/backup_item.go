@@ -278,7 +278,6 @@ func (b *BackupItem) SaveFile(file *multipart.FileHeader) error {
 	_, err = io.Copy(tmpFile, srcFile)
 	if err != nil {
 		return errors.Wrap(err, "cannot copy file from raw send")
-		return err
 	}
 
 	dest := getDestinationBackupPath(b)

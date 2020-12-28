@@ -3,6 +3,10 @@ package module
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
+	"os"
+
+	"github.com/macarrie/relique/internal/types/custom_errors"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -11,45 +15,31 @@ import (
 
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/backup_type"
-	"github.com/spf13/viper"
+	"github.com/pelletier/go-toml"
 )
 
+var MODULES_INSTALL_PATH = "/var/lib/relique/modules"
+
 type Module struct {
-	ID               int64
-	ModuleType       string `mapstructure:"module_type"`
-	Name             string `mapstructure:"name"`
-	BackupTypeString string `mapstructure:"backup_type"`
-	// TODO:Load BackupType const directly from "diff" and "full" strings
-	BackupType backup_type.BackupType
+	ID         int64
+	ModuleType string                 `json:"module_type" toml:"module_type"`
+	Name       string                 `json:"name" toml:"name"`
+	BackupType backup_type.BackupType `json:"backup_type" toml:"backup_type"`
 	// TODO: Load schedule struct
 	Schedules         []string
-	BackupPaths       []string `mapstructure:"backup_paths"`
-	PreBackupScript   string   `mapstructure:"pre_backup_script"`
-	PostBackupScript  string   `mapstructure:"post_backup_script"`
-	PreRestoreScript  string   `mapstructure:"pre_restore_script"`
-	PostRestoreScript string   `mapstructure:"post_restore_script"`
+	BackupPaths       []string `json:"backup_paths" toml:"backup_paths"`
+	PreBackupScript   string   `json:"pre_backup_script" toml:"pre_backup_script"`
+	PostBackupScript  string   `json:"post_backup_script" toml:"post_backup_script"`
+	PreRestoreScript  string   `json:"pre_restore_script" toml:"pre_restore_script"`
+	PostRestoreScript string   `json:"post_restore_script" toml:"post_restore_script"`
 }
 
 func (m *Module) String() string {
 	return m.Name
 }
 
-func (m *Module) ComputeBackupTypeFromString() {
-	var t backup_type.BackupType
-	t, err := backup_type.FromString(m.BackupTypeString)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"field": m.BackupTypeString,
-			"err":   err,
-		}).Error("Cannot parse backup type from configuration file. Setting backup type to full")
-		t.Type = backup_type.Full
-	}
-
-	m.BackupType = t
-}
-
 func (m *Module) LoadDefaultConfiguration() error {
-	defaults, err := LoadFromFile(fmt.Sprintf("/var/lib/relique/modules/%s/default.toml", m.ModuleType))
+	defaults, err := LoadFromFile(fmt.Sprintf("%s/%s/default.toml", MODULES_INSTALL_PATH, m.ModuleType))
 	if err != nil {
 		return err
 	}
@@ -82,17 +72,17 @@ func LoadFromFile(file string) (Module, error) {
 		"path": file,
 	}).Debug("Loading module configuration parameters from file")
 
-	modViper := viper.New()
-	modViper.SetConfigType("toml")
-	modViper.SetConfigFile(file)
-
-	if err := modViper.ReadInConfig(); err != nil {
-		return Module{}, err
+	f, err := os.Open(file)
+	defer f.Close()
+	if err != nil {
+		return Module{}, errors.Wrap(err, "cannot open file")
 	}
 
+	content, _ := ioutil.ReadAll(f)
+
 	var module Module
-	if err := modViper.Unmarshal(&module); err != nil {
-		return Module{}, err
+	if err := toml.Unmarshal(content, &module); err != nil {
+		return Module{}, errors.Wrap(err, "cannot parse toml file")
 	}
 
 	return module, nil
@@ -117,7 +107,10 @@ func GetID(name string) (int64, error) {
 
 	var id int64
 	if err := row.Scan(&id); err == sql.ErrNoRows {
-		return 0, nil
+		return 0, &custom_errors.DBNotFoundError{
+			ID:       0,
+			ItemType: "module",
+		}
 	} else if err != nil {
 		return 0, errors.Wrap(err, "cannot search retrieve module ID in db")
 	}
@@ -163,7 +156,10 @@ func GetByID(id int64) (Module, error) {
 		&mod.PreRestoreScript,
 		&mod.PostRestoreScript,
 	); err == sql.ErrNoRows {
-		return Module{}, nil
+		return Module{}, &custom_errors.DBNotFoundError{
+			ID:       id,
+			ItemType: "module",
+		}
 	} else if err != nil {
 		return Module{}, errors.Wrap(err, "cannot retrieve module from db")
 	}
@@ -182,7 +178,7 @@ func (m *Module) GetLog() *log.Entry {
 
 func (m *Module) Save() (int64, error) {
 	id, err := GetID(m.Name)
-	if err != nil {
+	if err != nil && !custom_errors.IsDBNotFoundError(err) {
 		return 0, errors.Wrap(err, "cannot search for possibly existing module ID")
 	}
 
@@ -260,4 +256,12 @@ func (m *Module) Update() (int64, error) {
 	}
 
 	return m.ID, nil
+}
+
+func (m *Module) Valid() bool {
+	if m.ModuleType == "" || m.Name == "" || m.BackupType.Type == backup_type.Unknown {
+		return false
+	}
+
+	return true
 }

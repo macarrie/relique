@@ -45,6 +45,7 @@ func JobExists(module module.Module) bool {
 	return false
 }
 
+// TODO: Configuration validity checks
 func Check() error {
 	var errorList *multierror.Error
 
