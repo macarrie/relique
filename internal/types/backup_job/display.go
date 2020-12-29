@@ -59,7 +59,12 @@ func (d BackupJobDisplay) Summary() string {
 }
 
 func (d BackupJobDisplay) Details() string {
-	return fmt.Sprintf("Job details: %v", d.Uuid)
+	return fmt.Sprintf("JOB DETAILS \n"+
+		"----------- \n"+
+		"\tUuid: %s\n"+
+		"\tClient: %s\n"+
+		"\tModule: %s\n"+
+		"\tBackup type: %s\n", d.Uuid, d.Client, d.Module, d.BackupType)
 }
 
 func (d BackupJobDisplay) TableHeaders() []string {

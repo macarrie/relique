@@ -3,6 +3,8 @@ package scheduler
 import (
 	"time"
 
+	"github.com/macarrie/relique/internal/types/module"
+
 	"github.com/macarrie/relique/internal/types/job_status"
 	clientApi "github.com/macarrie/relique/pkg/api/client"
 
@@ -61,19 +63,25 @@ func CreateBackupJobs() error {
 		return nil
 	}
 
-	for _, module := range clientConfig.BackupConfig.Modules {
+	for _, m := range clientConfig.BackupConfig.Modules {
 		// TODO: Check active schedules
 
 		// Create new job only if a job for this module does not already exist
-		if clientConfig.JobExists(module) {
+		if clientConfig.JobExists(m) {
 			continue
 		}
 
-		job := backup_job.New(clientConfig.BackupConfig, module)
-		clientConfig.Jobs = append(clientConfig.Jobs, job)
+		AddJob(m)
 	}
 
 	return nil
+}
+
+func AddJob(m module.Module) backup_job.BackupJob {
+	job := backup_job.New(clientConfig.BackupConfig, m)
+	clientConfig.Jobs = append(clientConfig.Jobs, job)
+
+	return job
 }
 
 func CleanJobs() {

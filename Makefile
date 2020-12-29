@@ -45,11 +45,29 @@ check:
 test: check
 	go test ./... -cover
 
+## certs: Generate self signed ssl certs to help start a quick relique configuration while getting real certs
+certs:
+	rm -rf build/certs/*
+	mkdir -p build/certs
+	echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > tmp.certs
+	openssl req \
+		-x509 \
+		-newkey rsa:4096 \
+		-sha256 \
+		-days 3650 \
+		-nodes \
+		-keyout build/certs/key.pem \
+		-out build/certs/cert.pem \
+		-subj '/CN=relique' \
+		-extensions san \
+		-config tmp.certs
+	rm tmp.certs
+
 ## clean: Clean all build artefacts
 clean:
 	rm -rf build
 
-.PHONY: clean server client cli test check
+.PHONY: help clean server client cli test check certs
 help: Makefile
 	echo " Choose a command to run:"
 	sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'

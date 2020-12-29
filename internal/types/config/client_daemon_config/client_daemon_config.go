@@ -11,9 +11,6 @@ import (
 	log "github.com/macarrie/relique/internal/logging"
 )
 
-var customConfigFilePath string
-var customConfigFile bool
-
 var Config common.Configuration
 var BackupConfig client.Client
 var Jobs []backup_job.BackupJob
