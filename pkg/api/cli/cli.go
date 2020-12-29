@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func PingServer(config common.Configuration) error {
+func PingDaemon(config common.Configuration) error {
 	response, err := utils.PerformRequest(config,
 		config.PublicAddress,
 		config.Port,
@@ -34,6 +34,36 @@ func PingServer(config common.Configuration) error {
 	}
 
 	return nil
+}
+
+func ManualBackup(config common.Configuration, params backup_job.JobSearchParams) (backup_job.BackupJob, error) {
+	var job backup_job.BackupJob
+
+	response, err := utils.PerformRequest(config,
+		config.PublicAddress,
+		config.Port,
+		"POST",
+		"/api/v1/backup/start",
+		params)
+	if err != nil {
+		return backup_job.BackupJob{}, errors.Wrap(err, "error when performing api request")
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return backup_job.BackupJob{}, errors.Wrap(err, "cannot read response body from api requets")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return backup_job.BackupJob{}, fmt.Errorf("cannot start job on client (%d response): '%s'", response.StatusCode, body)
+	}
+
+	if err := json.Unmarshal(body, &job); err != nil {
+		return backup_job.BackupJob{}, errors.Wrap(err, "cannot parse started job returned from client")
+	}
+
+	return job, nil
 }
 
 func SearchJob(config common.Configuration, params backup_job.JobSearchParams) ([]backup_job.BackupJob, error) {
