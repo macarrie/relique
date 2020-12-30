@@ -63,10 +63,12 @@ func loadFromFile(file string) (Client, error) {
 				"module": client.Modules[i].ModuleType,
 			}).Error("Cannot find default configuration parameters for module. Make sure that this module is correctly installed")
 		}
-		if modules[i].Valid() {
+		if err := modules[i].Valid(); err == nil {
 			filteredModulesList = append(filteredModulesList, modules[i])
 		} else {
-			modules[i].GetLog().Error("Module has invalid configuration. This module will not be loaded into configuration")
+			modules[i].GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Module has invalid configuration. This module will not be loaded into configuration")
 		}
 	}
 	client.Modules = filteredModulesList

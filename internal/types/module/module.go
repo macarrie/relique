@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/macarrie/relique/internal/types/custom_errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -83,6 +85,12 @@ func LoadFromFile(file string) (Module, error) {
 	var module Module
 	if err := toml.Unmarshal(content, &module); err != nil {
 		return Module{}, errors.Wrap(err, "cannot parse toml file")
+	}
+
+	// TODO: Load schedules by name
+
+	if err := module.Valid(); err != nil {
+		return Module{}, errors.Wrap(err, "invalid module loaded from file")
 	}
 
 	return module, nil
@@ -258,10 +266,17 @@ func (m *Module) Update() (int64, error) {
 	return m.ID, nil
 }
 
-func (m *Module) Valid() bool {
-	if m.ModuleType == "" || m.Name == "" || m.BackupType.Type == backup_type.Unknown {
-		return false
+func (m *Module) Valid() error {
+	var objErrors *multierror.Error
+	if m.ModuleType == "" {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("empty module type"))
+	}
+	if m.Name == "" {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("empty module name"))
+	}
+	if m.BackupType.Type == backup_type.Unknown {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("unknown backup type"))
 	}
 
-	return true
+	return objErrors.ErrorOrNil()
 }

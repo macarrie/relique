@@ -176,7 +176,7 @@ func TestLoadFromFile(t *testing.T) {
 			name:    "default_values",
 			args:    args{file: "../../../test/config/modules/empty.toml"},
 			want:    Module{},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "unreadable",
@@ -561,9 +561,9 @@ func TestModule_Update(t *testing.T) {
 
 func TestModule_Valid(t *testing.T) {
 	tests := []struct {
-		name string
-		mod  Module
-		want bool
+		name    string
+		mod     Module
+		wantErr bool
 	}{
 		{
 			name: "valid_module",
@@ -572,7 +572,7 @@ func TestModule_Valid(t *testing.T) {
 				Name:       "valid_module",
 				BackupType: backup_type.BackupType{Type: backup_type.Diff},
 			},
-			want: true,
+			wantErr: false,
 		},
 		{
 			name: "unknown_backup_type",
@@ -581,7 +581,7 @@ func TestModule_Valid(t *testing.T) {
 				Name:       "unknown_backup_type",
 				BackupType: backup_type.BackupType{Type: backup_type.Unknown},
 			},
-			want: false,
+			wantErr: true,
 		},
 		{
 			name: "missing_name",
@@ -589,7 +589,7 @@ func TestModule_Valid(t *testing.T) {
 				ModuleType: "not_empty",
 				BackupType: backup_type.BackupType{Type: backup_type.Full},
 			},
-			want: false,
+			wantErr: true,
 		},
 		{
 			name: "missing_module_type",
@@ -597,13 +597,13 @@ func TestModule_Valid(t *testing.T) {
 				Name:       "missing_module_type",
 				BackupType: backup_type.BackupType{Type: backup_type.Full},
 			},
-			want: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.mod.Valid(); got != tt.want {
-				t.Errorf("Valid() = %v, want %v", got, tt.want)
+			if err := tt.mod.Valid(); (err != nil) != tt.wantErr {
+				t.Errorf("Valid() = %v, want %v", err, tt.wantErr)
 			}
 		})
 	}
