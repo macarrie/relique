@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/macarrie/relique/internal/types/schedule"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/macarrie/relique/internal/types/custom_errors"
@@ -23,17 +25,17 @@ import (
 var MODULES_INSTALL_PATH = "/var/lib/relique/modules"
 
 type Module struct {
-	ID         int64
-	ModuleType string                 `json:"module_type" toml:"module_type"`
-	Name       string                 `json:"name" toml:"name"`
-	BackupType backup_type.BackupType `json:"backup_type" toml:"backup_type"`
-	// TODO: Load schedule struct
-	Schedules         []string
-	BackupPaths       []string `json:"backup_paths" toml:"backup_paths"`
-	PreBackupScript   string   `json:"pre_backup_script" toml:"pre_backup_script"`
-	PostBackupScript  string   `json:"post_backup_script" toml:"post_backup_script"`
-	PreRestoreScript  string   `json:"pre_restore_script" toml:"pre_restore_script"`
-	PostRestoreScript string   `json:"post_restore_script" toml:"post_restore_script"`
+	ID                int64
+	ModuleType        string                 `json:"module_type" toml:"module_type"`
+	Name              string                 `json:"name" toml:"name"`
+	BackupType        backup_type.BackupType `json:"backup_type" toml:"backup_type"`
+	Schedules         []schedule.Schedule    `json:"schedules" toml:"-"`
+	ScheduleNames     []string               `json:"-" toml:"schedules"`
+	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
+	PreBackupScript   string                 `json:"pre_backup_script" toml:"pre_backup_script"`
+	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`
+	PreRestoreScript  string                 `json:"pre_restore_script" toml:"pre_restore_script"`
+	PostRestoreScript string                 `json:"post_restore_script" toml:"post_restore_script"`
 }
 
 func (m *Module) String() string {

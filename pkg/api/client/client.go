@@ -28,7 +28,6 @@ import (
 )
 
 func RunJob(job *backup_job.BackupJob) error {
-	// TODO: Update job status on errors
 	job.GetLog().Info("Starting backup job")
 
 	job.Status.Status = job_status.Active
@@ -41,7 +40,6 @@ func RunJob(job *backup_job.BackupJob) error {
 		return errors.Wrap(err, "error occurred during pre backup script execution")
 	}
 
-	// TODO: Do not return on error (post backup script may restart stopped service for example) ?
 	if err := SendFiles(job); err != nil {
 		return errors.Wrap(err, "error occurred when sending files to backup to server")
 	}

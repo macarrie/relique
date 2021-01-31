@@ -22,11 +22,13 @@ func (r *Timerange) UnmarshalText(b []byte) error {
 	}
 
 	start, err := time.Parse("15:04", strings.TrimSpace(times[0]))
+	startHour, startMin, _ := start.Clock()
 	if err != nil {
 		return errors.Wrap(err, "cannot parse range start date")
 	}
 
 	end, err := time.Parse("15:04", strings.TrimSpace(times[1]))
+	endHour, endMin, _ := end.Clock()
 	if err != nil {
 		return errors.Wrap(err, "cannot parse range start date")
 	}
@@ -36,8 +38,8 @@ func (r *Timerange) UnmarshalText(b []byte) error {
 	}
 
 	*r = Timerange{
-		Start: start,
-		End:   end,
+		Start: time.Time{}.Add(time.Duration(startHour)*time.Hour + time.Duration(startMin)*time.Minute),
+		End:   time.Time{}.Add(time.Duration(endHour)*time.Hour + time.Duration(endMin)*time.Minute),
 	}
 
 	return nil
@@ -53,8 +55,8 @@ func (r *Timerange) String() string {
 }
 
 func (r *Timerange) Active(now time.Time) bool {
-	hour, min, sec := now.Clock()
-	timeNow := time.Time{}.Add(time.Duration(hour)*time.Hour + time.Duration(min)*time.Minute + time.Duration(sec)*time.Second)
+	hour, min, _ := now.Clock()
+	timeNow := time.Time{}.Add(time.Duration(hour)*time.Hour + time.Duration(min)*time.Minute)
 
 	if timeNow.Equal(r.Start) {
 		return true

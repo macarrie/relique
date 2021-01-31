@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/macarrie/relique/internal/types/schedule"
+
 	"github.com/macarrie/relique/internal/types/custom_errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -194,6 +196,34 @@ func GetByID(id int64) (Client, error) {
 	return cl, nil
 }
 
+func FillSchedulesStruct(clients []Client, schedules []schedule.Schedule) ([]Client, error) {
+	var retList []Client
+	for _, client := range clients {
+		var mods []module.Module
+		for _, mod := range client.Modules {
+			var scheds []schedule.Schedule
+			for _, scheduleName := range mod.ScheduleNames {
+				foundScheduleDef := false
+				for _, s := range schedules {
+					if s.Name == scheduleName {
+						foundScheduleDef = true
+						scheds = append(scheds, s)
+					}
+				}
+				if !foundScheduleDef {
+					return []Client{}, fmt.Errorf("cannot find schedule '%s' definition for module '%s' of client '%s'", scheduleName, mod.Name, client.Name)
+				}
+			}
+			mod.Schedules = scheds
+			mods = append(mods, mod)
+		}
+		client.Modules = mods
+		retList = append(retList, client)
+	}
+
+	return retList, nil
+}
+
 func (c *Client) GetLog() *log.Entry {
 	return log.WithFields(log.Fields{
 		"name":    c.Name,
@@ -214,6 +244,8 @@ func (c *Client) Save() (int64, error) {
 	}
 
 	c.GetLog().Debug("Saving client into database")
+
+	// TODO: Save schedules into DB
 
 	request := sq.Insert("clients").Columns(
 		"config_version",

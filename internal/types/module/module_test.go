@@ -219,7 +219,7 @@ func TestModule_GetLog(t *testing.T) {
 		ModuleType        string
 		Name              string
 		BackupType        backup_type.BackupType
-		Schedules         []string
+		ScheduleNames     []string
 		BackupPaths       []string
 		PreBackupScript   string
 		PostBackupScript  string
@@ -248,7 +248,7 @@ func TestModule_GetLog(t *testing.T) {
 				ModuleType:        tt.fields.ModuleType,
 				Name:              tt.fields.Name,
 				BackupType:        tt.fields.BackupType,
-				Schedules:         tt.fields.Schedules,
+				ScheduleNames:     tt.fields.ScheduleNames,
 				BackupPaths:       tt.fields.BackupPaths,
 				PreBackupScript:   tt.fields.PreBackupScript,
 				PostBackupScript:  tt.fields.PostBackupScript,
