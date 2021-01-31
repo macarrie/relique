@@ -1,8 +1,9 @@
 package server_daemon_config
 
 import (
-	clientObject "github.com/macarrie/relique/internal/types/client"
+	"github.com/pkg/errors"
 
+	clientObject "github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/schedule"
 
 	"github.com/macarrie/relique/internal/types/config/common"
@@ -26,16 +27,6 @@ func Load(filePath string) error {
 		return err
 	}
 
-	clients, err := clientObject.LoadFromPath(conf.ClientCfgPath)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"err":  err,
-			"file": conf.ClientCfgPath,
-		}).Fatal("Cannot load clients from configuration")
-		return err
-	}
-	conf.Clients = clients
-
 	schedules, err := schedule.LoadFromPath(conf.SchedulesCfgPath)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -45,6 +36,22 @@ func Load(filePath string) error {
 		return err
 	}
 	conf.Schedules = schedules
+
+	clients, err := clientObject.LoadFromPath(conf.ClientCfgPath)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err":  err,
+			"file": conf.ClientCfgPath,
+		}).Fatal("Cannot load clients from configuration")
+		return err
+	}
+
+	clients, err = clientObject.FillSchedulesStruct(clients, schedules)
+	if err != nil {
+		return errors.Wrap(err, "cannot match schedules chosen in client definitions with schedules definitions")
+	}
+
+	conf.Clients = clients
 
 	conf.Version = uuid.New().String()
 

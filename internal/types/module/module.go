@@ -6,6 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/macarrie/relique/internal/types/schedule"
+
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/macarrie/relique/internal/types/custom_errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,17 +25,17 @@ import (
 var MODULES_INSTALL_PATH = "/var/lib/relique/modules"
 
 type Module struct {
-	ID         int64
-	ModuleType string                 `json:"module_type" toml:"module_type"`
-	Name       string                 `json:"name" toml:"name"`
-	BackupType backup_type.BackupType `json:"backup_type" toml:"backup_type"`
-	// TODO: Load schedule struct
-	Schedules         []string
-	BackupPaths       []string `json:"backup_paths" toml:"backup_paths"`
-	PreBackupScript   string   `json:"pre_backup_script" toml:"pre_backup_script"`
-	PostBackupScript  string   `json:"post_backup_script" toml:"post_backup_script"`
-	PreRestoreScript  string   `json:"pre_restore_script" toml:"pre_restore_script"`
-	PostRestoreScript string   `json:"post_restore_script" toml:"post_restore_script"`
+	ID                int64
+	ModuleType        string                 `json:"module_type" toml:"module_type"`
+	Name              string                 `json:"name" toml:"name"`
+	BackupType        backup_type.BackupType `json:"backup_type" toml:"backup_type"`
+	Schedules         []schedule.Schedule    `json:"schedules" toml:"-"`
+	ScheduleNames     []string               `json:"-" toml:"schedules"`
+	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
+	PreBackupScript   string                 `json:"pre_backup_script" toml:"pre_backup_script"`
+	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`
+	PreRestoreScript  string                 `json:"pre_restore_script" toml:"pre_restore_script"`
+	PostRestoreScript string                 `json:"post_restore_script" toml:"post_restore_script"`
 }
 
 func (m *Module) String() string {
@@ -83,6 +87,12 @@ func LoadFromFile(file string) (Module, error) {
 	var module Module
 	if err := toml.Unmarshal(content, &module); err != nil {
 		return Module{}, errors.Wrap(err, "cannot parse toml file")
+	}
+
+	// TODO: Load schedules by name
+
+	if err := module.Valid(); err != nil {
+		return Module{}, errors.Wrap(err, "invalid module loaded from file")
 	}
 
 	return module, nil
@@ -258,10 +268,17 @@ func (m *Module) Update() (int64, error) {
 	return m.ID, nil
 }
 
-func (m *Module) Valid() bool {
-	if m.ModuleType == "" || m.Name == "" || m.BackupType.Type == backup_type.Unknown {
-		return false
+func (m *Module) Valid() error {
+	var objErrors *multierror.Error
+	if m.ModuleType == "" {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("empty module type"))
+	}
+	if m.Name == "" {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("empty module name"))
+	}
+	if m.BackupType.Type == backup_type.Unknown {
+		objErrors = multierror.Append(objErrors, fmt.Errorf("unknown backup type"))
 	}
 
-	return true
+	return objErrors.ErrorOrNil()
 }

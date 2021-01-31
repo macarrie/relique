@@ -1,8 +1,12 @@
 package client
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/macarrie/relique/internal/types/schedule"
 
 	"github.com/macarrie/relique/internal/types/backup_type"
 
@@ -331,7 +335,7 @@ func TestLoadFromPath(t *testing.T) {
 						ModuleType:        "default_test",
 						Name:              "example-diff",
 						BackupType:        backup_type.BackupType{Type: backup_type.Diff},
-						Schedules:         []string{"daily"},
+						ScheduleNames:     []string{"daily"},
 						BackupPaths:       []string{"/tmp/example"},
 						PreBackupScript:   "/tmp/prebackup.sh",
 						PostBackupScript:  "/tmp/postbackup.sh",
@@ -342,7 +346,7 @@ func TestLoadFromPath(t *testing.T) {
 						ModuleType:        "default_test",
 						Name:              "example-full",
 						BackupType:        backup_type.BackupType{Type: backup_type.Full},
-						Schedules:         []string{"daily"},
+						ScheduleNames:     []string{"daily"},
 						BackupPaths:       []string{"/tmp/example"},
 						PreBackupScript:   "/tmp/prebackup.sh",
 						PostBackupScript:  "/tmp/postbackup.sh",
@@ -393,7 +397,7 @@ func Test_loadFromFile(t *testing.T) {
 						ModuleType:        "default_test",
 						Name:              "example-diff",
 						BackupType:        backup_type.BackupType{Type: backup_type.Diff},
-						Schedules:         []string{"daily"},
+						ScheduleNames:     []string{"daily"},
 						BackupPaths:       []string{"/tmp/example"},
 						PreBackupScript:   "/tmp/prebackup.sh",
 						PostBackupScript:  "/tmp/postbackup.sh",
@@ -404,7 +408,7 @@ func Test_loadFromFile(t *testing.T) {
 						ModuleType:        "default_test",
 						Name:              "example-full",
 						BackupType:        backup_type.BackupType{Type: backup_type.Full},
-						Schedules:         []string{"daily"},
+						ScheduleNames:     []string{"daily"},
 						BackupPaths:       []string{"/tmp/example"},
 						PreBackupScript:   "/tmp/prebackup.sh",
 						PostBackupScript:  "/tmp/postbackup.sh",
@@ -487,6 +491,127 @@ func TestClient_Valid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.client.Valid(); got != tt.want {
 				t.Errorf("Valid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFillSchedulesStruct(t *testing.T) {
+	client1 := Client{
+		Name:    "client1",
+		Address: "client1",
+		Port:    1234,
+		Modules: []module.Module{
+			{
+				ModuleType:    "foo",
+				Name:          "foo",
+				BackupType:    backup_type.BackupType{Type: backup_type.Full},
+				ScheduleNames: []string{"sched1"},
+			},
+		},
+	}
+	client2 := Client{
+		Name:    "client2",
+		Address: "client2",
+		Port:    1234,
+		Modules: []module.Module{
+			{
+				ModuleType:    "foo",
+				Name:          "foo",
+				BackupType:    backup_type.BackupType{Type: backup_type.Full},
+				ScheduleNames: []string{"sched1", "sched2"},
+			},
+		},
+	}
+
+	sched1 := schedule.Schedule{
+		Name: "sched1",
+		Monday: schedule.Timeranges{
+			Ranges: []schedule.Timerange{
+				{
+					Start: time.Time{}.Add(1 * time.Hour),
+					End:   time.Time{}.Add(2 * time.Hour),
+				},
+			},
+		},
+	}
+	sched2 := schedule.Schedule{
+		Name: "sched2",
+		Tuesday: schedule.Timeranges{
+			Ranges: []schedule.Timerange{
+				{
+					Start: time.Time{}.Add(1 * time.Hour),
+					End:   time.Time{}.Add(2 * time.Hour),
+				},
+			},
+		},
+	}
+
+	type args struct {
+		client    Client
+		schedules []schedule.Schedule
+	}
+	tests := []struct {
+		name               string
+		args               args
+		wantSchedulesNamed []string
+		wantErr            bool
+	}{
+		{
+			name: "single_schedule",
+			args: args{
+				client:    client1,
+				schedules: []schedule.Schedule{sched1},
+			},
+			wantSchedulesNamed: []string{
+				"sched1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "multiple_schedules",
+			args: args{
+				client:    client2,
+				schedules: []schedule.Schedule{sched1, sched2},
+			},
+			wantSchedulesNamed: []string{
+				"sched1",
+				"sched2",
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown_schedules",
+			args: args{
+				client:    client2,
+				schedules: []schedule.Schedule{sched2},
+			},
+			wantSchedulesNamed: []string{},
+			wantErr:            true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FillSchedulesStruct([]Client{tt.args.client}, tt.args.schedules)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FillSchedulesStruct() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			// Do not analyze content on error return
+			if tt.wantErr {
+				return
+			}
+
+			var gotSchedules []string
+			fmt.Printf("GOT: %+v\n", got)
+			fmt.Printf("ERR: %+v\n", err)
+			for _, mod := range got[0].Modules {
+				for _, sched := range mod.Schedules {
+					gotSchedules = append(gotSchedules, sched.Name)
+				}
+			}
+			if !reflect.DeepEqual(gotSchedules, tt.wantSchedulesNamed) {
+				t.Errorf("FillSchedulesStruct() got = %v, want %v", gotSchedules, tt.wantSchedulesNamed)
 			}
 		})
 	}

@@ -133,6 +133,17 @@ CREATE TABLE IF NOT EXISTS clients (
 	 server_address INTEGER NOT NULL,
 	 server_port INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS schedules (
+	 id INTEGER PRIMARY KEY,
+	 name TEXT NOT NULL UNIQUE,
+	 monday TEXT,
+	 tuesday TEXT,
+	 wednesday TEXT,
+	 thursday TEXT,
+	 friday TEXT,
+	 saturday TEXT,
+	 sunday TEXT
+);
 CREATE TABLE IF NOT EXISTS modules_schedules (
 	schedule_id INTEGER,
 	module_id INTEGER,

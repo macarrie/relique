@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"strings"
 	"time"
 
 	"github.com/macarrie/relique/internal/types/module"
@@ -15,6 +16,8 @@ import (
 )
 
 var RunTicker *time.Ticker
+var previousLoopIterHasActiveSchedules bool
+var currentDay time.Weekday
 
 func Run() {
 	RunTicker = time.NewTicker(10 * time.Second)
@@ -43,11 +46,12 @@ func poll() {
 	for i, _ := range clientConfig.Jobs {
 		job := &clientConfig.Jobs[i]
 		if job.Status.Status == job_status.Pending {
+			// TODO: Run jobs in goroutines to avoid locking main loop -> Create job pool
 			if err := clientApi.RunJob(job); err != nil {
 				job.GetLog().WithFields(log.Fields{
 					"err": err,
 				}).Error("Error during job execution")
-				// TODO: Mark job as error and add message description field with error reason
+				// TODO: Add message description field with error reason
 				job.Status.Status = job_status.Error
 			}
 		}
@@ -63,15 +67,52 @@ func CreateBackupJobs() error {
 		return nil
 	}
 
-	for _, m := range clientConfig.BackupConfig.Modules {
-		// TODO: Check active schedules
+	// Clean jobs on day change
+	if currentDay != time.Now().Weekday() {
+		CleanJobs()
+		currentDay = time.Now().Weekday()
+	}
 
-		// Create new job only if a job for this module does not already exist
-		if clientConfig.JobExists(m) {
-			continue
+	for _, m := range clientConfig.BackupConfig.Modules {
+		var activeSchedulesNames []string
+		hasActiveSchedule := false
+		for _, schedule := range m.Schedules {
+			if schedule.Active(time.Now()) {
+				activeSchedulesNames = append(activeSchedulesNames, schedule.Name)
+				hasActiveSchedule = true
+			}
 		}
 
-		AddJob(m)
+		if hasActiveSchedule {
+			if previousLoopIterHasActiveSchedules {
+				log.WithFields(log.Fields{
+					"schedules": strings.Join(activeSchedulesNames, ","),
+					"nb":        len(activeSchedulesNames),
+				}).Debug("Active schedules")
+			} else {
+				log.WithFields(log.Fields{
+					"schedules": strings.Join(activeSchedulesNames, ","),
+					"nb":        len(activeSchedulesNames),
+				}).Info("Entering schedule")
+			}
+
+			// Create new job only if a job for this module does not already exist
+			if clientConfig.JobExists(m) {
+				continue
+			}
+
+			AddJob(m)
+		} else {
+			if previousLoopIterHasActiveSchedules {
+				log.Debug("Exiting active schedules")
+				// Clean done jobs on schedule exit
+				CleanJobs()
+			} else {
+				log.Debug("No active schedules")
+			}
+		}
+
+		previousLoopIterHasActiveSchedules = hasActiveSchedule
 	}
 
 	return nil
@@ -85,5 +126,13 @@ func AddJob(m module.Module) backup_job.BackupJob {
 }
 
 func CleanJobs() {
-	// TODO: Clean done jobs at the end of schedule
+	log.Debug("Cleaning done jobs from internal queue")
+	var jobs []backup_job.BackupJob
+	for _, job := range clientConfig.Jobs {
+		if !job.Done {
+			jobs = append(jobs, job)
+		}
+	}
+
+	clientConfig.Jobs = jobs
 }
