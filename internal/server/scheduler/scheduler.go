@@ -3,7 +3,7 @@ package scheduler
 import (
 	"time"
 
-	"github.com/macarrie/relique/internal/types/backup_job"
+	"github.com/macarrie/relique/internal/types/relique_job"
 
 	config "github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
@@ -39,7 +39,7 @@ func poll() {
 		}
 	}
 
-	activeJobs, err := backup_job.GetActiveJobs()
+	activeJobs, err := relique_job.GetActiveJobs()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,

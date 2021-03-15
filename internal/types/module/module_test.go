@@ -33,7 +33,7 @@ func TestGetByID(t *testing.T) {
 		PreRestoreScript:  "",
 		PostRestoreScript: "",
 	}
-	if _, err := testModule.Save(); err != nil {
+	if _, err := testModule.Save(nil); err != nil {
 		t.Errorf("cannot save module: '%s'", err)
 	}
 
@@ -94,7 +94,7 @@ func TestGetID(t *testing.T) {
 		PreRestoreScript:  "",
 		PostRestoreScript: "",
 	}
-	if _, err := testModule.Save(); err != nil {
+	if _, err := testModule.Save(nil); err != nil {
 		t.Errorf("cannot save module: '%s'", err)
 	}
 
@@ -125,7 +125,7 @@ func TestGetID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetID(tt.args.name)
+			got, err := GetID(tt.args.name, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -409,13 +409,13 @@ func TestModule_Save(t *testing.T) {
 		Name:              "testModule",
 		BackupType:        backup_type.BackupType{Type: backup_type.Full},
 		Schedules:         nil,
-		BackupPaths:       nil,
+		BackupPaths:       []string{"path1", "path2"},
 		PreBackupScript:   "",
 		PostBackupScript:  "",
 		PreRestoreScript:  "",
 		PostRestoreScript: "",
 	}
-	_, err := savedModule.Save()
+	_, err := savedModule.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save module for save test: '%s'", err)
 	}
@@ -433,7 +433,7 @@ func TestModule_Save(t *testing.T) {
 				Name:              "new_module_to_save",
 				BackupType:        backup_type.BackupType{Type: backup_type.Full},
 				Schedules:         nil,
-				BackupPaths:       nil,
+				BackupPaths:       []string{"path1", "path2"},
 				PreBackupScript:   "not_empty",
 				PostBackupScript:  "not_empty",
 				PreRestoreScript:  "not_empty",
@@ -451,7 +451,7 @@ func TestModule_Save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.mod.Save()
+			got, err := tt.mod.Save(nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -465,7 +465,7 @@ func TestModule_Save(t *testing.T) {
 				t.Errorf("Save() cannot get module from DB, err = '%s'", err)
 			}
 			if !reflect.DeepEqual(modFromDB, tt.mod) {
-				t.Errorf("Save() mod = %v, from_db = %v", tt.mod, modFromDB)
+				t.Errorf("Save() mod = %+v, from_db = %+v", tt.mod, modFromDB)
 			}
 		})
 	}
@@ -509,7 +509,7 @@ func TestModule_Update(t *testing.T) {
 		PreRestoreScript:  "",
 		PostRestoreScript: "",
 	}
-	savedId, err := savedModule.Save()
+	savedId, err := savedModule.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save module for update test: '%s'", err)
 	}
@@ -547,7 +547,7 @@ func TestModule_Update(t *testing.T) {
 				PreRestoreScript:  tt.fields.PreRestoreScript,
 				PostRestoreScript: tt.fields.PostRestoreScript,
 			}
-			got, err := m.Update()
+			got, err := m.Update(nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return

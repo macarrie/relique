@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/macarrie/relique/internal/types/schedule"
 
@@ -98,7 +99,7 @@ func LoadFromFile(file string) (Module, error) {
 	return module, nil
 }
 
-func GetID(name string) (int64, error) {
+func GetID(name string, tx *sql.Tx) (int64, error) {
 	request := sq.Select(
 		"id",
 	).From(
@@ -112,8 +113,13 @@ func GetID(name string) (int64, error) {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	row := db.Write().QueryRow(query, args...)
-	defer db.Unlock()
+	var row *sql.Row
+	if tx == nil {
+		row = db.Read().QueryRow(query, args...)
+		defer db.RUnlock()
+	} else {
+		row = tx.QueryRow(query, args...)
+	}
 
 	var id int64
 	if err := row.Scan(&id); err == sql.ErrNoRows {
@@ -138,6 +144,7 @@ func GetByID(id int64) (Module, error) {
 		"module_type",
 		"name",
 		"backup_type",
+		"backup_paths",
 		"pre_backup_script",
 		"post_backup_script",
 		"pre_restore_script",
@@ -156,11 +163,13 @@ func GetByID(id int64) (Module, error) {
 	row := db.Read().QueryRow(query, args...)
 	defer db.RUnlock()
 
+	var rawBackupPaths string
 	var mod Module
 	if err := row.Scan(&mod.ID,
 		&mod.ModuleType,
 		&mod.Name,
 		&mod.BackupType.Type,
+		&rawBackupPaths,
 		&mod.PreBackupScript,
 		&mod.PostBackupScript,
 		&mod.PreRestoreScript,
@@ -174,6 +183,7 @@ func GetByID(id int64) (Module, error) {
 		return Module{}, errors.Wrap(err, "cannot retrieve module from db")
 	}
 
+	mod.BackupPaths = strings.Split(rawBackupPaths, ":")
 	return mod, nil
 }
 
@@ -186,15 +196,15 @@ func (m *Module) GetLog() *log.Entry {
 	})
 }
 
-func (m *Module) Save() (int64, error) {
-	id, err := GetID(m.Name)
+func (m *Module) Save(tx *sql.Tx) (int64, error) {
+	id, err := GetID(m.Name, tx)
 	if err != nil && !custom_errors.IsDBNotFoundError(err) {
 		return 0, errors.Wrap(err, "cannot search for possibly existing module ID")
 	}
 
 	if id != 0 {
 		m.ID = id
-		return m.Update()
+		return m.Update(tx)
 	}
 
 	m.GetLog().Debug("Saving module into database")
@@ -203,14 +213,16 @@ func (m *Module) Save() (int64, error) {
 		"module_type",
 		"name",
 		"backup_type",
+		"backup_paths",
 		"pre_backup_script",
 		"post_backup_script",
 		"pre_restore_script",
 		"post_restore_script",
 	).Values(
-		m.ModuleType,
-		m.Name,
-		m.BackupType.Type,
+		db.GetNullString(m.ModuleType),
+		db.GetNullString(m.Name),
+		db.GetNullInt32(uint32(m.BackupType.Type)),
+		strings.Join(m.BackupPaths, ":"),
 		m.PreBackupScript,
 		m.PostBackupScript,
 		m.PreRestoreScript,
@@ -221,21 +233,29 @@ func (m *Module) Save() (int64, error) {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	result, err := db.Write().Exec(query, args...)
-	defer db.Unlock()
+	var result sql.Result
+	if tx == nil {
+		result, err = db.Write().Exec(query, args...)
+		defer db.Unlock()
+	} else {
+		result, err = tx.Exec(query, args...)
+	}
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot save module into db")
 	}
+	if rowsAffected, err := result.RowsAffected(); rowsAffected == 0 || err != nil {
+		return 0, errors.Wrap(err, "no rows affected when saving item")
+	}
 
 	m.ID, err = result.LastInsertId()
-	if m.ID == 0 {
-		return 0, errors.Wrap(err, "cannot get last insert id for job")
+	if m.ID == 0 || err != nil {
+		return 0, errors.Wrap(err, "cannot get last insert ID")
 	}
 
 	return m.ID, nil
 }
 
-func (m *Module) Update() (int64, error) {
+func (m *Module) Update(tx *sql.Tx) (int64, error) {
 	m.GetLog().Debug("Updating module details into database")
 
 	if m.ID == 0 {
@@ -243,9 +263,10 @@ func (m *Module) Update() (int64, error) {
 	}
 
 	request := sq.Update("modules").SetMap(sq.Eq{
-		"module_type":         m.ModuleType,
-		"name":                m.Name,
-		"backup_type":         m.BackupType.Type,
+		"module_type":         db.GetNullString(m.ModuleType),
+		"name":                db.GetNullString(m.Name),
+		"backup_type":         db.GetNullInt32(uint32(m.BackupType.Type)),
+		"backup_paths":        strings.Join(m.BackupPaths, ":"),
 		"pre_backup_script":   m.PreBackupScript,
 		"post_backup_script":  m.PostBackupScript,
 		"pre_restore_script":  m.PreRestoreScript,
@@ -259,10 +280,18 @@ func (m *Module) Update() (int64, error) {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	_, err = db.Write().Exec(query, args...)
-	defer db.Unlock()
+	var result sql.Result
+	if tx == nil {
+		result, err = db.Write().Exec(query, args...)
+		defer db.Unlock()
+	} else {
+		result, err = tx.Exec(query, args...)
+	}
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot update module into db")
+	}
+	if rowsAffected, err := result.RowsAffected(); rowsAffected == 0 || err != nil {
+		return 0, errors.Wrap(err, "no rows affected when updating item")
 	}
 
 	return m.ID, nil

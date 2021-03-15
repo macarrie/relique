@@ -6,14 +6,14 @@ import (
 	"github.com/macarrie/relique/internal/types/displayable"
 
 	log "github.com/macarrie/relique/internal/logging"
-	"github.com/macarrie/relique/internal/types/backup_job"
 	"github.com/macarrie/relique/internal/types/config/common"
+	"github.com/macarrie/relique/internal/types/relique_job"
 	"github.com/macarrie/relique/pkg/api/cli"
 	"github.com/spf13/cobra"
 )
 
-var jobSearchParams backup_job.JobSearchParams
-var manualJobParams backup_job.JobSearchParams
+var jobSearchParams relique_job.JobSearchParams
+var manualJobParams relique_job.JobSearchParams
 var config common.Configuration
 var rootCmd *cobra.Command
 var jsonOutput bool
@@ -98,11 +98,36 @@ func Init() {
 			if config.Port == 0 {
 				config.Port = 8434
 			}
-			job, err := cli.ManualBackup(config, manualJobParams)
+			manualJobParams.JobType = "backup"
+			job, err := cli.ManualJobStart(config, manualJobParams)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Error("Cannot start manual backup")
+				os.Exit(1)
+			}
+			displayable.Details(job)
+		},
+	}
+
+	restoreCmd := &cobra.Command{
+		Use:   "restore",
+		Short: "Perform restore related operations on relique client",
+	}
+	restoreStartCmd := &cobra.Command{
+		Use:   "start",
+		Short: "Start a manual restore on relique client",
+		Run: func(cmd *cobra.Command, args []string) {
+			if config.Port == 0 {
+				config.Port = 8434
+			}
+			manualJobParams.JobType = "restore"
+			manualJobParams.BackupType = "restore"
+			job, err := cli.ManualJobStart(config, manualJobParams)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("Cannot start manual restore")
 				os.Exit(1)
 			}
 			displayable.Details(job)
@@ -139,6 +164,16 @@ func Init() {
 	backupStartCmd.Flags().StringVarP(&manualJobParams.BackupType, "backup-type", "t", "", "Backup type (diff, full)")
 	backupStartCmd.MarkFlagRequired("module")
 	backupStartCmd.MarkFlagRequired("backup-type")
+
+	//// RESTORE CMD
+	clientCmd.AddCommand(restoreCmd)
+	restoreCmd.AddCommand(restoreStartCmd)
+	restoreStartCmd.Flags().StringVarP(&manualJobParams.Module, "module", "m", "", "Module name")
+	restoreStartCmd.Flags().StringVarP(&manualJobParams.RestoreJobUuid, "job", "j", "", "Job UUID to restore data from")
+	restoreStartCmd.Flags().StringVarP(&manualJobParams.RestoreDestination, "destination", "d", "", "Alternate file restore destination")
+	restoreStartCmd.MarkFlagRequired("module")
+	restoreStartCmd.MarkFlagRequired("job")
+	// TODO: Add option to restore files to alternate location. Allows to avoid running relique daemon as root to restore root owned files
 
 }
 
