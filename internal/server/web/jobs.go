@@ -1,22 +1,20 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
-	"path/filepath"
 	"time"
-
-	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/macarrie/relique/internal/logging"
+	"github.com/macarrie/relique/internal/types/backup_item"
 	"github.com/macarrie/relique/internal/types/backup_job"
 	"github.com/macarrie/relique/internal/types/backup_type"
 	"github.com/macarrie/relique/internal/types/job_status"
+	"github.com/macarrie/relique/internal/types/relique_job"
 )
 
 func postBackupRegisterJob(c *gin.Context) {
-	var job backup_job.BackupJob
+	var job relique_job.ReliqueJob
 	if err := c.BindJSON(&job); err != nil {
 		log.Error("Cannot parse received job")
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -61,7 +59,7 @@ func putBackupJobStatus(c *gin.Context) {
 		return
 	}
 
-	job, err := backup_job.GetByUuid(uuid)
+	job, err := relique_job.GetByUuid(uuid)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -73,9 +71,11 @@ func putBackupJobStatus(c *gin.Context) {
 		return
 	}
 
-	job.GetLog().Info("Updating job status")
+	job.GetLog().WithFields(log.Fields{
+		"updated_status": status,
+	}).Info("Updating job status")
 	job.Status = status
-	if _, err := job.UpdateStatus(); err != nil {
+	if _, err := job.Save(); err != nil {
 		job.GetLog().WithFields(log.Fields{
 			"err": err,
 		}).Error("Cannot save job updated status")
@@ -96,7 +96,7 @@ func putBackupJobDone(c *gin.Context) {
 		return
 	}
 
-	job, err := backup_job.GetByUuid(uuid)
+	job, err := relique_job.GetByUuid(uuid)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -108,9 +108,11 @@ func putBackupJobDone(c *gin.Context) {
 		return
 	}
 
+	job.GetLog().WithFields(log.Fields{
+		"updated_done_marker": done,
+	}).Info("Updating job done marker")
 	job.Done = done
 	job.EndTime = time.Now()
-	job.GetLog().Info("Updating job done marker")
 	if _, err := job.Save(); err != nil {
 		job.GetLog().WithFields(log.Fields{
 			"err": err,
@@ -123,13 +125,13 @@ func putBackupJobDone(c *gin.Context) {
 }
 
 func getBackupJob(c *gin.Context) {
-	var params backup_job.JobSearchParams
+	var params relique_job.JobSearchParams
 	if err := c.BindJSON(&params); err != nil {
 		log.Error("Cannot bind received job search parameters")
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	jobs, err := backup_job.Search(params)
+	jobs, err := relique_job.Search(params)
 	if err != nil {
 		params.GetLog().WithFields(log.Fields{
 			"err": err,

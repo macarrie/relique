@@ -2,12 +2,17 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
+	"path/filepath"
+
+	"github.com/macarrie/relique/internal/types/job_type"
 
 	"github.com/macarrie/relique/internal/types/backup_type"
 
@@ -19,13 +24,13 @@ import (
 
 	"github.com/macarrie/relique/internal/types/config/client_daemon_config"
 
-	"github.com/macarrie/relique/internal/types/backup_job"
+	"github.com/macarrie/relique/internal/types/relique_job"
 	"github.com/macarrie/relique/pkg/api/utils"
 	"github.com/pkg/errors"
 )
 
-func RunJob(job *backup_job.BackupJob) error {
-	job.GetLog().Info("Starting backup job")
+func RunJob(job *relique_job.ReliqueJob) error {
+	job.GetLog().Info("Starting relique job")
 
 	job.Status.Status = job_status.Active
 	if err := SSHPing(client_daemon_config.BackupConfig.ServerAddress); err != nil {
@@ -40,18 +45,38 @@ func RunJob(job *backup_job.BackupJob) error {
 		return errors.Wrap(err, "cannot not register job to relique server")
 	}
 
-	// TODO
-	if err := job.StartPreBackupScript(); err != nil {
-		return errors.Wrap(err, "error occurred during pre backup script execution")
-	}
+	if job.JobType.Type == job_type.Backup {
+		// TODO: Run script
+		if err := job.StartPreBackupScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre backup script execution")
+		}
 
-	if err := SendFiles(job); err != nil {
-		return errors.Wrap(err, "error occurred when sending files to backup to server")
-	}
+		if err := SendFiles(job); err != nil {
+			return errors.Wrap(err, "error occurred when sending files to backup to server")
+		}
 
-	// TODO
-	if err := job.StartPostBackupScript(); err != nil {
-		return errors.Wrap(err, "error occurred during pre backup script execution")
+		// TODO: Run script
+		if err := job.StartPostBackupScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre backup script execution")
+		}
+	} else if job.JobType.Type == job_type.Restore {
+		// TODO: Run script
+		if err := job.StartPreRestoreScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre backup script execution")
+		}
+
+		if err := GetRestoreFileList(job); err != nil {
+			return errors.Wrap(err, "error occurred when getting file list to restore to server")
+		}
+
+		if err := DownloadFiles(job); err != nil {
+			return errors.Wrap(err, "error occurred when restoring files from server")
+		}
+
+		// TODO: Run script
+		if err := job.StartPostRestoreScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre backup script execution")
+		}
 	}
 
 	if err := UpdateJobStatus(*job); err != nil {
@@ -219,7 +244,7 @@ func UpdateJobStatus(job backup_job.BackupJob) error {
 	return nil
 }
 
-func MarkAsDone(job backup_job.BackupJob) error {
+func MarkAsDone(job relique_job.ReliqueJob) error {
 	job.GetLog().Info("Mark job as done in relique server")
 
 	response, err := utils.PerformRequest(client_daemon_config.Config,
