@@ -14,10 +14,6 @@ func getRoutes() *gin.Engine {
 		v1.POST("/backup/register_job", postBackupRegisterJob)
 		v1.PUT("/backup/jobs/:uuid/status", putBackupJobStatus)
 		v1.PUT("/backup/jobs/:uuid/done", putBackupJobDone)
-		v1.POST("/backup/jobs/:id/checksum", postBackupJobChecksum)
-		v1.POST("/backup/jobs/:id/signature", postBackupJobSignature)
-		v1.POST("/backup/jobs/:id/apply_diff", postBackupJobApplyDiff)
-		v1.POST("/backup/jobs/:id/file", postBackupJobFile)
 		v1.POST("/backup/jobs/", getBackupJob)
 	}
 

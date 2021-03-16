@@ -9,7 +9,7 @@ func main() {
 	cli.Init()
 
 	// Set log without debug enabled as we do not have parsed cli params yet
-	log.Setup(false, "/var/log/relique/relique-server.log")
+	log.Setup(false, "relique-server.log")
 
 	// TODO: handle error
 	cli.Execute()

@@ -19,7 +19,7 @@ func Init() {
 		Use:   "start",
 		Short: "Start relique client",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Setup(Params.Debug, "/var/log/relique/relique-client.log")
+			log.Setup(Params.Debug, "relique-client.log")
 			log.Info("Starting relique-client")
 			client.Run(Params)
 		},

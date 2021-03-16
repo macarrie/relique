@@ -45,23 +45,23 @@ func Start() error {
 	if _, err := os.Lstat(client_daemon_config.Config.SSLCert); os.IsNotExist(err) {
 		// path/to/whatever does not exist
 		log.WithFields(log.Fields{
-			"error": err,
-			"file":  client_daemon_config.Config.SSLCert,
+			"err":  err,
+			"file": client_daemon_config.Config.SSLCert,
 		}).Fatal("Cannot find SSL certificate file")
 		return err
 	}
 	if _, err := os.Lstat(client_daemon_config.Config.SSLKey); os.IsNotExist(err) {
 		// path/to/whatever does not exist
 		log.WithFields(log.Fields{
-			"error": err,
-			"file":  client_daemon_config.Config.SSLKey,
+			"err":  err,
+			"file": client_daemon_config.Config.SSLKey,
 		}).Fatal("Cannot find SSL certificate file")
 		return err
 	}
 
 	if err := srv.ListenAndServeTLS(client_daemon_config.Config.SSLCert, client_daemon_config.Config.SSLKey); err != nil && err != http.ErrServerClosed {
 		log.WithFields(log.Fields{
-			"error": err,
+			"err": err,
 		}).Fatal("Cannot start HTTP server")
 		return err
 	}

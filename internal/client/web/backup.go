@@ -22,14 +22,12 @@ func postBackupStart(c *gin.Context) {
 		c.String(http.StatusBadRequest, "cannot parse received job start parameters")
 		return
 	}
-	log.Info("TODO: Start backup job")
+
 	bType := backup_type.FromString(params.BackupType)
 	if bType.Type == backup_type.Unknown {
 		c.String(http.StatusBadRequest, "unknown backup type received")
 		return
 	}
-	// TODO: Validate module
-	// IF mod present in configuration, use this one
 	var targetModule module.Module
 	var moduleFound bool = false
 
