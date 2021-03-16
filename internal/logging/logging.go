@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -13,13 +14,23 @@ var logger *log.Logger
 
 const TEST_LOG_PATH = "/tmp/relique_tests.log"
 
-func Setup(debug bool, filePath string) {
+func GetLogRoot() string {
+	logRoot := os.Getenv("RELIQUE_LOG_ROOT")
+	if logRoot == "" {
+		return "/var/log/relique/"
+	} else {
+		return filepath.Clean(logRoot)
+	}
+}
+
+func Setup(debug bool, logPath string) {
 	logger = log.New()
 
 	var writer io.Writer
-	if filePath == "" {
+	if logPath == "" {
 		writer = os.Stdout
 	} else {
+		filePath := filepath.Clean(fmt.Sprintf("%s/%s", GetLogRoot(), logPath))
 		file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err == nil {
 			writer = io.MultiWriter(os.Stdout, file)

@@ -1,12 +1,15 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
+
+	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/macarrie/relique/internal/logging"
-	"github.com/macarrie/relique/internal/types/backup_item"
 	"github.com/macarrie/relique/internal/types/backup_job"
 	"github.com/macarrie/relique/internal/types/backup_type"
 	"github.com/macarrie/relique/internal/types/job_status"
@@ -21,12 +24,21 @@ func postBackupRegisterJob(c *gin.Context) {
 	}
 	job.GetLog().Info("Registering job")
 
-	if previousJob, err := backup_job.GetPreviousJob(job); err != nil || previousJob.Uuid == "" {
-		job.BackupType.Type = backup_type.Full
-		job.GetLog().Info("No previous backup job found when registering job. This job backup type is now changed to 'full'")
+	if job.BackupType.Type == backup_type.Diff {
+		previousJob, err := backup_job.GetPreviousJob(job)
+		if err != nil || previousJob.Uuid == "" {
+			job.BackupType.Type = backup_type.Full
+			job.PreviousJobStorageDestination = ""
+			job.GetLog().Info("No previous backup job found when registering job. This job backup type is now changed to 'full'")
+		} else {
+			job.PreviousJobStorageDestination = filepath.Clean(fmt.Sprintf("%s/%s", server_daemon_config.Config.BackupStoragePath, previousJob.Uuid))
+		}
+
 	}
 
+	job.StorageDestination = filepath.Clean(fmt.Sprintf("%s/%s", server_daemon_config.Config.BackupStoragePath, job.Uuid))
 	job.StartTime = time.Now()
+
 	_, err := job.Save()
 	if err != nil {
 		job.GetLog().WithFields(log.Fields{
@@ -35,7 +47,8 @@ func postBackupRegisterJob(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{})
+
+	c.JSON(http.StatusOK, job)
 }
 
 func putBackupJobStatus(c *gin.Context) {
@@ -107,102 +120,6 @@ func putBackupJobDone(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{})
-}
-
-func postBackupJobApplyDiff(c *gin.Context) {
-	var bkpItem backup_item.BackupItem
-	if err := c.BindJSON(&bkpItem); err != nil {
-		log.Error("Cannot bind received backup item for diff apply")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	if bkpItem.JobUuid == "" || bkpItem.Path == "" {
-		log.Error("Empty job Uuid or item path received for diff apply request")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	if err := bkpItem.ApplyDiff(); err != nil {
-		bkpItem.GetLog().WithFields(log.Fields{
-			"err": err,
-		}).Error("Cannot apply item diff")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{})
-}
-
-func postBackupJobFile(c *gin.Context) {
-	// you can bind multipart form with explicit binding declaration:
-	// c.ShouldBindWith(&form, binding.Form)
-	// or you can simply use autobinding with ShouldBind method:
-	var form backup_item.BackupItemFile
-	// in this case proper binding will be automatically selected
-	if err := c.Bind(&form); err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Error("cannot parse backup item file")
-		c.String(http.StatusBadRequest, "cannot parse backup item file")
-		return
-	}
-
-	if err := form.Item.SaveFile(form.File); err != nil {
-		form.Item.GetLog().WithFields(log.Fields{
-			"err": err,
-		}).Error("Cannot save uploaded file")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.String(http.StatusOK, "ok")
-}
-
-func postBackupJobChecksum(c *gin.Context) {
-	var bkpItem backup_item.BackupItem
-	if err := c.BindJSON(&bkpItem); err != nil {
-		log.Error("Cannot bind received backup item for checksum computation")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if bkpItem.JobUuid == "" || bkpItem.Path == "" {
-		log.Error("Empty job Uuid or item path received for checksum computation request")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if err := bkpItem.ComputeChecksum(); err != nil {
-		bkpItem.GetLog().WithFields(log.Fields{
-			"err": err,
-		}).Error("Cannot get backup item checksum")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, bkpItem)
-}
-
-func postBackupJobSignature(c *gin.Context) {
-	var bkpItem backup_item.BackupItem
-	if err := c.BindJSON(&bkpItem); err != nil {
-		log.Error("Cannot bind received backup item for signature computation")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if bkpItem.JobUuid == "" || bkpItem.Path == "" {
-		log.Error("Empty job Uuid or item path received for signature computation request")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	if err := bkpItem.GetSignature(); err != nil {
-		bkpItem.GetLog().WithFields(log.Fields{
-			"err": err,
-		}).Error("Cannot get backup item signature")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, bkpItem)
 }
 
 func getBackupJob(c *gin.Context) {

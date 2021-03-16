@@ -1,10 +1,16 @@
 package backup_job
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/zloylos/grsync"
 
 	sq "github.com/Masterminds/squirrel"
 
+	"github.com/kennygrant/sanitize"
 	"github.com/macarrie/relique/internal/db"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/backup_type"
@@ -20,14 +26,17 @@ type BackupJob struct {
 	ModuleID int64
 	ClientID int64
 
-	Uuid       string
-	Client     clientObject.Client
-	Module     module.Module
-	Status     job_status.JobStatus
-	Done       bool
-	BackupType backup_type.BackupType
-	StartTime  time.Time
-	EndTime    time.Time
+	Uuid                          string
+	Client                        clientObject.Client
+	Module                        module.Module
+	Status                        job_status.JobStatus
+	Done                          bool
+	BackupType                    backup_type.BackupType
+	StartTime                     time.Time
+	EndTime                       time.Time
+	RSyncTasks                    []*grsync.Task
+	StorageDestination            string
+	PreviousJobStorageDestination string
 }
 
 func (j *BackupJob) GetLog() *log.Entry {
@@ -39,6 +48,29 @@ func (j *BackupJob) GetLog() *log.Entry {
 		"status":      j.Status.String(),
 		"done":        j.Done,
 	})
+}
+
+func createLogFolder(j *BackupJob) error {
+	path := filepath.Clean(fmt.Sprintf("%s/%s", log.GetLogRoot(), j.Uuid))
+	return os.MkdirAll(path, 0755)
+}
+
+func (j *BackupJob) GetRsyncLogFile(path string) (*os.File, error) {
+	if err := createLogFolder(j); err != nil {
+		return nil, errors.Wrap(err, "cannot create job log folder")
+	}
+
+	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
+	return os.Create(logFilePath)
+}
+
+func (j *BackupJob) GetRsyncErrorLogFile(path string) (*os.File, error) {
+	if err := createLogFolder(j); err != nil {
+		return nil, errors.Wrap(err, "cannot create job log folder")
+	}
+
+	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
+	return os.Create(logFilePath)
 }
 
 func (j *BackupJob) Save() (int64, error) {
