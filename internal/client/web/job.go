@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/macarrie/relique/internal/types/job_type"
-
 	"github.com/macarrie/relique/internal/client/scheduler"
 
 	clientConfig "github.com/macarrie/relique/internal/types/config/client_daemon_config"
@@ -15,19 +13,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/macarrie/relique/internal/logging"
-	"github.com/macarrie/relique/internal/types/relique_job"
+	"github.com/macarrie/relique/internal/types/backup_job"
 )
 
-func postJobStart(c *gin.Context) {
-	var params relique_job.JobSearchParams
+func postBackupStart(c *gin.Context) {
+	var params backup_job.JobSearchParams
 	if err := c.BindJSON(&params); err != nil {
 		c.String(http.StatusBadRequest, "cannot parse received job start parameters")
 		return
 	}
-	fmt.Printf("MANUAL JOB PARAMS: %+v\n", params)
-	jType := job_type.FromString(params.JobType)
+
 	bType := backup_type.FromString(params.BackupType)
-	if bType.Type == backup_type.Unknown && jType.Type == job_type.Backup {
+	if bType.Type == backup_type.Unknown {
 		c.String(http.StatusBadRequest, "unknown backup type received")
 		return
 	}
@@ -37,7 +34,7 @@ func postJobStart(c *gin.Context) {
 	// Check for module in client configuration
 	for _, mod := range clientConfig.BackupConfig.Modules {
 		if mod.Name == params.Module {
-			mod.GetLog().Info("Using module found in client configuration for manual job start")
+			mod.GetLog().Info("Using module found in client configuration for manual backup")
 			moduleFound = true
 			targetModule = mod
 			targetModule.BackupType = bType
@@ -45,19 +42,11 @@ func postJobStart(c *gin.Context) {
 	}
 
 	if !moduleFound {
-		log.Info("Module not found in client configuration for manual job start. Checking if a module with this name is installed on client")
-		if jType.Type == job_type.Backup {
-			targetModule = module.Module{
-				ModuleType: params.Module,
-				Name:       fmt.Sprintf("ondemand-%s-%s-%s", params.Module, jType.String(), bType.String()),
-				BackupType: bType,
-			}
-		} else {
-			targetModule = module.Module{
-				ModuleType: params.Module,
-				Name:       fmt.Sprintf("ondemand-%s-%s", params.Module, jType.String()),
-				BackupType: bType,
-			}
+		log.Info("Module not found in client configuration for manual backup. Checking if a module with this name is installed on client")
+		targetModule = module.Module{
+			ModuleType: params.Module,
+			Name:       fmt.Sprintf("ondemand-%s-%s", params.Module, bType.String()),
+			BackupType: bType,
 		}
 		if err := targetModule.LoadDefaultConfiguration(); err != nil {
 			c.String(http.StatusBadRequest, "cannot load module default configuration")
@@ -65,10 +54,7 @@ func postJobStart(c *gin.Context) {
 		}
 	}
 
-	job := relique_job.New(clientConfig.BackupConfig, targetModule, jType)
-	job.RestoreJobUuid = params.RestoreJobUuid
-	job.RestoreDestination = params.RestoreDestination
-	scheduler.AddJob(job)
+	job := scheduler.AddJob(targetModule)
 
 	c.JSON(http.StatusOK, job)
 }
