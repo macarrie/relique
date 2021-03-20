@@ -164,6 +164,8 @@ CREATE TABLE IF NOT EXISTS jobs (
 	client_id INTEGER NOT NULL,
 	start_time TIMESTAMP,
 	end_time TIMESTAMP,
+    restore_job_uuid TEXT,
+    restore_destination TEXT,
 	FOREIGN KEY(module_id) REFERENCES modules(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE
 ); `

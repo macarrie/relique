@@ -245,7 +245,7 @@ func TestReliqueJob_Save(t *testing.T) {
 			name:    "restore_job_save_ok",
 			job:     restoreJob,
 			want:    3,
-			wantErr: true,
+			wantErr: false,
 		},
 		// TODO: Enable after update test
 		{

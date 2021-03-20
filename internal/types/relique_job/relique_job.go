@@ -3,7 +3,11 @@ package relique_job
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/kennygrant/sanitize"
 
 	"github.com/macarrie/relique/internal/types/job_type"
 
@@ -31,6 +35,7 @@ type ReliqueJob struct {
 	Done               bool
 	BackupType         backup_type.BackupType
 	JobType            job_type.JobType
+	PreviousJobUuid    string
 	RestoreJobUuid     string
 	RestoreDestination string
 	StartTime          time.Time
@@ -50,8 +55,30 @@ func (j *ReliqueJob) GetLog() *log.Entry {
 	})
 }
 
+func createLogFolder(j *ReliqueJob) error {
+	path := filepath.Clean(fmt.Sprintf("%s/%s", log.GetLogRoot(), j.Uuid))
+	return os.MkdirAll(path, 0755)
+}
+
+func (j *ReliqueJob) GetRsyncLogFile(path string) (*os.File, error) {
+	if err := createLogFolder(j); err != nil {
+		return nil, errors.Wrap(err, "cannot create job log folder")
+	}
+
+	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
+	return os.Create(logFilePath)
+}
+
+func (j *ReliqueJob) GetRsyncErrorLogFile(path string) (*os.File, error) {
+	if err := createLogFolder(j); err != nil {
+		return nil, errors.Wrap(err, "cannot create job log folder")
+	}
+
+	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_error_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
+	return os.Create(logFilePath)
+}
+
 func (j *ReliqueJob) Save() (int64, error) {
-	fmt.Printf("%+v\n", j)
 	tx, err := db.Write().Begin()
 	// Defers are stacked, defer are executed in reverse order of stacking
 	defer db.Unlock()
@@ -92,24 +119,24 @@ func (j *ReliqueJob) Save() (int64, error) {
 	}
 
 	request := sq.Insert("jobs").SetMap(sq.Eq{
-		"uuid":        db.GetNullString(j.Uuid),
-		"status":      j.Status.Status,
-		"backup_type": j.BackupType.Type,
-		"job_type":    j.JobType.Type,
-		"done":        j.Done,
-		"module_id":   db.GetNullInt32(uint32(moduleId)),
-		"client_id":   db.GetNullInt32(uint32(clientId)),
-		"start_time":  j.StartTime,
-		"end_time":    j.EndTime,
+		"uuid":                db.GetNullString(j.Uuid),
+		"status":              j.Status.Status,
+		"backup_type":         j.BackupType.Type,
+		"job_type":            j.JobType.Type,
+		"done":                j.Done,
+		"module_id":           db.GetNullInt32(uint32(moduleId)),
+		"client_id":           db.GetNullInt32(uint32(clientId)),
+		"start_time":          j.StartTime,
+		"end_time":            j.EndTime,
+		"restore_job_uuid":    j.RestoreJobUuid,
+		"restore_destination": j.RestoreDestination,
 	})
 	query, args, err := request.ToSql()
-	fmt.Printf("JOB INSERT QUERY: %+v, %+v\n", query, args)
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
 	result, err := tx.Exec(query, args...)
-	fmt.Printf("EXEC RESULT: %+v, %+v\n", result, err)
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot save job into db")
 	}
@@ -143,14 +170,16 @@ func (j *ReliqueJob) Update(tx *sql.Tx) (int64, error) {
 	}
 
 	request := sq.Update("jobs").SetMap(sq.Eq{
-		"status":      j.Status.Status,
-		"backup_type": j.BackupType.Type,
-		"job_type":    j.JobType.Type,
-		"module_id":   db.GetNullInt32(uint32(moduleId)),
-		"client_id":   db.GetNullInt32(uint32(clientId)),
-		"done":        j.Done,
-		"start_time":  j.StartTime,
-		"end_time":    j.EndTime,
+		"status":              j.Status.Status,
+		"backup_type":         j.BackupType.Type,
+		"job_type":            j.JobType.Type,
+		"module_id":           db.GetNullInt32(uint32(moduleId)),
+		"client_id":           db.GetNullInt32(uint32(clientId)),
+		"done":                j.Done,
+		"start_time":          j.StartTime,
+		"end_time":            j.EndTime,
+		"restore_job_uuid":    j.RestoreJobUuid,
+		"restore_destination": j.RestoreDestination,
 	}).Where(
 		"uuid = ?",
 		j.Uuid,

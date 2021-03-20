@@ -47,6 +47,8 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		"done",
 		"start_time",
 		"end_time",
+		"restore_job_uuid",
+		"restore_destination",
 	).From("jobs").Where("uuid = ?", uuid)
 	query, args, err := request.ToSql()
 	if err != nil {
@@ -67,6 +69,8 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		&job.Done,
 		&job.StartTime,
 		&job.EndTime,
+		&job.RestoreJobUuid,
+		&job.RestoreDestination,
 	); err == sql.ErrNoRows {
 		return ReliqueJob{}, nil
 	} else if err != nil {
@@ -97,6 +101,15 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		return ReliqueJob{}, errors.Wrap(err, "cannot load job linked client")
 	}
 	job.Client = cl
+
+	if job.BackupType.Type == backup_type.Diff {
+		previousJob, err := GetPreviousJob(job)
+		if err != nil || previousJob.Uuid == "" {
+			job.GetLog().Info("No previous backup job found when getting job from db")
+		} else {
+			job.PreviousJobUuid = previousJob.Uuid
+		}
+	}
 
 	return job, nil
 }
