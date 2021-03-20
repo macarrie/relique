@@ -13,7 +13,7 @@ func getRoutes() *gin.Engine {
 		v1.GET("/ping", ping)
 		v1.POST("/config", postConfig)
 		v1.GET("/config/version", getConfigVersion)
-		v1.POST("/backup/start", postBackupStart)
+		v1.POST("/job/start", postJobStart)
 	}
 
 	return router

@@ -4,6 +4,8 @@ const (
 	Unknown = iota
 	Diff
 	Full
+	// For display purposes
+	Restore
 )
 
 type BackupType struct {
@@ -16,6 +18,8 @@ func (t *BackupType) String() string {
 		return "diff"
 	case Full:
 		return "full"
+	case Restore:
+		return "restore"
 	default:
 		return "unknown"
 	}
@@ -29,6 +33,8 @@ func FromString(val string) BackupType {
 		t.Type = Diff
 	case "full":
 		t.Type = Full
+	case "restore":
+		t.Type = Restore
 	default:
 		t.Type = Unknown
 	}

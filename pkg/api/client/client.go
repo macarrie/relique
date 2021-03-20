@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
+	"path/filepath"
+	"time"
 
-	"github.com/macarrie/relique/internal/types/backup_type"
+	"github.com/macarrie/relique/internal/types/sync_task"
 
-	"github.com/macarrie/relique/internal/types/rsync"
+	"github.com/macarrie/relique/internal/types/job_type"
 
 	log "github.com/macarrie/relique/internal/logging"
 
@@ -19,39 +20,51 @@ import (
 
 	"github.com/macarrie/relique/internal/types/config/client_daemon_config"
 
-	"github.com/macarrie/relique/internal/types/backup_job"
+	"github.com/macarrie/relique/internal/types/relique_job"
 	"github.com/macarrie/relique/pkg/api/utils"
 	"github.com/pkg/errors"
 )
 
-func RunJob(job *backup_job.BackupJob) error {
-	job.GetLog().Info("Starting backup job")
+func RunJob(job *relique_job.ReliqueJob) error {
+	job.GetLog().Info("Starting relique job")
 
 	job.Status.Status = job_status.Active
-	if err := SSHPing(client_daemon_config.BackupConfig.ServerAddress); err != nil {
-		job.Status.Status = job_status.Error
-		job.Done = true
-		return errors.Wrap(err, "cannot connect to relique server via SSH")
-	}
-
 	if err := RegisterJob(job); err != nil {
 		job.Status.Status = job_status.Error
 		job.Done = true
 		return errors.Wrap(err, "cannot not register job to relique server")
 	}
 
-	// TODO
-	if err := job.StartPreBackupScript(); err != nil {
-		return errors.Wrap(err, "error occurred during pre backup script execution")
+	if job.JobType.Type == job_type.Backup {
+		// TODO: Run script
+		if err := job.StartPreBackupScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre backup script execution")
+		}
+	} else if job.JobType.Type == job_type.Restore {
+		// TODO: Run script
+		if err := job.StartPreRestoreScript(); err != nil {
+			return errors.Wrap(err, "error occurred during pre restore script execution")
+		}
 	}
 
-	if err := SendFiles(job); err != nil {
+	if err := SyncFiles(job); err != nil {
 		return errors.Wrap(err, "error occurred when sending files to backup to server")
 	}
 
-	// TODO
-	if err := job.StartPostBackupScript(); err != nil {
-		return errors.Wrap(err, "error occurred during pre backup script execution")
+	if err := WaitForSyncCompletion(job); err != nil {
+		return errors.Wrap(err, "error during sync completion wait")
+	}
+
+	if job.JobType.Type == job_type.Backup {
+		// TODO: Run script
+		if err := job.StartPostBackupScript(); err != nil {
+			return errors.Wrap(err, "error occurred during post backup script execution")
+		}
+	} else if job.JobType.Type == job_type.Restore {
+		// TODO: Run script
+		if err := job.StartPostRestoreScript(); err != nil {
+			return errors.Wrap(err, "error occurred during post restore script execution")
+		}
 	}
 
 	if err := UpdateJobStatus(*job); err != nil {
@@ -66,18 +79,7 @@ func RunJob(job *backup_job.BackupJob) error {
 	return nil
 }
 
-func SSHPing(addr string) error {
-	log.Debug("Performing SSH ping")
-
-	cmd := exec.Command("ssh", addr, "/bin/true")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("could not ping address '%s' via SSH: '%s'", addr, string(out))
-	}
-
-	return nil
-}
-
-func RegisterJob(job *backup_job.BackupJob) error {
+func RegisterJob(job *relique_job.ReliqueJob) error {
 	job.GetLog().Info("Registering job to relique server")
 
 	response, err := utils.PerformRequest(client_daemon_config.Config,
@@ -97,109 +99,160 @@ func RegisterJob(job *backup_job.BackupJob) error {
 	defer response.Body.Close()
 
 	if response.StatusCode == http.StatusOK {
-		var j backup_job.BackupJob
+		var j relique_job.ReliqueJob
 		if err := json.Unmarshal(body, &j); err != nil {
 			return errors.Wrap(err, "cannot parse job returned from server job register request")
-		}
-		if j.StorageDestination == "" {
-			return fmt.Errorf("got empty storage destination from server job register request response")
-		}
-
-		job.StorageDestination = j.StorageDestination
-
-		if j.BackupType.Type == backup_type.Diff {
-			if j.PreviousJobStorageDestination == "" {
-				return fmt.Errorf("got empty previous storage destination from server job register request response")
-			}
-
-			job.PreviousJobStorageDestination = j.PreviousJobStorageDestination
 		}
 	} else {
 		return fmt.Errorf("cannot register job to server (%d response): see server logs for more details", response.StatusCode)
 	}
 
+	job.Status.Status = job_status.Active
+
 	return nil
 }
 
-func SendFiles(j *backup_job.BackupJob) error {
-	// TODO: Execute rsync tasks in parallel for perf gainz. Use wggroup to sync partial rsync jobs ?
-	var jobStatus uint8 = job_status.Active
-	hasBackupPathsSuccess := false
+func SyncFiles(j *relique_job.ReliqueJob) error {
 	for _, path := range j.Module.BackupPaths {
 		j.GetLog().WithFields(log.Fields{
 			"path": path,
 		}).Info("Starting module path backup")
 
-		if _, err := os.Lstat(path); os.IsNotExist(err) {
-			j.GetLog().WithFields(log.Fields{
-				"path": path,
-			}).Error("Backup path does not exist on client")
-			jobStatus = job_status.Incomplete
-			continue
-		}
-
-		syncTask := rsync.GetSyncTask(j, path)
-		j.RSyncTasks = append(j.RSyncTasks, syncTask)
-
-		if err := syncTask.Run(); err != nil {
-			j.GetLog().WithFields(log.Fields{
-				"err":  err,
-				"path": path,
-			}).Error("Error during backup path rsync backup")
-			jobStatus = job_status.Incomplete
-			continue
-		}
-
-		taskLog := syncTask.Log()
-		rsyncLogFile, err := j.GetRsyncLogFile(path)
-		defer rsyncLogFile.Close()
-		if err != nil {
-			j.GetLog().WithFields(log.Fields{
-				"err":  err,
-				"path": path,
-			}).Error("Cannot create log file for rsync task")
-		} else {
-			if _, err := rsyncLogFile.WriteString(taskLog.Stdout); err != nil {
+		// Create restore destination directory on restore before starting sync
+		if j.JobType.Type == job_type.Restore {
+			var targetRestoreDir string
+			if j.RestoreDestination == "" {
+				targetRestoreDir = filepath.Clean(path)
+			} else {
+				targetRestoreDir = filepath.Clean(fmt.Sprintf("%s/%s", j.RestoreDestination, path))
+			}
+			if err := os.MkdirAll(targetRestoreDir, 0755); err != nil {
 				j.GetLog().WithFields(log.Fields{
+					"path": targetRestoreDir,
 					"err":  err,
+				}).Error("Cannot create restore destination directory before starting file sync")
+				j.Status.Status = job_status.Incomplete
+				continue
+			}
+		} else {
+			if _, err := os.Lstat(path); os.IsNotExist(err) {
+				j.GetLog().WithFields(log.Fields{
 					"path": path,
-				}).Error("Cannot write rsync log to log file")
+				}).Error("Backup path does not exist on client")
+				j.Status.Status = job_status.Incomplete
+				continue
 			}
 		}
-		rsyncErrorLogFile, err := j.GetRsyncErrorLogFile(path)
-		defer rsyncErrorLogFile.Close()
-		if err != nil {
-			j.GetLog().WithFields(log.Fields{
-				"err":  err,
-				"path": path,
-			}).Error("Cannot create error log file for rsync task")
-		} else {
-			if _, err := rsyncErrorLogFile.WriteString(taskLog.Stdout); err != nil {
-				j.GetLog().WithFields(log.Fields{
-					"err":  err,
-					"path": path,
-				}).Error("Cannot write rsync error log to log file")
-			}
-		}
-
-		hasBackupPathsSuccess = true
 	}
 
-	if !hasBackupPathsSuccess && jobStatus == job_status.Incomplete {
-		jobStatus = job_status.Error
+	response, err := utils.PerformRequest(client_daemon_config.Config,
+		client_daemon_config.BackupConfig.ServerAddress,
+		client_daemon_config.BackupConfig.ServerPort,
+		"POST",
+		fmt.Sprintf("/api/v1/backup/jobs/%s/sync", j.Uuid),
+		nil)
+	if err != nil || j.Uuid == "" {
+		return errors.Wrap(err, "error when performing api request")
 	}
 
-	j.Status.Status = jobStatus
-
-	// If job has not been marked as Incomplete or Error yet and is still active, this means it's a success. Mark it as such
-	if jobStatus == job_status.Active {
-		j.Status.Status = job_status.Success
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("cannot start files sync on server (%d response): see server logs for more details", response.StatusCode)
 	}
 
 	return nil
 }
 
-func UpdateJobStatus(job backup_job.BackupJob) error {
+func WaitForSyncCompletion(job *relique_job.ReliqueJob) error {
+	job.GetLog().Info("Waiting for sync tasks completion")
+
+	var ticker *time.Ticker
+
+	hasSuccess := false
+	ticker = time.NewTicker(10 * time.Second)
+	for {
+		<-ticker.C
+		progress, err := GetJobProgress(*job)
+		if err != nil {
+			job.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Cannot get job progress from server")
+			continue
+		}
+
+		allDone := true
+		for _, task := range progress {
+			job.GetLog().WithFields(log.Fields{
+				"path":      task.Path,
+				"remaining": task.Progress.Remain,
+				"total":     task.Progress.Total,
+				"progress":  task.Progress.Progress,
+				"speed":     task.Progress.Speed,
+			}).Info("Sync progress")
+
+			if task.Error == "" {
+				hasSuccess = true
+			} else {
+				job.GetLog().WithFields(log.Fields{
+					"err": err,
+				}).Error("Backup path sync error")
+				job.Status.Status = job_status.Incomplete
+			}
+
+			// TODO: Check progress -> if not done
+			if !task.Done {
+				allDone = false
+			}
+
+			// TODO: Set job status
+		}
+		// TODO: Break on completion. Breaking on first iter during dev
+		if allDone {
+			job.GetLog().Info("All sync tasks completed")
+			break
+		}
+	}
+
+	// Job has not been marked incomplete and all backup paths sync are done -> Success !
+	if job.Status.Status == job_status.Active {
+		job.Status.Status = job_status.Success
+	}
+	if job.Status.Status == job_status.Incomplete && !hasSuccess {
+		job.Status.Status = job_status.Error
+	}
+
+	return nil
+}
+
+func GetJobProgress(job relique_job.ReliqueJob) ([]sync_task.SyncTaskProgress, error) {
+	response, err := utils.PerformRequest(client_daemon_config.Config,
+		client_daemon_config.BackupConfig.ServerAddress,
+		client_daemon_config.BackupConfig.ServerPort,
+		"GET",
+		fmt.Sprintf("/api/v1/backup/jobs/%s/sync_progress", job.Uuid),
+		nil)
+	if err != nil || job.Uuid == "" {
+		return []sync_task.SyncTaskProgress{}, errors.Wrap(err, "error when performing api request")
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return []sync_task.SyncTaskProgress{}, errors.Wrap(err, "cannot read response body from api request")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusOK {
+		var progress []sync_task.SyncTaskProgress
+		if err := json.Unmarshal(body, &progress); err != nil {
+			return []sync_task.SyncTaskProgress{}, errors.Wrap(err, "cannot parse sync progress returned from server")
+		}
+
+		return progress, nil
+	} else {
+		return []sync_task.SyncTaskProgress{}, fmt.Errorf("cannot get sync_task task completion status from server (%d response): see server logs for more details", response.StatusCode)
+	}
+}
+
+func UpdateJobStatus(job relique_job.ReliqueJob) error {
 	job.GetLog().Info("Update job status to relique server")
 
 	response, err := utils.PerformRequest(client_daemon_config.Config,
@@ -219,7 +272,7 @@ func UpdateJobStatus(job backup_job.BackupJob) error {
 	return nil
 }
 
-func MarkAsDone(job backup_job.BackupJob) error {
+func MarkAsDone(job relique_job.ReliqueJob) error {
 	job.GetLog().Info("Mark job as done in relique server")
 
 	response, err := utils.PerformRequest(client_daemon_config.Config,

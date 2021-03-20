@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -65,7 +64,7 @@ func TestClient_Save(t *testing.T) {
 		ServerAddress: "localhost",
 		ServerPort:    8433,
 	}
-	_, err := savedClient.Save()
+	_, err := savedClient.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save client for save test: '%s'", err)
 	}
@@ -95,10 +94,16 @@ func TestClient_Save(t *testing.T) {
 			wantID:  true,
 			wantErr: false,
 		},
+		{
+			name:    "error_item",
+			client:  Client{},
+			wantID:  false,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.client.Save()
+			got, err := tt.client.Save(nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -107,12 +112,14 @@ func TestClient_Save(t *testing.T) {
 				t.Errorf("Save() got = %v, wanted not null ID", got)
 			}
 
-			clientFromDB, err := GetByID(got)
-			if err != nil {
-				t.Errorf("Save() cannot get client from DB, err = '%s'", err)
-			}
-			if !reflect.DeepEqual(clientFromDB, tt.client) {
-				t.Errorf("Save() mod = %v, from_db = %v", tt.client, clientFromDB)
+			if !tt.wantErr && tt.wantID {
+				clientFromDB, err := GetByID(got)
+				if err != nil {
+					t.Errorf("Save() cannot get client from DB, err = '%s'", err)
+				}
+				if !reflect.DeepEqual(clientFromDB, tt.client) {
+					t.Errorf("Save() mod = %v, from_db = %v", tt.client, clientFromDB)
+				}
 			}
 		})
 	}
@@ -156,7 +163,7 @@ func TestClient_Update(t *testing.T) {
 		ServerAddress: "localhost",
 		ServerPort:    8433,
 	}
-	savedId, err := savedClient.Save()
+	savedId, err := savedClient.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save client for update test: '%s'", err)
 	}
@@ -182,7 +189,7 @@ func TestClient_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.client.Update()
+			got, err := tt.client.Update(nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -206,7 +213,7 @@ func TestGetByID(t *testing.T) {
 		ServerAddress: "localhost",
 		ServerPort:    8433,
 	}
-	_, err := testClient.Save()
+	_, err := testClient.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save client for test: '%s'", err)
 	}
@@ -266,7 +273,7 @@ func TestGetID(t *testing.T) {
 		ServerAddress: "localhost",
 		ServerPort:    8433,
 	}
-	_, err := testClient.Save()
+	_, err := testClient.Save(nil)
 	if err != nil {
 		t.Errorf("Cannot save client for test: '%s'", err)
 	}
@@ -298,7 +305,7 @@ func TestGetID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetID(tt.args.name)
+			got, err := GetID(tt.args.name, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -603,8 +610,6 @@ func TestFillSchedulesStruct(t *testing.T) {
 			}
 
 			var gotSchedules []string
-			fmt.Printf("GOT: %+v\n", got)
-			fmt.Printf("ERR: %+v\n", err)
 			for _, mod := range got[0].Modules {
 				for _, sched := range mod.Schedules {
 					gotSchedules = append(gotSchedules, sched.Name)

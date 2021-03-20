@@ -1,9 +1,9 @@
 package client_daemon_config
 
 import (
-	"github.com/macarrie/relique/internal/types/backup_job"
 	"github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/module"
+	"github.com/macarrie/relique/internal/types/relique_job"
 
 	"github.com/macarrie/relique/internal/types/config/common"
 
@@ -13,7 +13,7 @@ import (
 
 var Config common.Configuration
 var BackupConfig client.Client
-var Jobs []backup_job.BackupJob
+var Jobs []relique_job.ReliqueJob
 
 func Load(filePath string) error {
 	if filePath != "" {

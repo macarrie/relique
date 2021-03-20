@@ -3,12 +3,12 @@ package scheduler
 import (
 	"time"
 
-	"github.com/macarrie/relique/internal/types/backup_job"
+	"github.com/macarrie/relique/internal/types/relique_job"
 
-	config "github.com/macarrie/relique/internal/types/config/server_daemon_config"
+	serverConfig "github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
 	log "github.com/macarrie/relique/internal/logging"
-	server_api "github.com/macarrie/relique/pkg/api/server"
+	serverApi "github.com/macarrie/relique/pkg/api/server"
 )
 
 var RunTicker *time.Ticker
@@ -25,13 +25,13 @@ func Run() {
 }
 
 func poll() {
-	if len(config.Config.Clients) == 0 {
+	if len(serverConfig.Config.Clients) == 0 {
 		log.Info("No clients found in configuration")
 		return
 	}
 
-	for _, client := range config.Config.Clients {
-		if err := server_api.SendConfiguration(client); err != nil {
+	for _, client := range serverConfig.Config.Clients {
+		if err := serverApi.SendConfiguration(client); err != nil {
 			log.WithFields(log.Fields{
 				"err":    err,
 				"client": client.Name,
@@ -39,7 +39,7 @@ func poll() {
 		}
 	}
 
-	activeJobs, err := backup_job.GetActiveJobs()
+	activeJobs, err := relique_job.GetActiveJobs()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,

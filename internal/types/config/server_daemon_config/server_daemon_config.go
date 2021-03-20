@@ -1,6 +1,7 @@
 package server_daemon_config
 
 import (
+	"github.com/macarrie/relique/internal/types/sync_task"
 	"github.com/pkg/errors"
 
 	clientObject "github.com/macarrie/relique/internal/types/client"
@@ -14,6 +15,11 @@ import (
 )
 
 var Config common.Configuration
+var SyncTasks map[string][]*sync_task.SyncTask
+
+func init() {
+	SyncTasks = make(map[string][]*sync_task.SyncTask)
+}
 
 func Load(filePath string) error {
 	if filePath != "" {

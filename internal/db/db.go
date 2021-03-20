@@ -47,6 +47,7 @@ func InitTestDB() error {
 
 // Used for unit tests
 func ResetTestDB() error {
+	pool = nil
 	dbPath = TEST_DB_PATH
 	if _, err := os.Lstat(dbPath); os.IsNotExist(err) {
 		// DB not created, nothing to do
@@ -65,7 +66,7 @@ func open() error {
 		"path": dbPath,
 	}).Info("Opening database connection")
 
-	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?mode=rwc", dbPath))
+	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", dbPath))
 	if err != nil {
 		return errors.Wrap(err, "cannot open sqlite connection")
 	}
@@ -84,6 +85,7 @@ func open() error {
 		return errors.Wrap(err, "cannot ping DB")
 	}
 
+	pool.SetMaxOpenConns(1)
 	return nil
 }
 
@@ -119,6 +121,7 @@ CREATE TABLE IF NOT EXISTS modules (
 	module_type TEXT NOT NULL,
 	name TEXT NOT NULL UNIQUE,
 	backup_type INTEGER NOT NULL,
+	backup_paths TEXT,
 	pre_backup_script TEXT,
 	post_backup_script TEXT,
 	pre_restore_script TEXT,
@@ -155,11 +158,14 @@ CREATE TABLE IF NOT EXISTS jobs (
 	uuid TEXT NOT NULL UNIQUE,
 	status INTEGER NOT NULL,
 	backup_type INTEGER NOT NULL,
+	job_type INTEGER NOT NULL,
 	done INTEGER NOT NULL,
 	module_id INTEGER NOT NULL,
 	client_id INTEGER NOT NULL,
 	start_time TIMESTAMP,
 	end_time TIMESTAMP,
+    restore_job_uuid TEXT,
+    restore_destination TEXT,
 	FOREIGN KEY(module_id) REFERENCES modules(id) ON DELETE CASCADE ON UPDATE CASCADE,
 	FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE
 ); `

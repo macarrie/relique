@@ -4,12 +4,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/macarrie/relique/internal/types/module"
+	"github.com/macarrie/relique/internal/types/job_type"
 
 	"github.com/macarrie/relique/internal/types/job_status"
 	clientApi "github.com/macarrie/relique/pkg/api/client"
 
-	"github.com/macarrie/relique/internal/types/backup_job"
+	"github.com/macarrie/relique/internal/types/relique_job"
 
 	log "github.com/macarrie/relique/internal/logging"
 	clientConfig "github.com/macarrie/relique/internal/types/config/client_daemon_config"
@@ -101,7 +101,8 @@ func CreateBackupJobs() error {
 				continue
 			}
 
-			AddJob(m)
+			job := relique_job.New(clientConfig.BackupConfig, m, job_type.JobType{Type: job_type.Backup})
+			AddJob(job)
 		} else {
 			if previousLoopIterHasActiveSchedules {
 				log.Debug("Exiting active schedules")
@@ -118,16 +119,13 @@ func CreateBackupJobs() error {
 	return nil
 }
 
-func AddJob(m module.Module) backup_job.BackupJob {
-	job := backup_job.New(clientConfig.BackupConfig, m)
+func AddJob(job relique_job.ReliqueJob) {
 	clientConfig.Jobs = append(clientConfig.Jobs, job)
-
-	return job
 }
 
 func CleanJobs() {
 	log.Debug("Cleaning done jobs from internal queue")
-	var jobs []backup_job.BackupJob
+	var jobs []relique_job.ReliqueJob
 	for _, job := range clientConfig.Jobs {
 		if !job.Done {
 			jobs = append(jobs, job)

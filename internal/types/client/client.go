@@ -119,7 +119,7 @@ func LoadFromPath(p string) ([]Client, error) {
 	return clients, nil
 }
 
-func GetID(name string) (int64, error) {
+func GetID(name string, tx *sql.Tx) (int64, error) {
 	request := sq.Select(
 		"id",
 	).From(
@@ -133,8 +133,13 @@ func GetID(name string) (int64, error) {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	row := db.Read().QueryRow(query, args...)
-	defer db.RUnlock()
+	var row *sql.Row
+	if tx == nil {
+		row = db.Read().QueryRow(query, args...)
+		defer db.RUnlock()
+	} else {
+		row = tx.QueryRow(query, args...)
+	}
 
 	var id int64
 	if err := row.Scan(&id); err == sql.ErrNoRows {
@@ -232,15 +237,15 @@ func (c *Client) GetLog() *log.Entry {
 	})
 }
 
-func (c *Client) Save() (int64, error) {
-	id, err := GetID(c.Name)
+func (c *Client) Save(tx *sql.Tx) (int64, error) {
+	id, err := GetID(c.Name, tx)
 	if err != nil && !custom_errors.IsDBNotFoundError(err) {
 		return 0, errors.Wrap(err, "cannot search for possibly existing client ID")
 	}
 
 	if id != 0 {
 		c.ID = id
-		return c.Update()
+		return c.Update(tx)
 	}
 
 	c.GetLog().Debug("Saving client into database")
@@ -255,33 +260,41 @@ func (c *Client) Save() (int64, error) {
 		"server_address",
 		"server_port",
 	).Values(
-		c.Version,
-		c.Name,
-		c.Address,
-		c.Port,
-		c.ServerAddress,
-		c.ServerPort,
+		db.GetNullString(c.Version),
+		db.GetNullString(c.Name),
+		db.GetNullString(c.Address),
+		db.GetNullInt32(c.Port),
+		db.GetNullString(c.ServerAddress),
+		db.GetNullInt32(c.ServerPort),
 	)
 	query, args, err := request.ToSql()
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	result, err := db.Write().Exec(
-		query,
-		args...,
-	)
-	defer db.Unlock()
+	var result sql.Result
+	if tx == nil {
+		result, err = db.Write().Exec(query, args...)
+		defer db.Unlock()
+	} else {
+		result, err = tx.Exec(query, args...)
+	}
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot save client into db")
 	}
+	if rowsAffected, err := result.RowsAffected(); rowsAffected == 0 || err != nil {
+		return 0, errors.Wrap(err, "no rows affected when saving item")
+	}
 
-	c.ID, _ = result.LastInsertId()
+	c.ID, err = result.LastInsertId()
+	if c.ID == 0 || err != nil {
+		return 0, errors.Wrap(err, "cannot get last insert ID")
+	}
 
 	return c.ID, nil
 }
 
-func (c *Client) Update() (int64, error) {
+func (c *Client) Update(tx *sql.Tx) (int64, error) {
 	c.GetLog().Debug("Updating client details into database")
 
 	if c.ID == 0 {
@@ -289,12 +302,12 @@ func (c *Client) Update() (int64, error) {
 	}
 
 	request := sq.Update("clients").SetMap(sq.Eq{
-		"config_version": c.Version,
-		"name":           c.Name,
-		"address":        c.Address,
-		"port":           c.Port,
-		"server_address": c.ServerAddress,
-		"server_port":    c.ServerPort,
+		"config_version": db.GetNullString(c.Version),
+		"name":           db.GetNullString(c.Name),
+		"address":        db.GetNullString(c.Address),
+		"port":           db.GetNullInt32(c.Port),
+		"server_address": db.GetNullString(c.ServerAddress),
+		"server_port":    db.GetNullInt32(c.ServerPort),
 	}).Where(
 		" id = ?",
 		c.ID,
@@ -304,10 +317,18 @@ func (c *Client) Update() (int64, error) {
 		return 0, errors.Wrap(err, "cannot build sql query")
 	}
 
-	_, err = db.Write().Exec(query, args...)
-	defer db.Unlock()
+	var result sql.Result
+	if tx == nil {
+		result, err = db.Write().Exec(query, args...)
+		defer db.Unlock()
+	} else {
+		result, err = tx.Exec(query, args...)
+	}
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot update client into db")
+	}
+	if rowsAffected, err := result.RowsAffected(); rowsAffected == 0 || err != nil {
+		return 0, errors.Wrap(err, "no rows affected when saving item")
 	}
 
 	return c.ID, nil
