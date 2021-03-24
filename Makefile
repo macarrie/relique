@@ -5,9 +5,11 @@ GOOS=$(shell $(GO) env GOOS)
 GOARCH=$(shell $(GO) env GOARCH)
 PACKAGE_NAME=relique_$(VERSION)_$(GOOS)_$(GOARCH)
 
-#MAKEFLAGS += --silent
+MAKEFLAGS += --silent
 
 BUILD_OUTPUT_DIR=output
+INSTALL_SRC=output
+INSTALL_ROOT=/
 
 ## all: Build all relique components from scratch
 all: clean build
@@ -41,8 +43,8 @@ test: check
 
 ## certs: Generate self signed ssl certs to help start a quick relique configuration while getting real certs
 certs:
-	rm -rf build/certs/*
-	mkdir -p build/certs
+	rm -rf output/certs/*
+	mkdir -p output/etc/relique/
 	echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > tmp.certs
 	openssl req \
 		-x509 \
@@ -70,7 +72,7 @@ $(BUILD_OUTPUT_DIR):
 
 ## tar: Package sources to tar for rpm build
 tar: $(BUILD_OUTPUT_DIR)
-	tar --exclude "$(BUILD_OUTPUT_DIR)" -zcf $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz .
+	tar --exclude "$(BUILD_OUTPUT_DIR)" --exclude "test" -zcf $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz .
 
 ~/rpmbuild:
 	rpmdev-setuptree

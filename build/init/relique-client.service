@@ -1,0 +1,15 @@
+[Unit]
+Description=Relique client daemon
+After=network.target
+
+[Service]
+Type=notify
+User=relique
+Group=relique
+ExecStart=/usr/local/bin/relique-client start
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

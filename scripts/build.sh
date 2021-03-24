@@ -51,3 +51,7 @@ done
 
 echo "Copying default configuration files to '$OUTPUT_DIR'"
 cp -r configs/* "$OUTPUT_DIR"
+
+echo "Copying systemd service files to '$OUTPUT_DIR'"
+mkdir -p "${OUTPUT_DIR}/usr/lib/systemd/system"
+cp -r build/init/*.service "${OUTPUT_DIR}/usr/lib/systemd/system"

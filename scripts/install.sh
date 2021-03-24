@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+USER=relique
+GROUP=relique
+
 function usage() {
     echo "\
 usage: $0 [options]
@@ -16,11 +19,11 @@ function install_file() {
     overwrite=$2
 
     if [ -f "${PREFIX}/${src_file}" ] && [ "X${overwrite}X" != "X1X" ]; then
-        echo "--- Skipping ${src_file} copy. File already exists"
+        echo "--- Skipping ${PREFIX}/${src_file} copy. File already exists"
         return
     fi
 
-    echo "--- Copying ${src_file}"
+    echo "--- Copying ${src_file} to ${PREFIX}/${src_file}"
 
     dest_path=$(dirname $src_file)
     if [ ! -d "${dest_path}" ]; then
@@ -48,10 +51,46 @@ function copy_default_configuration() {
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
         install_file "etc/relique/server.toml"
+        mkdir -p "${PREFIX}/opt/relique"
+        mkdir -p "${PREFIX}/var/lib/relique"
+        mkdir -p "${PREFIX}/var/log/relique"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
         install_file "etc/relique/client.toml"
+    fi
+}
+
+
+function create_user {
+    echo -e "\nCreating $USER user"
+
+    id -u $USER > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        useradd -M "${USER}"
+    fi
+}
+
+
+function setup_files_ownership() {
+    echo -e "\nSetting files rights and ownership"
+
+    chown -R $USER:$GROUP "${PREFIX}/etc/relique"
+    chown -R $USER:$GROUP "${PREFIX}/var/lib/relique"
+    chown -R $USER:$GROUP "${PREFIX}/var/log/relique"
+    chown -R $USER:$GROUP "${PREFIX}/opt/relique"
+}
+
+
+function install_systemd_service() {
+    echo -e "\nInstalling systemd service files"
+
+    if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
+        install_file "usr/lib/systemd/system/relique-server.service"
+    fi
+
+    if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
+        install_file "usr/lib/systemd/system/relique-client.service"
     fi
 }
 
@@ -86,7 +125,6 @@ case $key in
 
     --systemd)
     SYSTEMD=1
-    echo "TODO: Install systemd service"
     shift # past argument
     ;;
 
@@ -125,7 +163,11 @@ if [ ! -d $PREFIX ]; then
     mkdir -p "${PREFIX}"
 fi
 
+create_user
 copy_binaries
 copy_default_configuration
+setup_files_ownership
 
-echo "TODO: Install"
+if [ "X${SYSTEMD}X" != "X1X" ]; then
+    install_systemd_service
+fi
