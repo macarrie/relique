@@ -11,6 +11,10 @@ Options:
     -h --help: Displays this help
     -p --prefix: Install relique to this folder
     -s --src: Get compiled relique package to install from this folder
+    --server: Install relique server
+    --client: Install relique client
+    --systemd: Install systemd service file
+    --skip-user-creation: Skip relique group and user creation
     "
 }
 
@@ -128,6 +132,11 @@ case $key in
     shift # past argument
     ;;
 
+    --skip-user-creation)
+    SKIPUSERCREATION=1
+    shift # past argument
+    ;;
+
     -h|--help)
     usage
     exit 0
@@ -170,4 +179,8 @@ setup_files_ownership
 
 if [ "X${SYSTEMD}X" != "X1X" ]; then
     install_systemd_service
+fi
+
+if [ "X${SKIPUSERCREATION}X" == "X1X" ]; then
+    ./create_user
 fi

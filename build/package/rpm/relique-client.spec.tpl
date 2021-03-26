@@ -21,7 +21,10 @@ make build BUILD_OUTPUT_DIR=%{_builddir}/output
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--client --systemd"
+make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--client --systemd --skip-user-creation"
+
+%pre
+./scripts/create_user.sh --user "relique" --group "relique" --homedir "/var/lib/relique"
 
 %post
 systemctl daemon-reload
