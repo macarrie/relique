@@ -3,10 +3,10 @@ Description=Relique client daemon
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 User=relique
 Group=relique
-ExecStart=/usr/local/bin/relique-client start
+ExecStart=/usr/bin/relique-client start
 KillMode=process
 KillSignal=SIGTERM
 TimeoutStopSec=30

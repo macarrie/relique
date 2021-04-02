@@ -3,7 +3,7 @@ Description=Relique server daemon
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 User=relique
 Group=relique
 ExecStart=/usr/local/bin/relique-server start

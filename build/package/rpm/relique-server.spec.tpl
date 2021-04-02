@@ -24,18 +24,26 @@ rm -rf $RPM_BUILD_ROOT
 make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--server --systemd --skip-user-creation"
 
 %pre
-./scripts/create_user.sh --user "relique" --group "relique" --homedir "/var/lib/relique"
+echo "Creating group 'relique'"
+getent group relique > /dev/null || groupadd -r relique
+
+echo "Creating user 'relique'"
+getent passwd relique > /dev/null || \
+    useradd -r -g "relique" -d "relique" -s /sbin/nologin \
+    -c "Relique service account" "relique"
+exit 0
 
 %post
 systemctl daemon-reload
 
 %files
-/usr/bin/relique-server
-/usr/bin/relique
+%defattr(0644, relique, relique, 0644)
+%attr(0755, -, -) /usr/bin/relique-server
+%attr(0755, -, -) /usr/bin/relique
+/usr/lib/systemd/system/relique-server.service
+%dir %attr(0755, -, -) /var/log/relique
+%dir /var/lib/relique
+%dir /opt/relique
 %config(noreplace) /etc/relique/server.toml
-
-
-
-%changelog
-* Sat Mar 20 2021 macarrie
-- 
+/etc/relique/certs/cert.pem
+/etc/relique/certs/key.pem

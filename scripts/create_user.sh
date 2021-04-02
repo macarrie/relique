@@ -56,7 +56,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 echo "Creating group '${RELIQUE_GROUP}'"
-getent group ${GROUP} >/dev/null || groupadd -r relique
+getent group ${RELIQUE_GROUP} >/dev/null || groupadd -r "${RELIQUE_GROUP}"
 
 echo "Creating user '${RELIQUE_USER}'"
 getent passwd ${RELIQUE_USER} >/dev/null || \

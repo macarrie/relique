@@ -66,6 +66,14 @@ function copy_default_configuration() {
 }
 
 
+function copy_certs() {
+    echo -e "\nInstalling self signed quick start certs"
+
+    install_file "etc/relique/certs/cert.pem"
+    install_file "etc/relique/certs/key.pem"
+}
+
+
 function create_user {
     echo -e "\nCreating $USER user"
 
@@ -73,6 +81,16 @@ function create_user {
     if [ $? -ne 0 ]; then
         useradd -M "${USER}"
     fi
+}
+
+
+function create_dir_structure {
+    echo -e "\nCreating relique directory structure"
+
+    mkdir -p "${PREFIX}/etc/relique"
+    mkdir -p "${PREFIX}/var/lib/relique"
+    mkdir -p "${PREFIX}/var/log/relique"
+    mkdir -p "${PREFIX}/opt/relique"
 }
 
 
@@ -174,13 +192,15 @@ fi
 
 create_user
 copy_binaries
+create_dir_structure
 copy_default_configuration
-setup_files_ownership
+copy_certs
 
-if [ "X${SYSTEMD}X" != "X1X" ]; then
+if [ "X${SYSTEMD}X" == "X1X" ]; then
     install_systemd_service
 fi
 
-if [ "X${SKIPUSERCREATION}X" == "X1X" ]; then
+if [ "X${SKIPUSERCREATION}X" != "X1X" ]; then
     ./create_user
+    setup_files_ownership
 fi

@@ -41,24 +41,6 @@ check:
 test: check
 	go test ./... -cover
 
-## certs: Generate self signed ssl certs to help start a quick relique configuration while getting real certs
-certs:
-	rm -rf output/certs/*
-	mkdir -p output/etc/relique/
-	echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > tmp.certs
-	openssl req \
-		-x509 \
-		-newkey rsa:4096 \
-		-sha256 \
-		-days 3650 \
-		-nodes \
-		-keyout build/certs/key.pem \
-		-out build/certs/cert.pem \
-		-subj '/CN=relique' \
-		-extensions san \
-		-config tmp.certs
-	rm tmp.certs
-
 ## install: Install
 install:
 	./scripts/install.sh --prefix "$(INSTALL_ROOT)" --src "$(INSTALL_SRC)" $(INSTALL_ARGS)
