@@ -7,7 +7,7 @@ License: TODO
 URL: https://github.com/macarrie/relique
 Source0: relique-%{version}.src.tar.gz
 
-BuildRequires: go
+BuildRequires: go,openssl
 Requires: rsync,openssh
 
 %description
@@ -17,26 +17,28 @@ Requires: rsync,openssh
 %prep
 %setup -q -c
 
-
 make build BUILD_OUTPUT_DIR=%{_builddir}/output
-echo "RPM build root: %{_builddir}/output"
-ls %{_builddir}/output
-
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--client --systemd"
+make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--client --systemd --skip-user-creation"
 
+%pre
+getent group relique > /dev/null || groupadd -r relique
+getent passwd relique > /dev/null || useradd -r -g "relique" -d "/var/lib/relique" -s /sbin/nologin -c "Relique service account" "relique"
+exit 0
+
+%post
+systemctl daemon-reload
 
 %files
-#%license add-license-file-here
-#%doc add-docs-here
-/usr/bin/relique-client
-/usr/bin/relique
-/etc/relique/client.toml
-
-
-
-%changelog
-* Sat Mar 20 2021 macarrie
-- 
+%defattr(0644, relique, relique, 0644)
+%attr(0755, -, -) /usr/bin/relique-client
+%attr(0755, -, -) /usr/bin/relique
+/usr/lib/systemd/system/relique-client.service
+%dir %attr(0755, -, -) /var/log/relique
+%dir /var/lib/relique
+%dir /opt/relique
+%config(noreplace) /etc/relique/client.toml
+/etc/relique/certs/cert.pem
+/etc/relique/certs/key.pem

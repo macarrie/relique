@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 function usage() {
     echo "\
 usage: $0 [options]
@@ -8,6 +9,49 @@ Options:
     -h --help: Displays this help
     -o --output-dir: Output directory for generated artefacts
     "
+}
+
+
+function build_binaries() {
+    echo "Building binaries to '$OUTPUT_DIR'"
+    components="relique relique-client relique-server"
+
+    for component in $components; do
+        echo "Building $component"
+        go build -o "${OUTPUT_DIR}/usr/bin/${component}" cmd/${component}/main.go
+    done
+}
+
+
+function copy_service_files() {
+    echo "Copying systemd service files to '$OUTPUT_DIR'"
+    mkdir -p "${OUTPUT_DIR}/usr/lib/systemd/system"
+    cp -r build/init/*.service "${OUTPUT_DIR}/usr/lib/systemd/system"
+}
+
+
+function copy_config_defaults() {
+    echo "Copying default configuration files to '$OUTPUT_DIR'"
+    cp -r configs/* "$OUTPUT_DIR"
+}
+
+
+# Create self signed certs for quick first setup
+function make_certs() {
+    mkdir -p "${OUTPUT_DIR}/etc/relique/certs"
+	echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > "${OUTPUT_DIR}/tmp.certs"
+	openssl req \
+		-x509 \
+		-newkey rsa:4096 \
+		-sha256 \
+		-days 3650 \
+		-nodes \
+		-keyout "${OUTPUT_DIR}/etc/relique/certs/key.pem" \
+		-out "${OUTPUT_DIR}/etc/relique/certs/cert.pem" \
+		-subj '/CN=relique' \
+		-extensions san \
+		-config "${OUTPUT_DIR}/tmp.certs"
+	rm "${OUTPUT_DIR}/tmp.certs"
 }
 
 
@@ -37,17 +81,12 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
+
 if [ -z $OUTPUT_DIR ]; then
     OUTPUT_DIR="output/"
 fi
 
-echo "Building binaries to '$OUTPUT_DIR'"
-components="relique relique-client relique-server"
-
-for component in $components; do
-    echo "Building $component"
-    go build -o "${OUTPUT_DIR}/usr/bin/${component}" cmd/${component}/main.go
-done
-
-echo "Copying default configuration files to '$OUTPUT_DIR'"
-cp -r configs/* "$OUTPUT_DIR"
+build_binaries
+copy_service_files
+copy_config_defaults
+make_certs
