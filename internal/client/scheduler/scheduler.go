@@ -1,8 +1,13 @@
 package scheduler
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/macarrie/relique/internal/types/job_type"
 
@@ -20,6 +25,9 @@ var previousLoopIterHasActiveSchedules bool
 var currentDay time.Weekday
 
 func Run() {
+	// Set weekday to current day to avoid cleaning done jobs on startup
+	currentDay = time.Now().Weekday()
+
 	RunTicker = time.NewTicker(10 * time.Second)
 	go func() {
 		log.Debug("Starting main daemon loop")
@@ -98,6 +106,7 @@ func CreateBackupJobs() error {
 
 			// Create new job only if a job for this module does not already exist
 			if clientConfig.JobExists(m) {
+				previousLoopIterHasActiveSchedules = hasActiveSchedule
 				continue
 			}
 
@@ -121,6 +130,13 @@ func CreateBackupJobs() error {
 
 func AddJob(job relique_job.ReliqueJob) {
 	clientConfig.Jobs = append(clientConfig.Jobs, job)
+
+	if err := UpdateRetention(clientConfig.Config.RetentionPath); err != nil {
+		log.WithFields(log.Fields{
+			"path": clientConfig.Config.RetentionPath,
+			"err":  err,
+		}).Error("Cannot update jobs retention. Done jobs will not be remembered and might be restarted at relique client restart")
+	}
 }
 
 func CleanJobs() {
@@ -133,4 +149,53 @@ func CleanJobs() {
 	}
 
 	clientConfig.Jobs = jobs
+}
+
+func LoadRetention(path string) error {
+	log.WithFields(log.Fields{
+		"path": path,
+	}).Info("Loading jobs retention file")
+
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
+		log.WithFields(log.Fields{
+			"path": path,
+		}).Info("Jobs retention file does not exist. Nothing to load")
+		return nil
+	}
+
+	f, err := os.Open(path)
+	defer f.Close()
+	if err != nil {
+		return errors.Wrap(err, "cannot open retention file")
+	}
+
+	byteVal, err := ioutil.ReadAll(f)
+	if err != nil {
+		return errors.Wrap(err, "cannot read retention file contents")
+	}
+
+	var jobsFromRetention []relique_job.ReliqueJob
+	if err := json.Unmarshal(byteVal, &jobsFromRetention); err != nil {
+		return errors.Wrap(err, "cannot parse retention file")
+	}
+
+	clientConfig.Jobs = jobsFromRetention
+	return nil
+}
+
+func UpdateRetention(path string) error {
+	log.WithFields(log.Fields{
+		"path": path,
+	}).Info("Updating jobs retention file")
+
+	jsonData, err := json.MarshalIndent(clientConfig.Jobs, "", " ")
+	if err != nil {
+		return errors.Wrap(err, "cannot form json from retention data")
+	}
+
+	if err := ioutil.WriteFile(path, jsonData, 0644); err != nil {
+		return errors.Wrap(err, "cannot write jobs to retention file")
+	}
+
+	return nil
 }
