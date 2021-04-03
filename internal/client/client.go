@@ -23,6 +23,13 @@ func Run(args CliArgs) {
 		}).Fatal("Cannot load configuration file")
 	}
 
+	if err := scheduler.LoadRetention(client_daemon_config.Config.RetentionPath); err != nil {
+		log.WithFields(log.Fields{
+			"path": client_daemon_config.Config.RetentionPath,
+			"err":  err,
+		}).Error("Cannot load relique client retention. Relique will start without previous done jobs in memory, jobs previously already performed might be restarted")
+	}
+
 	scheduler.Run()
 	go web.Start()
 
@@ -33,6 +40,12 @@ func Run(args CliArgs) {
 		switch sig := <-signalChannel; sig {
 		case syscall.SIGINT, syscall.SIGTERM:
 			log.Info("Signal received. Shutting down...")
+			if err := scheduler.UpdateRetention(client_daemon_config.Config.RetentionPath); err != nil {
+				log.WithFields(log.Fields{
+					"path": client_daemon_config.Config.RetentionPath,
+					"err":  err,
+				}).Error("Cannot update jobs retention. Done jobs will not be remembered and might be restarted at relique client restart")
+			}
 			web.Stop()
 			os.Exit(0)
 		}

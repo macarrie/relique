@@ -24,6 +24,7 @@ type Configuration struct {
 	ClientCfgPath             string `mapstructure:"client_cfg_path"`
 	SchedulesCfgPath          string `mapstructure:"schedules_cfg_path"`
 	BackupStoragePath         string `mapstructure:"backup_storage_path"`
+	RetentionPath             string `mapstructure:"retention_path"`
 }
 
 func Load(fileName string) (Configuration, error) {
@@ -68,6 +69,7 @@ func setDefaultValues() {
 	viper.SetDefault("client_cfg_path", "clients")
 	viper.SetDefault("schedules_cfg_path", "schedules")
 	viper.SetDefault("backup_storage_path", "/opt/relique")
+	viper.SetDefault("retention_path", "/var/lib/relique/retention.dat")
 }
 
 func UseFile(filePath string) {
