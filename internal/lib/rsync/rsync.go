@@ -10,8 +10,6 @@ import (
 
 	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
-	log "github.com/macarrie/relique/internal/logging"
-
 	"github.com/macarrie/relique/internal/types/relique_job"
 
 	"github.com/zloylos/grsync"
@@ -22,7 +20,6 @@ func getClientStorageDest(j *relique_job.ReliqueJob, path string) string {
 }
 
 func GetRestoreSyncTask(j *relique_job.ReliqueJob, path string) sync_task.SyncTask {
-	fmt.Printf("JOB: %+v\n", j)
 	localRestorePath := fmt.Sprintf("%s/", filepath.Clean(fmt.Sprintf("%s/%s", getJobStorageRoot(&relique_job.ReliqueJob{Uuid: j.RestoreJobUuid}), path)))
 
 	var restoreDestination string
@@ -47,12 +44,6 @@ func GetRestoreSyncTask(j *relique_job.ReliqueJob, path string) sync_task.SyncTa
 		Delete:       true,
 		DeleteAfter:  true,
 	}
-
-	// TODO: Remove
-	j.GetLog().WithFields(log.Fields{
-		"src":  localRestorePath,
-		"dest": remotePath,
-	}).Warning("RSYNC PARAMS")
 
 	return sync_task.SyncTask{
 		Path:  path,

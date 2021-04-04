@@ -35,35 +35,27 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		return errors.Wrap(err, "cannot not register job to relique server")
 	}
 
-	if job.JobType.Type == job_type.Backup {
-		// TODO: Run script
-		if err := job.StartPreBackupScript(); err != nil {
-			return errors.Wrap(err, "error occurred during pre backup script execution")
-		}
-	} else if job.JobType.Type == job_type.Restore {
-		// TODO: Run script
-		if err := job.StartPreRestoreScript(); err != nil {
-			return errors.Wrap(err, "error occurred during pre restore script execution")
-		}
+	preJobScriptSuccess := true
+	if err := job.StartPreScript(); err != nil {
+		preJobScriptSuccess = false
+		job.GetLog().WithFields(log.Fields{
+			"err": err,
+		}).Error("Error encountered during module pre script execution")
 	}
 
-	if err := SyncFiles(job); err != nil {
-		return errors.Wrap(err, "error occurred when sending files to backup to server")
-	}
-
-	if err := WaitForSyncCompletion(job); err != nil {
-		return errors.Wrap(err, "error during sync completion wait")
-	}
-
-	if job.JobType.Type == job_type.Backup {
-		// TODO: Run script
-		if err := job.StartPostBackupScript(); err != nil {
-			return errors.Wrap(err, "error occurred during post backup script execution")
+	if preJobScriptSuccess {
+		if err := SyncFiles(job); err != nil {
+			return errors.Wrap(err, "error occurred when sending files to backup to server")
 		}
-	} else if job.JobType.Type == job_type.Restore {
-		// TODO: Run script
-		if err := job.StartPostRestoreScript(); err != nil {
-			return errors.Wrap(err, "error occurred during post restore script execution")
+
+		if err := WaitForSyncCompletion(job); err != nil {
+			return errors.Wrap(err, "error during sync completion wait")
+		}
+
+		if err := job.StartPostScript(); err != nil {
+			job.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Error encountered during module post script execution")
 		}
 	}
 
@@ -198,14 +190,11 @@ func WaitForSyncCompletion(job *relique_job.ReliqueJob) error {
 				job.Status.Status = job_status.Incomplete
 			}
 
-			// TODO: Check progress -> if not done
 			if !task.Done {
 				allDone = false
 			}
-
-			// TODO: Set job status
 		}
-		// TODO: Break on completion. Breaking on first iter during dev
+
 		if allDone {
 			job.GetLog().Info("All sync tasks completed")
 			break

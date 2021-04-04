@@ -24,7 +24,6 @@ func postJobStart(c *gin.Context) {
 		c.String(http.StatusBadRequest, "cannot parse received job start parameters")
 		return
 	}
-	fmt.Printf("MANUAL JOB PARAMS: %+v\n", params)
 	jType := job_type.FromString(params.JobType)
 	bType := backup_type.FromString(params.BackupType)
 	if bType.Type == backup_type.Unknown && jType.Type == job_type.Backup {

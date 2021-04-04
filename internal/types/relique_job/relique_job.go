@@ -1,9 +1,11 @@
 package relique_job
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -20,6 +22,20 @@ import (
 	"github.com/macarrie/relique/internal/types/job_status"
 	"github.com/macarrie/relique/internal/types/module"
 	"github.com/pkg/errors"
+)
+
+const (
+	OK = iota
+	Warning
+	Critical
+	Unknown
+)
+
+const (
+	PreBackup = iota
+	PostBackup
+	PreRestore
+	PostRestore
 )
 
 type ReliqueJob struct {
@@ -60,22 +76,28 @@ func createLogFolder(j *ReliqueJob) error {
 	return os.MkdirAll(path, 0755)
 }
 
-func (j *ReliqueJob) GetRsyncLogFile(path string) (*os.File, error) {
+func (j *ReliqueJob) GetLogFile(name string) (*os.File, error) {
 	if err := createLogFolder(j); err != nil {
 		return nil, errors.Wrap(err, "cannot create job log folder")
 	}
 
-	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
+	logFilePath := filepath.Clean(fmt.Sprintf(
+		"%s/%s/%s.log",
+		log.GetLogRoot(),
+		j.Uuid,
+		sanitize.Accents(sanitize.BaseName(name)),
+	))
 	return os.Create(logFilePath)
 }
 
-func (j *ReliqueJob) GetRsyncErrorLogFile(path string) (*os.File, error) {
-	if err := createLogFolder(j); err != nil {
-		return nil, errors.Wrap(err, "cannot create job log folder")
-	}
+func (j *ReliqueJob) GetRsyncLogFile(path string) (*os.File, error) {
+	name := fmt.Sprintf("rsync_log_%s", sanitize.Accents(sanitize.BaseName(path)))
+	return j.GetLogFile(name)
+}
 
-	logFilePath := filepath.Clean(fmt.Sprintf("%s/%s/rsync_error_log_%s.log", log.GetLogRoot(), j.Uuid, sanitize.Accents(sanitize.BaseName(path))))
-	return os.Create(logFilePath)
+func (j *ReliqueJob) GetRsyncErrorLogFile(path string) (*os.File, error) {
+	name := fmt.Sprintf("rsync_error_log_%s", sanitize.Accents(sanitize.BaseName(path)))
+	return j.GetLogFile(name)
 }
 
 func (j *ReliqueJob) Save() (int64, error) {
@@ -208,56 +230,154 @@ func (j *ReliqueJob) Update(tx *sql.Tx) (int64, error) {
 	return j.ID, nil
 }
 
-func (j *ReliqueJob) StartPreBackupScript() error {
-	if j.Module.PreBackupScript == "" {
-		j.GetLog().Info("No pre backup script to launch")
-	} else {
-		j.GetLog().WithFields(log.Fields{
-			"script": j.Module.PreBackupScript,
-		}).Info("Starting pre backup script")
+func (j *ReliqueJob) runModuleScript(path string, logFile *os.File) (int, error) {
+	cmd := exec.Command(path)
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("RELIQUE_JOB_UUID=%s", j.Uuid),
+		fmt.Sprintf("RELIQUE_JOB_TYPE=%s", j.JobType.String()),
+		fmt.Sprintf("RELIQUE_JOB_BACKUP_TYPE=%s", j.BackupType.String()),
+		fmt.Sprintf("RELIQUE_JOB_BACKUP_TYPE=%s", j.BackupType.String()),
+		fmt.Sprintf("RELIQUE_MODULE_NAME=%s", j.Module.Name),
+		fmt.Sprintf("RELIQUE_MODULE_TYPE=%s", j.Module.ModuleType),
+		fmt.Sprintf("RELIQUE_RESTORE_JOB_UUID=%s", j.RestoreJobUuid),
+		fmt.Sprintf("RELIQUE_RESTORE_DESTINATION=%s", j.RestoreDestination),
+	)
+
+	if err := cmd.Start(); err != nil {
+		return Critical, errors.Wrap(err, "cannot start command")
 	}
 
-	// TODO
+	var returnErr error
+	var returnStatus int
+	if err := cmd.Wait(); err == nil {
+		returnErr = nil
+		returnStatus = OK
+	} else {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			returnErr = errors.Wrap(err, "error during module script execution")
+			returnStatus = exitError.ExitCode()
+		} else {
+			returnErr = errors.Wrap(err, "could not determine exit code returned from module script execution")
+			returnStatus = Critical
+		}
+	}
+
+	if logFile != nil {
+		if _, err := logFile.Write(output.Bytes()); err != nil {
+			j.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Cannot write script log to log file")
+		}
+	}
+
+	return returnStatus, returnErr
+}
+
+func (j *ReliqueJob) startJobScript(path string, logFile *os.File, scriptType int) error {
+	if path == "" {
+		j.GetLog().WithFields(log.Fields{
+			"script_type": scriptType,
+		}).Info("No module script to launch")
+	} else if _, err := os.Lstat(path); os.IsNotExist(err) {
+		j.Status.Status = job_status.Error
+		j.Done = true
+		return fmt.Errorf(
+			"module script file (%s) does not exist. Check that the module '%s' (module type '%s') is correctly installed on relique client",
+			path,
+			j.Module.Name,
+			j.Module.ModuleType,
+		)
+	} else {
+		j.GetLog().WithFields(log.Fields{
+			"path":        path,
+			"script_type": scriptType,
+		}).Info("Starting module script")
+
+		exitCode, err := j.runModuleScript(path, logFile)
+		if err != nil {
+			switch exitCode {
+			case Critical:
+				j.Status.Status = job_status.Error
+				j.Done = true
+				j.GetLog().WithFields(log.Fields{
+					"err":         err,
+					"script_type": scriptType,
+				}).Error("Critical exit code returned from module script. Check client job logs for more details")
+				return fmt.Errorf("critical return code from module script. Check client job logs for more details")
+			case Warning, Unknown:
+				j.GetLog().WithFields(log.Fields{
+					"err": err,
+				}).Warning("Warning or Unknown exit code returned from module script. Check client job logs for more details")
+				j.Status.Status = job_status.Incomplete
+				return nil
+			default:
+				j.GetLog().WithFields(log.Fields{
+					"err":       err,
+					"exit_code": exitCode,
+				}).Error("Unknown exit code returned from module script")
+				j.Status.Status = job_status.Error
+				j.Done = true
+				return fmt.Errorf("unknown return code from module script. Check client job logs for more details")
+			}
+		}
+	}
+
 	return nil
 }
 
-func (j *ReliqueJob) StartPostBackupScript() error {
-	if j.Module.PostBackupScript == "" {
-		j.GetLog().Info("No post backup script to launch")
+func (j *ReliqueJob) StartPreScript() error {
+	var path string
+	var logFileName string
+	var scriptType int
+	if j.JobType.Type == job_type.Backup {
+		logFileName = "prebackup"
+		path = j.Module.PreBackupScript
+		scriptType = PreBackup
 	} else {
-		j.GetLog().WithFields(log.Fields{
-			"script": j.Module.PostBackupScript,
-		}).Info("Starting post backup script")
+		logFileName = "prerestore"
+		path = j.Module.PreRestoreScript
+		scriptType = PreRestore
 	}
 
-	// TODO
-	return nil
+	logFile, err := j.GetLogFile(logFileName)
+	if err != nil {
+		j.GetLog().WithFields(log.Fields{
+			"err": err,
+		}).Error("Cannot create log file for module pre script")
+		logFile = nil
+	}
+	defer logFile.Close()
+
+	return j.startJobScript(path, logFile, scriptType)
 }
 
-func (j *ReliqueJob) StartPreRestoreScript() error {
-	if j.Module.PreRestoreScript == "" {
-		j.GetLog().Info("No pre restore script to launch")
+func (j *ReliqueJob) StartPostScript() error {
+	var path string
+	var logFileName string
+	var scriptType int
+	if j.JobType.Type == job_type.Backup {
+		logFileName = "postbackup"
+		path = j.Module.PostBackupScript
+		scriptType = PostBackup
 	} else {
-		j.GetLog().WithFields(log.Fields{
-			"script": j.Module.PreRestoreScript,
-		}).Info("Starting pre restore script")
+		logFileName = "postrestore"
+		path = j.Module.PostRestoreScript
+		scriptType = PostRestore
 	}
 
-	// TODO
-	return nil
-}
-
-func (j *ReliqueJob) StartPostRestoreScript() error {
-	if j.Module.PostBackupScript == "" {
-		j.GetLog().Info("No post restore script to launch")
-	} else {
+	logFile, err := j.GetLogFile(logFileName)
+	if err != nil {
 		j.GetLog().WithFields(log.Fields{
-			"script": j.Module.PostRestoreScript,
-		}).Info("Starting post restore script")
+			"err": err,
+		}).Error("Cannot create log file for module post script")
+		logFile = nil
 	}
+	defer logFile.Close()
 
-	// TODO
-	return nil
+	return j.startJobScript(path, logFile, scriptType)
 }
 
 func (j *ReliqueJob) Duration() time.Duration {

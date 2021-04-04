@@ -44,7 +44,6 @@ func poll() {
 		return
 	}
 
-	// TODO: Check active schedules
 	if err := CreateBackupJobs(); err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
