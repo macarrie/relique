@@ -122,7 +122,7 @@ function install_default_modules() {
     echo -e "\nInstalling default relique modules"
 
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
-        relique module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
+        ${SRC}/usr/bin/relique module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
     done
 }
 

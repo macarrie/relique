@@ -42,8 +42,9 @@ systemctl daemon-reload
 %attr(0755, -, -) /usr/bin/relique
 /usr/lib/systemd/system/relique-server.service
 %dir %attr(0755, -, -) /var/log/relique
-%dir /var/lib/relique
-%dir /opt/relique
+%dir %attr(0755, -, -) /var/lib/relique
+%dir %attr(0755, -, -) /opt/relique
 %config(noreplace) /etc/relique/server.toml
 /etc/relique/certs/cert.pem
 /etc/relique/certs/key.pem
+/var/lib/relique/modules/generic/

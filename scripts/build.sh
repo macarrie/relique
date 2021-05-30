@@ -3,9 +3,9 @@
 
 function usage() {
     echo "\
-usage: $0 [options]
-    
-Options:
+        usage: $0 [options]
+
+    Options:
     -h --help: Displays this help
     -o --output-dir: Output directory for generated artefacts
     "
@@ -48,45 +48,45 @@ function package_default_modules() {
 # Create self signed certs for quick first setup
 function make_certs() {
     mkdir -p "${OUTPUT_DIR}/etc/relique/certs"
-	echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > "${OUTPUT_DIR}/tmp.certs"
-	openssl req \
-		-x509 \
-		-newkey rsa:4096 \
-		-sha256 \
-		-days 3650 \
-		-nodes \
-		-keyout "${OUTPUT_DIR}/etc/relique/certs/key.pem" \
-		-out "${OUTPUT_DIR}/etc/relique/certs/cert.pem" \
-		-subj '/CN=relique' \
-		-extensions san \
-		-config "${OUTPUT_DIR}/tmp.certs"
-	rm "${OUTPUT_DIR}/tmp.certs"
+    echo  -e "[req]\ndistinguished_name=req\n[san]\nsubjectAltName=DNS.1:localhost,DNS.2:relique" > "${OUTPUT_DIR}/tmp.certs"
+    openssl req \
+        -x509 \
+        -newkey rsa:4096 \
+        -sha256 \
+        -days 3650 \
+        -nodes \
+        -keyout "${OUTPUT_DIR}/etc/relique/certs/key.pem" \
+        -out "${OUTPUT_DIR}/etc/relique/certs/cert.pem" \
+        -subj '/CN=relique' \
+        -extensions san \
+        -config "${OUTPUT_DIR}/tmp.certs"
+    rm "${OUTPUT_DIR}/tmp.certs"
 }
 
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
-key="$1"
+    key="$1"
 
-case $key in
-    -o|--output-dir)
-    OUTPUT_DIR="$2"
-    shift # past argument
-    shift # past value
-    ;;
+    case $key in
+        -o|--output-dir)
+            OUTPUT_DIR="$2"
+            shift # past argument
+            shift # past value
+            ;;
 
-    -h|--help)
-    usage
-    exit 0
-    shift # past argument
-    ;;
+        -h|--help)
+            usage
+            exit 0
+            shift # past argument
+            ;;
 
-    *)    # unknown option
-    POSITIONAL+=("$1") # save it in an array for later
-    shift # past argument
-    ;;
-esac
+        *)    # unknown option
+            POSITIONAL+=("$1") # save it in an array for later
+            shift # past argument
+            ;;
+    esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
