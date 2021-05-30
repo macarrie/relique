@@ -16,9 +16,15 @@ type Timerange struct {
 }
 
 func (r *Timerange) UnmarshalText(b []byte) error {
-	times := strings.Split(string(b), "-")
-	if len(times) != 2 {
-		return fmt.Errorf("timerange can only have two components, found %d in '%s'", len(times), string(b))
+	timerangeStr := strings.TrimSpace(string(b))
+	if timerangeStr == "" {
+		*r = Timerange{}
+		return nil
+	}
+
+	times := strings.Split(timerangeStr, "-")
+	if len(times) != 2 && len(times) != 0 {
+		return fmt.Errorf("timerange can only have zero or two components, found %d in '%s'", len(times), timerangeStr)
 	}
 
 	start, err := time.Parse("15:04", strings.TrimSpace(times[0]))
@@ -51,6 +57,10 @@ func (r *Timerange) MarshalText() ([]byte, error) {
 
 func (r *Timerange) String() string {
 	layout := "15:04"
+	if r.Start.IsZero() && r.End.IsZero() {
+		return ""
+	}
+
 	return fmt.Sprintf("%s-%s", r.Start.Format(layout), r.End.Format(layout))
 }
 

@@ -1,0 +1,21 @@
+name = "example"
+address = "localhost"
+port = 8434
+
+server_address = "localhost"
+server_port = 8433
+
+[[modules]]
+name = "example"
+module_type = "generic"
+backup_type = "diff"
+schedules = [
+    "daily",
+]
+backup_paths = [
+    "/example",
+]
+pre_backup_script = ""
+post_backup_script = ""
+pre_restore_script = ""
+post_restore_script = ""

@@ -281,7 +281,14 @@ func (j *ReliqueJob) startJobScript(path string, logFile *os.File, scriptType in
 		j.GetLog().WithFields(log.Fields{
 			"script_type": scriptType,
 		}).Info("No module script to launch")
-	} else if _, err := os.Lstat(path); os.IsNotExist(err) {
+		return nil
+	}
+
+	if !filepath.IsAbs(path) {
+		path = filepath.Clean(fmt.Sprintf("%s/%s/scripts/%s", module.MODULES_INSTALL_PATH, j.Module.Name, path))
+	}
+
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
 		j.Status.Status = job_status.Error
 		j.Done = true
 		return fmt.Errorf(
