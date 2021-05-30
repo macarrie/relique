@@ -61,7 +61,7 @@ func LoadFromPath(p string) ([]Schedule, error) {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"path": path,
-			}).Error("Cannot load schedule configuration from file")
+			}).Error("Cannot walk path to load schedules")
 			return err
 		}
 

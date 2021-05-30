@@ -39,6 +39,7 @@ check:
 
 ## test: Run tests
 test: check
+	# Parallel db setup during unit tests can create errors (read only db).Use -p 1 to ensure tests are run sequentially
 	sudo -u relique -g relique go test -p 1 ./... -cover
 
 ## install: Install

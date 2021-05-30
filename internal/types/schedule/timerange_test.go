@@ -71,6 +71,14 @@ func TestTimerange_Active(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name:      "empty",
+			timerange: Timerange{},
+			args: args{
+				now: time.Now(),
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -95,6 +103,11 @@ func TestTimerange_MarshalText(t *testing.T) {
 				End:   time.Time{}.Add(14*time.Hour + 52*time.Minute),
 			},
 			want: []byte("12:34-14:52"),
+		},
+		{
+			name:      "empty",
+			timerange: Timerange{},
+			want:      []byte(""),
 		},
 	}
 	for _, tt := range tests {
@@ -162,6 +175,12 @@ func TestTimerange_UnmarshalText(t *testing.T) {
 			timerange: Timerange{},
 			args:      args{b: []byte("01:00-66:66")},
 			wantErr:   true,
+		},
+		{
+			name:      "empty",
+			timerange: Timerange{},
+			args:      args{b: []byte("")},
+			wantErr:   false,
 		},
 	}
 	for _, tt := range tests {
