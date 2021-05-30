@@ -17,7 +17,7 @@ import (
 var pool *sql.DB
 var lock sync.RWMutex
 
-const TEST_DB_PATH = "/tmp/relique_tests.db"
+const TEST_DB_PATH = "/var/lib/relique/db/unittests.db"
 
 var dbPath = "/var/lib/relique/db/server.db"
 
@@ -89,18 +89,20 @@ func open() error {
 	return nil
 }
 
-func Write() *sql.DB {
+func checkNilPool() {
 	if pool == nil {
 		log.Fatal("Found empty database connexion handler. This should not have happened")
 	}
+}
+
+func Write() *sql.DB {
+	checkNilPool()
 	lock.Lock()
 	return pool
 }
 
 func Read() *sql.DB {
-	if pool == nil {
-		log.Fatal("Found empty database connexion handler. This should not have happened")
-	}
+	checkNilPool()
 	lock.RLock()
 	return pool
 }

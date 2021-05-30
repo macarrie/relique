@@ -1,0 +1,3 @@
+[submodule "configs/default_modules/relique-module-generic"]
+	path = configs/var/lib/relique/default_modules/relique-module-generic
+	url = https://github.com/macarrie/relique-module-generic

@@ -89,6 +89,7 @@ function create_dir_structure {
 
     mkdir -p "${PREFIX}/etc/relique"
     mkdir -p "${PREFIX}/var/lib/relique"
+    mkdir -p "${PREFIX}/var/lib/relique/modules"
     mkdir -p "${PREFIX}/var/log/relique"
     mkdir -p "${PREFIX}/opt/relique"
 }
@@ -114,6 +115,15 @@ function install_systemd_service() {
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
         install_file "usr/lib/systemd/system/relique-client.service"
     fi
+}
+
+
+function install_default_modules() {
+    echo -e "\nInstalling default relique modules"
+
+    for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
+        relique module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
+    done
 }
 
 
@@ -152,6 +162,11 @@ case $key in
 
     --skip-user-creation)
     SKIPUSERCREATION=1
+    shift # past argument
+    ;;
+
+    --skip-module-install)
+    SKIPMODULEINSTALL=1
     shift # past argument
     ;;
 
@@ -201,6 +216,10 @@ if [ "X${SYSTEMD}X" == "X1X" ]; then
 fi
 
 if [ "X${SKIPUSERCREATION}X" != "X1X" ]; then
-    ./create_user
+    ./create_user.sh
     setup_files_ownership
+fi
+
+if [ "X${SKIPMODULEINSTALL}X" != "X1X" ]; then
+    install_default_modules
 fi

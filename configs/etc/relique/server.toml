@@ -1,0 +1,13 @@
+port            = 8433
+bind_addr       = "0.0.0.0"
+public_address  = "localhost"
+
+ssl_cert    = "/etc/relique/certs/cert.pem"
+ssl_key     = "/etc/relique/certs/key.pem"
+strict_ssl_certificate_check = true
+
+client_cfg_path     = "clients"
+schedules_cfg_path  = "schedules"
+backup_storage_path = "/opt/relique"
+module_install_path = "/var/lib/relique/modules"
+retention_path      = "/var/lib/relique/retention.dat"

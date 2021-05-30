@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	log "github.com/macarrie/relique/internal/logging"
 	client "github.com/macarrie/relique/internal/types/client"
+	"github.com/macarrie/relique/internal/types/module"
 	"github.com/macarrie/relique/internal/types/schedule"
 	"github.com/spf13/viper"
 )
@@ -24,6 +25,7 @@ type Configuration struct {
 	ClientCfgPath             string `mapstructure:"client_cfg_path"`
 	SchedulesCfgPath          string `mapstructure:"schedules_cfg_path"`
 	BackupStoragePath         string `mapstructure:"backup_storage_path"`
+	ModuleInstallPath         string `mapstructure:"module_install_path"`
 	RetentionPath             string `mapstructure:"retention_path"`
 }
 
@@ -55,6 +57,8 @@ func Load(fileName string) (Configuration, error) {
 		"file": viper.ConfigFileUsed(),
 	}).Info("Configuration file loaded")
 
+	module.MODULES_INSTALL_PATH = conf.ModuleInstallPath
+
 	return conf, nil
 }
 
@@ -69,6 +73,7 @@ func setDefaultValues() {
 	viper.SetDefault("client_cfg_path", "clients")
 	viper.SetDefault("schedules_cfg_path", "schedules")
 	viper.SetDefault("backup_storage_path", "/opt/relique")
+	viper.SetDefault("module_install_path", "/var/lib/relique/modules")
 	viper.SetDefault("retention_path", "/var/lib/relique/retention.dat")
 }
 

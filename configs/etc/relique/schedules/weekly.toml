@@ -1,0 +1,8 @@
+name        = "weekly"
+monday      = ""
+tuesday     = ""
+wednesday   = "00:00-23:59"
+thursday    = ""
+friday      = ""
+saturday    = ""
+sunday      = ""

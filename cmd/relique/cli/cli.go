@@ -3,6 +3,8 @@ package cli
 import (
 	"os"
 
+	"github.com/macarrie/relique/internal/types/module"
+
 	"github.com/macarrie/relique/internal/types/displayable"
 
 	log "github.com/macarrie/relique/internal/logging"
@@ -18,13 +20,21 @@ var config common.Configuration
 var rootCmd *cobra.Command
 var jsonOutput bool
 
+var moduleInstallPath string
+var moduleInstallIsArchive bool
+var moduleInstallIsLocal bool
+var moduleInstallForce bool
+var moduleRemoveName bool
+
 func cliInitParams() {
 	if jsonOutput {
 		displayable.DisplayMode = displayable.JSON
 	} else {
 		displayable.DisplayMode = displayable.TUI
 	}
+}
 
+func pingDeamon() {
 	err := cli.PingDaemon(config)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -40,6 +50,68 @@ func Init() {
 		Short: "rsync based backup utility command line interface",
 	}
 
+	moduleCmd := &cobra.Command{
+		Use:   "module",
+		Short: "Module related commands",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cliInitParams()
+		},
+	}
+	moduleListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List installed modules command",
+		Run: func(cmd *cobra.Command, args []string) {
+			module.MODULES_INSTALL_PATH = moduleInstallPath
+			installedModules, err := module.GetLocallyInstalled()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("Cannot list installed modules")
+				os.Exit(1)
+			}
+
+			disp := make([]displayable.Displayable, len(installedModules))
+			for i, v := range installedModules {
+				disp[i] = v
+			}
+			displayable.Table(disp)
+		},
+	}
+	moduleInstallCmd := &cobra.Command{
+		Use:   "install",
+		Short: "Module install command",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleSource := args[0]
+			module.MODULES_INSTALL_PATH = moduleInstallPath
+			err := module.Install(moduleSource, moduleInstallIsLocal, moduleInstallIsArchive, moduleInstallForce)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":    err,
+					"module": moduleSource,
+				}).Error("Cannot install relique module")
+				os.Exit(1)
+			}
+		},
+	}
+	moduleRemoveCmd := &cobra.Command{
+		Use:   "remove",
+		Short: "Module uninstall command",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleName := args[0]
+			module.MODULES_INSTALL_PATH = moduleInstallPath
+			err := module.Remove(moduleName)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":    err,
+					"module": moduleName,
+				}).Error("Cannot remove relique module")
+				os.Exit(1)
+			}
+		},
+	}
+
 	serverCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Server related commands",
@@ -49,6 +121,7 @@ func Init() {
 			}
 
 			cliInitParams()
+			pingDeamon()
 		},
 	}
 	clientCmd := &cobra.Command{
@@ -60,6 +133,7 @@ func Init() {
 			}
 
 			cliInitParams()
+			pingDeamon()
 		},
 	}
 
@@ -137,6 +211,16 @@ func Init() {
 	// ROOT CMD
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output content as JSON")
 
+	// MODULE CMD
+	rootCmd.AddCommand(moduleCmd)
+	moduleCmd.PersistentFlags().StringVarP(&moduleInstallPath, "install-path", "p", "/var/lib/relique/modules", "Module install path")
+	moduleCmd.AddCommand(moduleListCmd)
+	moduleCmd.AddCommand(moduleInstallCmd)
+	moduleCmd.AddCommand(moduleRemoveCmd)
+	moduleInstallCmd.Flags().BoolVarP(&moduleInstallIsArchive, "archive", "a", false, "Module to install is packaged into a tar.gz archive instead of being a git repository")
+	moduleInstallCmd.Flags().BoolVarP(&moduleInstallIsLocal, "local", "l", false, "Module to install is already available locally on disk (offline install)")
+	moduleInstallCmd.Flags().BoolVarP(&moduleInstallForce, "force", "f", false, "Force module install. If module is already installed, files with be overwritten")
+
 	// SERVER CMD
 	rootCmd.AddCommand(serverCmd)
 	serverCmd.PersistentFlags().StringVar(&config.PublicAddress, "address", "localhost", "Relique server address")
@@ -173,7 +257,6 @@ func Init() {
 	restoreStartCmd.Flags().StringVarP(&manualJobParams.RestoreDestination, "destination", "d", "", "Alternate file restore destination")
 	restoreStartCmd.MarkFlagRequired("module")
 	restoreStartCmd.MarkFlagRequired("job")
-	// TODO: Add option to restore files to alternate location. Allows to avoid running relique daemon as root to restore root owned files
 
 }
 
