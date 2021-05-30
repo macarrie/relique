@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/macarrie/relique/internal/types/schedule"
@@ -44,7 +45,7 @@ func (m *Module) String() string {
 }
 
 func (m *Module) LoadDefaultConfiguration() error {
-	defaults, err := LoadFromFile(fmt.Sprintf("%s/%s/default.toml", MODULES_INSTALL_PATH, m.ModuleType))
+	defaults, err := LoadFromFile(filepath.Clean(fmt.Sprintf("%s/%s/default.toml", MODULES_INSTALL_PATH, m.ModuleType)))
 	if err != nil {
 		return err
 	}

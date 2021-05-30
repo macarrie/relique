@@ -59,6 +59,7 @@ func formatDatetime(t time.Time) string {
 }
 
 func (d BackupJobDisplay) Summary() string {
+	// TODO: Pretty display
 	return fmt.Sprintf("Job summary: %v", d.Uuid)
 }
 

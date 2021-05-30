@@ -1,6 +1,9 @@
 package module
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -560,6 +563,8 @@ func TestModule_Update(t *testing.T) {
 }
 
 func TestModule_Valid(t *testing.T) {
+	SetupTest(t)
+
 	tests := []struct {
 		name    string
 		mod     Module
@@ -604,6 +609,244 @@ func TestModule_Valid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.mod.Valid(); (err != nil) != tt.wantErr {
 				t.Errorf("Valid() = %v, want %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_extractArchive(t *testing.T) {
+	SetupTest(t)
+
+	tests := []struct {
+		name    string
+		source  string
+		wantErr bool
+	}{
+		{
+			name:    "unfound_file",
+			source:  "/tmp/relique-module-archive-does-not-exist.tar.gz",
+			wantErr: true,
+		},
+		{
+			name:    "correct_archive",
+			source:  "../../../test/modules/relique-module-generic.tar.gz",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-extract-*")
+			defer os.RemoveAll(tmpTestFolder)
+			if err != nil {
+				t.Errorf("extractArchive() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			extractErr := extractArchive(tt.source, tmpTestFolder)
+			if (extractErr != nil) != tt.wantErr {
+				t.Errorf("extractArchive() error = %v, wantErr %v", extractErr, tt.wantErr)
+				return
+			}
+			if extractErr == nil {
+				defaultToml := fmt.Sprintf("%s/default.toml", tmpTestFolder)
+				if _, err := os.Lstat(defaultToml); os.IsNotExist(err) {
+					t.Errorf("extractArchive() cannot find default.toml from extract archive: %v", defaultToml)
+				}
+				return
+			}
+		})
+	}
+}
+
+func Test_gitClone(t *testing.T) {
+	SetupTest(t)
+
+	tests := []struct {
+		name    string
+		source  string
+		wantErr bool
+	}{
+		{
+			name:    "unfound_git_repo",
+			source:  "not_found_relique_repo",
+			wantErr: true,
+		},
+		{
+			name:    "correct_repo",
+			source:  "github.com/macarrie/relique-module-generic",
+			wantErr: false,
+		},
+		{
+			name:    "correct_repo_with_https",
+			source:  "http://github.com/macarrie/relique-module-generic",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-git-clone-*")
+			defer os.RemoveAll(tmpTestFolder)
+			if err != nil {
+				t.Errorf("gitClone() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			cloneErr := gitClone(tt.source, tmpTestFolder)
+			if (cloneErr != nil) != tt.wantErr {
+				t.Errorf("gitClone() error = %v, wantErr %v", cloneErr, tt.wantErr)
+				return
+			}
+			if cloneErr == nil {
+				defaultToml := fmt.Sprintf("%s/default.toml", tmpTestFolder)
+				if _, err := os.Lstat(defaultToml); os.IsNotExist(err) {
+					t.Errorf("gitClone() cannot find default.toml from extract archive: %v", defaultToml)
+				}
+				return
+			}
+		})
+	}
+}
+
+func Test_downloadArchive(t *testing.T) {
+	SetupTest(t)
+
+	tests := []struct {
+		name    string
+		url     string
+		wantErr bool
+	}{
+		{
+			name:    "not_found",
+			url:     "not found",
+			wantErr: true,
+		},
+		{
+			name:    "generic",
+			url:     "https://github.com/macarrie/relique-module-generic/releases/download/0.0.1/relique-module-generic.tar.gz",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-download-archive-*")
+			defer os.RemoveAll(tmpTestFolder)
+			if err != nil {
+				t.Errorf("downloadArchive() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			dest := fmt.Sprintf("%s/module.tar.gz", tmpTestFolder)
+			if err := downloadArchive(dest, tt.url); (err != nil) != tt.wantErr {
+				t.Errorf("downloadArchive() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestInstall(t *testing.T) {
+	SetupTest(t)
+
+	type args struct {
+		path    string
+		local   bool
+		archive bool
+		force   bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "remote_git_install",
+			args: args{
+				path:    "https://github.com/macarrie/relique-module-generic",
+				local:   false,
+				archive: false,
+				force:   false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "remote_git_install_404",
+			args: args{
+				path:    "https://github.com/macarrie/relique-module-doesnotexist",
+				local:   false,
+				archive: false,
+				force:   false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "remote_archive_install",
+			args: args{
+				path:    "https://github.com/macarrie/relique-module-generic/releases/download/0.0.1/relique-module-generic.tar.gz",
+				local:   false,
+				archive: true,
+				force:   false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "remote_archive_install_404",
+			args: args{
+				path:    "https://localhost:8433/archive-does-not-exist.tar.gz",
+				local:   false,
+				archive: true,
+				force:   false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "local_archive_install",
+			args: args{
+				path:    "../../../test/modules/relique-module-generic.tar.gz",
+				local:   true,
+				archive: true,
+				force:   false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "local_archive_install_404",
+			args: args{
+				path:    "/tmp/relique-module-archive-does-not-exist.tar.gz",
+				local:   true,
+				archive: true,
+				force:   false,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// TODO: Set custom installed modules
+			testInstallFolder, err := ioutil.TempDir("", "relique-module-unittest-install-*")
+			if err != nil {
+				t.Errorf("Install() error = %v, cannot create temporary install folder", err)
+			}
+			defer os.RemoveAll(testInstallFolder)
+			MODULES_INSTALL_PATH = testInstallFolder
+
+			installErr := Install(tt.args.path, tt.args.local, tt.args.archive, tt.args.force)
+			if (installErr != nil) != tt.wantErr {
+				t.Errorf("Install() error = %v, wantErr %v", installErr, tt.wantErr)
+			}
+			if tt.wantErr && installErr != nil {
+				// Stop further checks if expected error happened
+				return
+			}
+
+			installedModules, err := GetLocallyInstalled()
+			if err != nil {
+				t.Errorf("Install() error = %v", err)
+			}
+			if len(installedModules) != 1 {
+				t.Errorf("Post Install() check. %d modules installed", len(installedModules))
+				return
+			}
+			if installedModules[0].Name != "generic" {
+				t.Errorf("Post Install() check. Installed modules name = %s", installedModules[0].Name)
 			}
 		})
 	}

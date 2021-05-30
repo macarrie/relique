@@ -39,7 +39,7 @@ check:
 
 ## test: Run tests
 test: check
-	go test ./... -cover
+	sudo -u relique -g relique go test -p 1 ./... -cover
 
 ## install: Install
 install:

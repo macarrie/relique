@@ -35,6 +35,15 @@ function copy_config_defaults() {
     cp -r configs/* "$OUTPUT_DIR"
 }
 
+function package_default_modules() {
+    echo "Packaging default modules tarballs to '$OUTPUT_DIR'"
+    for mod in $(ls -1 ${OUTPUT_DIR}/var/lib/relique/default_modules); do
+        pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${mod}" > /dev/null
+            tar -zcf ../${mod}.tar.gz .
+        popd > /dev/null
+    done
+}
+
 
 # Create self signed certs for quick first setup
 function make_certs() {
@@ -89,4 +98,5 @@ fi
 build_binaries
 copy_service_files
 copy_config_defaults
+package_default_modules
 make_certs

@@ -23,6 +23,22 @@ func GetLogRoot() string {
 	}
 }
 
+func SetupCliLogger(debug bool) {
+	logger = log.New()
+
+	logger.Out = os.Stdout
+	formatter := &log.TextFormatter{
+		DisableTimestamp: true,
+		PadLevelText:     true,
+	}
+	if debug {
+		logger.SetLevel(log.DebugLevel)
+		formatter.ForceColors = true
+	}
+
+	logger.SetFormatter(formatter)
+}
+
 func Setup(debug bool, logPath string) {
 	logger = log.New()
 

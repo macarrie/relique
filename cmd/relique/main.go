@@ -8,8 +8,8 @@ import (
 func main() {
 	cli.Init()
 
-	// For relique cli, do not write into log file
-	log.Setup(false, "")
+	// Setup specific formatted logger for cli display
+	log.SetupCliLogger(false)
 
 	// TODO: handle error
 	cli.Execute()
