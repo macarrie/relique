@@ -24,13 +24,8 @@ rm -rf $RPM_BUILD_ROOT
 make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--server --systemd --skip-user-creation"
 
 %pre
-echo "Creating group 'relique'"
 getent group relique > /dev/null || groupadd -r relique
-
-echo "Creating user 'relique'"
-getent passwd relique > /dev/null || \
-    useradd -r -g "relique" -d "relique" -s /sbin/nologin \
-    -c "Relique service account" "relique"
+getent passwd relique > /dev/null || useradd -r -g "relique" -d "/var/lib/relique" -s /sbin/nologin -c "Relique service account" "relique"
 exit 0
 
 %post
@@ -43,6 +38,7 @@ systemctl daemon-reload
 /usr/lib/systemd/system/relique-server.service
 %dir %attr(0755, -, -) /var/log/relique
 %dir %attr(0755, -, -) /var/lib/relique
+%dir %attr(0755, -, -) /var/lib/relique/db
 %dir %attr(0755, -, -) /opt/relique
 %config(noreplace) /etc/relique/server.toml
 /etc/relique/certs/cert.pem

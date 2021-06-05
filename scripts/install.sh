@@ -90,6 +90,11 @@ function create_dir_structure {
     mkdir -p "${PREFIX}/etc/relique"
     mkdir -p "${PREFIX}/var/lib/relique"
     mkdir -p "${PREFIX}/var/lib/relique/modules"
+
+    if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
+        mkdir -p "${PREFIX}/var/lib/relique/db"
+    fi
+
     mkdir -p "${PREFIX}/var/log/relique"
     mkdir -p "${PREFIX}/opt/relique"
 }
