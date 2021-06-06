@@ -36,6 +36,7 @@ function copy_config_defaults() {
 }
 
 function package_default_modules() {
+    # TODO: Remove .git folders if found with tar --exclude-vcs --exclude-vcs-ignore
     echo "Packaging default modules tarballs to '$OUTPUT_DIR'"
     for mod in $(ls -1 ${OUTPUT_DIR}/var/lib/relique/default_modules); do
         pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${mod}" > /dev/null

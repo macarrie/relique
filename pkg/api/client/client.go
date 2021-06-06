@@ -185,8 +185,8 @@ func WaitForSyncCompletion(job *relique_job.ReliqueJob) error {
 				hasSuccess = true
 			} else {
 				job.GetLog().WithFields(log.Fields{
-					"err": err,
-				}).Error("Backup path sync error")
+					"err": task.Error,
+				}).Error("Backup path sync error. Check log file on server for more info")
 				job.Status.Status = job_status.Incomplete
 			}
 
