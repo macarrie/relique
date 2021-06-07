@@ -26,6 +26,10 @@ var moduleInstallIsLocal bool
 var moduleInstallForce bool
 var moduleRemoveName bool
 
+var pingServerWithSSH bool
+var pingServerAddr string
+var pingServerPort uint32
+
 func cliInitParams() {
 	if jsonOutput {
 		displayable.DisplayMode = displayable.JSON
@@ -208,6 +212,43 @@ func Init() {
 		},
 	}
 
+	pingServerCmd := &cobra.Command{
+		Use:   "ping_server",
+		Short: "Checks connection between client and server",
+		Run: func(cmd *cobra.Command, args []string) {
+			if config.Port == 0 {
+				config.Port = 8434
+			}
+			err := cli.PingServer(config, pingServerAddr, pingServerPort, pingServerWithSSH)
+			if err != nil {
+				os.Exit(1)
+			}
+		},
+	}
+
+	retentionCmd := &cobra.Command{
+		Use:   "retention",
+		Short: "Client jobs retention related commands",
+	}
+
+	retentionCleanCmd := &cobra.Command{
+		Use:   "clean",
+		Short: "Clean client jobs retention",
+		Run: func(cmd *cobra.Command, args []string) {
+			if config.Port == 0 {
+				config.Port = 8434
+			}
+			err := cli.CleanClientRetention(config)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("Cannot clean retention on client")
+				os.Exit(1)
+			}
+			log.Info("Client jobs retention cleaned successfully")
+		},
+	}
+
 	// ROOT CMD
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output content as JSON")
 
@@ -258,6 +299,15 @@ func Init() {
 	restoreStartCmd.MarkFlagRequired("module")
 	restoreStartCmd.MarkFlagRequired("job")
 
+	//// PING_SERVER CMD
+	clientCmd.AddCommand(pingServerCmd)
+	pingServerCmd.Flags().BoolVarP(&pingServerWithSSH, "ssh", "", false, "Checks client/server connectivity via SSH")
+	pingServerCmd.Flags().StringVarP(&pingServerAddr, "server", "", "", "Server to contact if client has not yet received configuration")
+	pingServerCmd.Flags().Uint32VarP(&pingServerPort, "server_port", "", 0, "Port to use for SSH ping to server")
+
+	//// RETENTION CMD
+	clientCmd.AddCommand(retentionCmd)
+	retentionCmd.AddCommand(retentionCleanCmd)
 }
 
 func Execute() error {

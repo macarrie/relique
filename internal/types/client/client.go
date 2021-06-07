@@ -34,6 +34,13 @@ type Client struct {
 	ServerPort    uint32 `json:"server_port" toml:"server_port"`
 }
 
+type ServerPingParams struct {
+	UseSSH     bool
+	ServerAddr string
+	ServerPort uint32
+	Message    string
+}
+
 func (c *Client) String() string {
 	return fmt.Sprintf("%s (%s)", c.Name, c.Address)
 }

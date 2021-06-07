@@ -198,3 +198,26 @@ func UpdateRetention(path string) error {
 
 	return nil
 }
+
+func CleanRetention(path string) error {
+	log.WithFields(log.Fields{
+		"path": path,
+	}).Info("Cleaning jobs retention")
+
+	// Check if retention has running jobs
+	warn := false
+	var runningJobs []relique_job.ReliqueJob
+	for i, _ := range clientConfig.Jobs {
+		if !clientConfig.Jobs[i].Done {
+			runningJobs = append(runningJobs, clientConfig.Jobs[i])
+			warn = true
+		}
+	}
+
+	clientConfig.Jobs = runningJobs
+	if warn {
+		log.Warning("Found running jobs in retention. These jobs are excluded from retention clean and will stay in retention")
+	}
+
+	return UpdateRetention(path)
+}

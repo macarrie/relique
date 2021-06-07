@@ -2,13 +2,20 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/macarrie/relique/internal/types/config/common"
+	"github.com/macarrie/relique/pkg/api/cli"
+
+	"github.com/macarrie/relique/internal/types/client"
 
 	"github.com/macarrie/relique/internal/types/sync_task"
 
@@ -35,6 +42,21 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		return errors.Wrap(err, "cannot not register job to relique server")
 	}
 
+	pingSuccess := true
+	job.GetLog().Info("Checking SSH connection to relique server")
+	if _, err := PingServer(client.ServerPingParams{
+		UseSSH:     true,
+		ServerAddr: client_daemon_config.BackupConfig.ServerAddress,
+		ServerPort: client_daemon_config.BackupConfig.ServerPort,
+	}); err != nil {
+		pingSuccess = false
+		job.Status.Status = job_status.Error
+		job.Done = true
+		job.GetLog().WithFields(log.Fields{
+			"err": err,
+		}).Error("Cannot ping relique server via SSH. Aborting job")
+	}
+
 	preJobScriptSuccess := true
 	if err := job.StartPreScript(); err != nil {
 		preJobScriptSuccess = false
@@ -43,7 +65,7 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		}).Error("Error encountered during module pre script execution")
 	}
 
-	if preJobScriptSuccess {
+	if preJobScriptSuccess && pingSuccess {
 		if err := SyncFiles(job); err != nil {
 			return errors.Wrap(err, "error occurred when sending files to backup to server")
 		}
@@ -69,6 +91,54 @@ func RunJob(job *relique_job.ReliqueJob) error {
 	}
 
 	return nil
+}
+
+func PingServer(serverPingParams client.ServerPingParams) (client.ServerPingParams, error) {
+	var params client.ServerPingParams
+
+	params.UseSSH = serverPingParams.UseSSH
+	params.ServerAddr = client_daemon_config.BackupConfig.ServerAddress
+	params.ServerPort = client_daemon_config.BackupConfig.ServerPort
+
+	// TODO: If config version is nil, cannot get server address from client conf and server address must be passed
+	if client_daemon_config.BackupConfig.Version == "" {
+		if serverPingParams.ServerAddr == "" || serverPingParams.ServerPort == 0 {
+			params.Message = "client has not received configuration from relique server yet. Server port and address must be specified manually to check client/server connectivity"
+			return params, fmt.Errorf(params.Message)
+		}
+	}
+
+	if serverPingParams.ServerAddr != "" {
+		params.ServerAddr = serverPingParams.ServerAddr
+	}
+	if serverPingParams.ServerPort != 0 {
+		params.ServerPort = serverPingParams.ServerPort
+	}
+
+	if params.UseSSH {
+		sshPingCmd := exec.Command("ssh", "-f", "-o BatchMode=yes", fmt.Sprintf("relique@%s", params.ServerAddr), "echo 'ping'")
+
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		sshPingCmd.Stdout = &stdout
+		sshPingCmd.Stderr = &stderr
+
+		err := sshPingCmd.Run()
+		if err != nil {
+			params.Message = errors.Wrap(err, fmt.Sprintf("cannot ping server via ssh:%s", stderr.String())).Error()
+			return params, fmt.Errorf(params.Message)
+		}
+	} else {
+		if err := cli.PingDaemon(common.Configuration{
+			PublicAddress: params.ServerAddr,
+			Port:          params.ServerPort,
+		}); err != nil {
+			params.Message = err.Error()
+			return params, fmt.Errorf(params.Message)
+		}
+	}
+
+	return params, nil
 }
 
 func RegisterJob(job *relique_job.ReliqueJob) error {
