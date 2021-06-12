@@ -2,18 +2,13 @@
 package client
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
-
-	"github.com/macarrie/relique/internal/types/config/common"
-	"github.com/macarrie/relique/pkg/api/cli"
 
 	"github.com/macarrie/relique/internal/types/client"
 
@@ -44,7 +39,7 @@ func RunJob(job *relique_job.ReliqueJob) error {
 
 	pingSuccess := true
 	job.GetLog().Info("Checking SSH connection to relique server")
-	if _, err := PingServer(client.ServerPingParams{
+	if _, err := CheckServerConnection(client.ServerPingParams{
 		UseSSH:     true,
 		ServerAddr: client_daemon_config.BackupConfig.ServerAddress,
 		ServerPort: client_daemon_config.BackupConfig.ServerPort,
@@ -54,7 +49,7 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		job.Done = true
 		job.GetLog().WithFields(log.Fields{
 			"err": err,
-		}).Error("Cannot ping relique server via SSH. Aborting job")
+		}).Error("Cannot confirm if relique server can ping client via SSH. Aborting job")
 	}
 
 	preJobScriptSuccess := true
@@ -93,9 +88,8 @@ func RunJob(job *relique_job.ReliqueJob) error {
 	return nil
 }
 
-func PingServer(serverPingParams client.ServerPingParams) (client.ServerPingParams, error) {
-	var params client.ServerPingParams
-
+func CheckServerConnection(serverPingParams client.ServerPingParams) (client.ServerPingParams, error) {
+	params := serverPingParams
 	params.UseSSH = serverPingParams.UseSSH
 	params.ServerAddr = client_daemon_config.BackupConfig.ServerAddress
 	params.ServerPort = client_daemon_config.BackupConfig.ServerPort
@@ -115,30 +109,37 @@ func PingServer(serverPingParams client.ServerPingParams) (client.ServerPingPara
 		params.ServerPort = serverPingParams.ServerPort
 	}
 
-	if params.UseSSH {
-		sshPingCmd := exec.Command("ssh", "-f", "-o BatchMode=yes", fmt.Sprintf("relique@%s", params.ServerAddr), "echo 'ping'")
-
-		var stdout bytes.Buffer
-		var stderr bytes.Buffer
-		sshPingCmd.Stdout = &stdout
-		sshPingCmd.Stderr = &stderr
-
-		err := sshPingCmd.Run()
-		if err != nil {
-			params.Message = errors.Wrap(err, fmt.Sprintf("cannot ping server via ssh:%s", stderr.String())).Error()
-			return params, fmt.Errorf(params.Message)
-		}
-	} else {
-		if err := cli.PingDaemon(common.Configuration{
-			PublicAddress: params.ServerAddr,
-			Port:          params.ServerPort,
-		}); err != nil {
-			params.Message = err.Error()
-			return params, fmt.Errorf(params.Message)
-		}
+	response, err := utils.PerformRequest(client_daemon_config.Config,
+		params.ServerAddr,
+		params.ServerPort,
+		"POST",
+		"/api/v1/ping_client",
+		serverPingParams)
+	if err != nil {
+		return params, errors.Wrap(err, "error when performing api request")
 	}
 
-	return params, nil
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return params, errors.Wrap(err, "cannot read response body from api request")
+	}
+	defer response.Body.Close()
+
+	var returnParams client.ServerPingParams
+	if err := json.Unmarshal(body, &returnParams); err != nil {
+		return returnParams, errors.Wrap(err, "cannot read params used for server ping from server")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		log.WithFields(log.Fields{
+			"use_ssh":     returnParams.UseSSH,
+			"server_addr": returnParams.ServerAddr,
+			"server_port": returnParams.ServerPort,
+			"err":         returnParams.Message,
+		}).Error("Cannot establish connection with relique server")
+		return returnParams, fmt.Errorf("cannot ping server: %v", returnParams.Message)
+	}
+	return returnParams, nil
 }
 
 func RegisterJob(job *relique_job.ReliqueJob) error {

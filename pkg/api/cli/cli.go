@@ -40,18 +40,27 @@ func PingDaemon(config common.Configuration) error {
 	return nil
 }
 
-func PingServer(config common.Configuration, serverAddr string, serverPort uint32, useSSH bool) error {
+func CheckServerConnection(config common.Configuration, serverAddr string, serverPort uint32, useIPv4 bool, useIPv6 bool) error {
+	useV4 := useIPv4
+	useV6 := useIPv6
+	if useIPv4 && useIPv6 {
+		log.Warning("Both IPv4 and IPv6 options are selected. Defaulting to IPv4 only")
+		useV4 = true
+		useV6 = false
+	}
 	params := client.ServerPingParams{
-		UseSSH:     useSSH,
+		UseSSH:     true,
 		ServerAddr: serverAddr,
 		ServerPort: serverPort,
+		UseIPv4:    useV4,
+		UseIPv6:    useV6,
 	}
 
 	response, err := utils.PerformRequest(config,
 		config.PublicAddress,
 		config.Port,
 		"POST",
-		"/api/v1/ping_server",
+		"/api/v1/check_server_connection",
 		params)
 	if err != nil {
 		return errors.Wrap(err, "error when performing api request")
@@ -72,6 +81,7 @@ func PingServer(config common.Configuration, serverAddr string, serverPort uint3
 			"use_ssh":     params.UseSSH,
 			"server_addr": params.ServerAddr,
 			"server_port": params.ServerPort,
+			"client_addr": params.ClientAddr,
 			"err":         params.Message,
 		}).Error("Cannot establish connection with relique server")
 		return fmt.Errorf("cannot ping server: %v", params.Message)

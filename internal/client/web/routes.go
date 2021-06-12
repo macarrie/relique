@@ -16,7 +16,7 @@ func getRoutes() *gin.Engine {
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/ping", ping)
-		v1.POST("/ping_server", pingServer)
+		v1.POST("/check_server_connection", postCheckServerConnection)
 		v1.POST("/config", postConfig)
 		v1.GET("/config/version", getConfigVersion)
 		v1.POST("/job/start", postJobStart)
@@ -30,7 +30,7 @@ func ping(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func pingServer(c *gin.Context) {
+func postCheckServerConnection(c *gin.Context) {
 	var serverPingParams client.ServerPingParams
 	if err := c.ShouldBind(&serverPingParams); err != nil {
 		log.Error("Cannot bind server ping parameters received")
@@ -39,7 +39,7 @@ func pingServer(c *gin.Context) {
 	}
 
 	status := http.StatusOK
-	ret, err := clientApi.PingServer(serverPingParams)
+	ret, err := clientApi.CheckServerConnection(serverPingParams)
 	if err != nil {
 		status = http.StatusBadRequest
 	}

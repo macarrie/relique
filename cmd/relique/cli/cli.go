@@ -24,11 +24,11 @@ var moduleInstallPath string
 var moduleInstallIsArchive bool
 var moduleInstallIsLocal bool
 var moduleInstallForce bool
-var moduleRemoveName bool
 
-var pingServerWithSSH bool
 var pingServerAddr string
 var pingServerPort uint32
+var pingServerIPv4 bool
+var pingServerIPv6 bool
 
 func cliInitParams() {
 	if jsonOutput {
@@ -219,7 +219,7 @@ func Init() {
 			if config.Port == 0 {
 				config.Port = 8434
 			}
-			err := cli.PingServer(config, pingServerAddr, pingServerPort, pingServerWithSSH)
+			err := cli.CheckServerConnection(config, pingServerAddr, pingServerPort, pingServerIPv4, pingServerIPv6)
 			if err != nil {
 				os.Exit(1)
 			}
@@ -301,9 +301,10 @@ func Init() {
 
 	//// PING_SERVER CMD
 	clientCmd.AddCommand(pingServerCmd)
-	pingServerCmd.Flags().BoolVarP(&pingServerWithSSH, "ssh", "", false, "Checks client/server connectivity via SSH")
+	pingServerCmd.Flags().BoolVarP(&pingServerIPv4, "force-ipv4", "4", false, "Tell server to use IPv4 when trying to ping client")
+	pingServerCmd.Flags().BoolVarP(&pingServerIPv6, "force-ipv6", "6", false, "Tell server to use IPv6 when trying to ping client")
 	pingServerCmd.Flags().StringVarP(&pingServerAddr, "server", "", "", "Server to contact if client has not yet received configuration")
-	pingServerCmd.Flags().Uint32VarP(&pingServerPort, "server_port", "", 0, "Port to use for SSH ping to server")
+	pingServerCmd.Flags().Uint32VarP(&pingServerPort, "server-port", "", 0, "Port to use for SSH ping to server")
 
 	//// RETENTION CMD
 	clientCmd.AddCommand(retentionCmd)

@@ -36,8 +36,11 @@ type Client struct {
 
 type ServerPingParams struct {
 	UseSSH     bool
+	UseIPv4    bool
+	UseIPv6    bool
 	ServerAddr string
 	ServerPort uint32
+	ClientAddr string
 	Message    string
 }
 
