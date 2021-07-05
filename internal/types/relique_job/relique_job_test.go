@@ -26,10 +26,6 @@ func SetupTest(t *testing.T) {
 func TestReliqueJob_Update(t *testing.T) {
 	SetupTest(t)
 
-	type args struct {
-		tx *sql.Tx
-	}
-
 	newModule := module.Module{
 		ModuleType:        "jobUpdateNewModule",
 		Name:              "jobUpdateNewModule",
@@ -52,30 +48,30 @@ func TestReliqueJob_Update(t *testing.T) {
 		ServerPort:    8433,
 	}
 
-	backupJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	backupJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	backupJobID, err := backupJob.Save()
 	if backupJobID == 0 || err != nil {
 		t.Errorf("Cannot save backupJob for TestReliqueJob_Update setup")
 	}
-	restoreJob := New(newClient, newModule, job_type.JobType{Type: job_type.Restore})
+	restoreJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Restore})
 	restoreJobID, err := restoreJob.Save()
 	if restoreJobID == 0 || err != nil {
 		t.Errorf("Cannot save restoreJob for TestReliqueJob_Update setup")
 	}
 
-	missingModuleJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	missingModuleJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	missingModuleJobID, err := missingModuleJob.Save()
 	if missingModuleJobID == 0 || err != nil {
 		t.Errorf("Cannot save missingModuleJobID for TestReliqueJob_Update setup")
 	}
 	missingModuleJob.Module = module.Module{}
 
-	missingClientJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	missingClientJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	missingClientJobID, err := missingClientJob.Save()
 	if missingClientJobID == 0 || err != nil {
 		t.Errorf("Cannot save missingClientJobID for TestReliqueJob_Update setup")
 	}
-	missingClientJob.Client = client.Client{}
+	missingClientJob.Client = &client.Client{}
 
 	tests := []struct {
 		name    string
@@ -175,21 +171,21 @@ func TestReliqueJob_Save(t *testing.T) {
 		ServerPort:    8433,
 	}
 
-	missingModuleJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	missingModuleJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	missingModuleJob.Module = module.Module{}
 
-	missingClientJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	missingClientJob.Client = client.Client{}
+	missingClientJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	missingClientJob.Client = &client.Client{}
 
-	backupJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	existingBackupJob := New(newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	backupJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
+	existingBackupJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	if _, err := existingBackupJob.Save(); err != nil {
 		t.Error("Cannot save existingBackupJob during test setup")
 	}
 
 	restoreJob := ReliqueJob{
 		Uuid: "673379a1-5d5d-4c87-bbff-65b3e733ab0a",
-		Client: client.Client{
+		Client: &client.Client{
 			Name:    "local",
 			Address: "localhost",
 			Port:    8434,

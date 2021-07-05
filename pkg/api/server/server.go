@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func GetConfigVersion(client client.Client) (string, error) {
+func GetConfigVersion(client *client.Client) (string, error) {
 	log.WithFields(log.Fields{
 		"client": client.Name,
 	}).Debug("Checking client configuration version")
@@ -45,31 +45,42 @@ func GetConfigVersion(client client.Client) (string, error) {
 	return "", fmt.Errorf("cannot get client version, status code '%d'", response.StatusCode)
 }
 
-func SendConfiguration(client client.Client) error {
+func SendConfiguration(client *client.Client) error {
 	version, err := GetConfigVersion(client)
 	if err != nil {
+		client.Alive = false
 		return errors.Wrap(err, "cannot get current config version for client")
 	}
 
-	if version != config.Config.Version {
-		log.WithFields(log.Fields{
-			"client": client.Name,
-		}).Info("Send configuration to client")
-
-		client.Version = config.Config.Version
-		client.ServerAddress = config.Config.PublicAddress
-		client.ServerPort = config.Config.Port
-
-		response, err := utils.PerformRequest(config.Config, client.Address, client.Port, "POST", "/api/v1/config", client)
-		if err != nil {
-			return errors.Wrap(err, "error when performing api request")
-		}
-		defer response.Body.Close()
-
-		if response.StatusCode == http.StatusOK {
-			return nil
-		}
+	if version == config.Config.Version {
+		client.Alive = true
+		return nil
 	}
+	log.WithFields(log.Fields{
+		"client": client.Name,
+	}).Info("Send configuration to client")
+
+	client.Version = config.Config.Version
+
+	response, err := utils.PerformRequest(
+		config.Config,
+		client.Address,
+		client.Port,
+		"POST",
+		"/api/v1/config",
+		client)
+	if err != nil {
+		client.Alive = false
+		return errors.Wrap(err, "error when performing api request")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusOK {
+		client.Alive = true
+		return nil
+	}
+
+	client.Alive = false
 
 	return nil
 }

@@ -6,4 +6,3 @@ ssl_key = "/etc/relique/certs/key.pem"
 strict_ssl_certificate_check = true
 
 module_install_path = "/var/lib/relique/modules"
-retention_path = "/var/lib/relique/retention.dat"

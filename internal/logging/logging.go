@@ -23,17 +23,23 @@ func GetLogRoot() string {
 	}
 }
 
-func SetupCliLogger(debug bool) {
+func SetupCliLogger(debug bool, outputAsJson bool) {
 	logger = log.New()
 
 	logger.Out = os.Stdout
-	formatter := &log.TextFormatter{
-		DisableTimestamp: true,
-		PadLevelText:     true,
+	var formatter log.Formatter
+	if outputAsJson {
+		formatter = &log.JSONFormatter{}
+	} else {
+		formatter = &log.TextFormatter{
+			DisableTimestamp: true,
+			PadLevelText:     true,
+			ForceColors:      true,
+		}
 	}
+
 	if debug {
 		logger.SetLevel(log.DebugLevel)
-		formatter.ForceColors = true
 	}
 
 	logger.SetFormatter(formatter)

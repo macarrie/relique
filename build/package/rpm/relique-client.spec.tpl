@@ -34,7 +34,6 @@ systemctl daemon-reload
 %files
 %defattr(0644, relique, relique, 0644)
 %attr(0755, -, -) /usr/bin/relique-client
-%attr(0755, -, -) /usr/bin/relique
 /usr/lib/systemd/system/relique-client.service
 %dir %attr(0755, -, -) /var/log/relique
 %dir %attr(0755, -, -) /var/lib/relique

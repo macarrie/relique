@@ -2,8 +2,9 @@ package common
 
 import (
 	"github.com/hashicorp/go-multierror"
+	"github.com/macarrie/relique/internal/lib/rsync"
 	log "github.com/macarrie/relique/internal/logging"
-	client "github.com/macarrie/relique/internal/types/client"
+	"github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/module"
 	"github.com/macarrie/relique/internal/types/schedule"
 	"github.com/spf13/viper"
@@ -58,6 +59,7 @@ func Load(fileName string) (Configuration, error) {
 	}).Info("Configuration file loaded")
 
 	module.MODULES_INSTALL_PATH = conf.ModuleInstallPath
+	rsync.STORAGE_ROOT = conf.BackupStoragePath
 
 	return conf, nil
 }

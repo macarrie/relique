@@ -32,6 +32,7 @@ type Client struct {
 	Version       string
 	ServerAddress string `json:"server_address" toml:"server_address"`
 	ServerPort    uint32 `json:"server_port" toml:"server_port"`
+	Alive         bool
 }
 
 type ServerPingParams struct {
@@ -48,16 +49,20 @@ func (c *Client) String() string {
 	return fmt.Sprintf("%s (%s)", c.Name, c.Address)
 }
 
-func loadFromFile(file string) (Client, error) {
+func loadFromFile(file string) (cl Client, err error) {
 	log.WithFields(log.Fields{
 		"path": file,
 	}).Debug("Loading client configuration from file")
 
 	f, err := os.Open(file)
-	defer f.Close()
 	if err != nil {
 		return Client{}, errors.Wrap(err, "cannot open file")
 	}
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			err = errors.Wrap(cerr, "cannot close file correctly")
+		}
+	}()
 
 	content, _ := ioutil.ReadAll(f)
 
@@ -211,6 +216,19 @@ func GetByID(id int64) (Client, error) {
 	return cl, nil
 }
 
+func GetByName(name string) (Client, error) {
+	log.WithFields(log.Fields{
+		"name": name,
+	}).Trace("Looking for client in database")
+
+	id, err := GetID(name, nil)
+	if err != nil {
+		return Client{}, errors.Wrap(err, "cannot find client in db")
+	}
+
+	return GetByID(id)
+}
+
 func FillSchedulesStruct(clients []Client, schedules []schedule.Schedule) ([]Client, error) {
 	var retList []Client
 	for _, client := range clients {
@@ -237,6 +255,27 @@ func FillSchedulesStruct(clients []Client, schedules []schedule.Schedule) ([]Cli
 	}
 
 	return retList, nil
+}
+
+func FillServerPublicAddress(clients []Client, addr string, port uint32) []Client {
+	var retList []Client
+	for _, client := range clients {
+		client.ServerAddress = addr
+		client.ServerPort = port
+		retList = append(retList, client)
+	}
+
+	return retList
+}
+
+func FillConfigVersion(clients []Client, version string) []Client {
+	var retList []Client
+	for _, client := range clients {
+		client.Version = version
+		retList = append(retList, client)
+	}
+
+	return retList
 }
 
 func (c *Client) GetLog() *log.Entry {

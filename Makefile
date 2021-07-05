@@ -28,14 +28,10 @@ client:
 	rm -f build/bin/relique-client
 	$(MAKE) build
 
-## cli: Build relique cli tool
-cli:
-	rm -f build/bin/relique
-	$(MAKE) build
-
 ## check: Run code vet
 check:
 	go vet ./...
+	staticcheck ./...
 
 ## test: Run tests
 test: check

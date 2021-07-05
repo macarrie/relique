@@ -14,7 +14,7 @@ function usage() {
 
 function build_binaries() {
     echo "Building binaries to '$OUTPUT_DIR'"
-    components="relique relique-client relique-server"
+    components="relique-client relique-server"
 
     for component in $components; do
         echo "Building $component"
