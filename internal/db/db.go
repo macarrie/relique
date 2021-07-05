@@ -22,8 +22,8 @@ const TEST_DB_PATH = "/var/lib/relique/db/unittests.db"
 var dbPath = "/var/lib/relique/db/server.db"
 
 func Init() error {
-	if err := open(); err != nil {
-		return errors.Wrap(err, "cannot open database connection")
+	if err := Open(true); err != nil {
+		return errors.Wrap(err, "cannot Open database connection")
 	}
 	if err := SetupSchema(); err != nil {
 		return errors.Wrap(err, "cannot init database schema")
@@ -61,14 +61,14 @@ func ResetTestDB() error {
 	return nil
 }
 
-func open() error {
+func Open(RW bool) error {
 	log.WithFields(log.Fields{
 		"path": dbPath,
-	}).Info("Opening database connection")
+	}).Debug("Opening database connection")
 
 	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", dbPath))
 	if err != nil {
-		return errors.Wrap(err, "cannot open sqlite connection")
+		return errors.Wrap(err, "cannot Open sqlite connection")
 	}
 	pool = connection
 
@@ -77,8 +77,10 @@ func open() error {
 		return nil
 	}
 
-	if err := unix.Access(dbPath, unix.W_OK); err != nil {
-		return errors.Wrap(err, "cannot check RW access to DB")
+	if RW {
+		if err := unix.Access(dbPath, unix.W_OK); err != nil {
+			return errors.Wrap(err, "cannot get RW access to DB")
+		}
 	}
 
 	if err := connection.Ping(); err != nil {

@@ -35,7 +35,7 @@ func Start() error {
 		Addr:         fmt.Sprintf("%s:%d", client_daemon_config.Config.BindAddr, client_daemon_config.Config.Port),
 		Handler:      router,
 		TLSConfig:    tlsConfig,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
 	log.WithFields(log.Fields{

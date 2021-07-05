@@ -1,7 +1,7 @@
 package server_daemon_config
 
 import (
-	"github.com/macarrie/relique/internal/types/sync_task"
+	"github.com/macarrie/relique/internal/lib/rsync"
 	"github.com/pkg/errors"
 
 	clientObject "github.com/macarrie/relique/internal/types/client"
@@ -15,10 +15,10 @@ import (
 )
 
 var Config common.Configuration
-var SyncTasks map[string][]*sync_task.SyncTask
+var SyncTasks map[string][]*rsync.Rsync
 
 func init() {
-	SyncTasks = make(map[string][]*sync_task.SyncTask)
+	SyncTasks = make(map[string][]*rsync.Rsync)
 }
 
 func Load(filePath string) error {
@@ -32,6 +32,7 @@ func Load(filePath string) error {
 		}).Fatal("Cannot load configuration")
 		return err
 	}
+	conf.Version = uuid.New().String()
 
 	schedules, err := schedule.LoadFromPath(conf.SchedulesCfgPath)
 	if err != nil {
@@ -57,9 +58,10 @@ func Load(filePath string) error {
 		return errors.Wrap(err, "cannot match schedules chosen in client definitions with schedules definitions")
 	}
 
-	conf.Clients = clients
+	clients = clientObject.FillServerPublicAddress(clients, conf.PublicAddress, conf.Port)
+	clients = clientObject.FillConfigVersion(clients, conf.Version)
 
-	conf.Version = uuid.New().String()
+	conf.Clients = clients
 
 	Config = conf
 

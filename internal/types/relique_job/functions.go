@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func New(client clientObject.Client, module module.Module, jobType job_type.JobType) ReliqueJob {
+func New(client *clientObject.Client, module module.Module, jobType job_type.JobType) ReliqueJob {
 	return ReliqueJob{
 		Uuid:       uuid.New().String(),
 		Client:     client,
@@ -100,22 +100,13 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 	if err != nil || cl.ID == 0 {
 		return ReliqueJob{}, errors.Wrap(err, "cannot load job linked client")
 	}
-	job.Client = cl
-
-	if job.BackupType.Type == backup_type.Diff {
-		previousJob, err := GetPreviousJob(job)
-		if err != nil || previousJob.Uuid == "" {
-			job.GetLog().Info("No previous backup job found when getting job from db")
-		} else {
-			job.PreviousJobUuid = previousJob.Uuid
-		}
-	}
+	job.Client = &cl
 
 	return job, nil
 }
 
-func GetPreviousJob(job ReliqueJob) (ReliqueJob, error) {
-	log.Trace("Looking for previous full backup job")
+func PreviousFullJob(job ReliqueJob) (ReliqueJob, error) {
+	job.GetLog().Trace("Looking for previous full backup job")
 
 	request := sq.Select(
 		"uuid",
@@ -127,6 +118,8 @@ func GetPreviousJob(job ReliqueJob) (ReliqueJob, error) {
 		"modules ON jobs.module_id = modules.id",
 	).Where(
 		"modules.module_type = ?", job.Module.ModuleType,
+	).Where(
+		"jobs.backup_type = ?", backup_type.Full,
 	).Where(
 		"jobs.done = ?", true,
 	).Where(
@@ -165,7 +158,8 @@ func GetPreviousJob(job ReliqueJob) (ReliqueJob, error) {
 		return ReliqueJob{}, nil
 	}
 
-	jobUuid := uuids[len(uuids)-1]
+	// Get first job since previous jobs are listed by id DESC
+	jobUuid := uuids[0]
 	jobFromDB, err := GetByUuid(jobUuid)
 	if err != nil {
 		log.WithFields(log.Fields{

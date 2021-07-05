@@ -41,7 +41,7 @@ func TestMigrate(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	dbPath = TEST_DB_PATH
 
-	if err := open(); err != nil {
+	if err := Open(true); err != nil {
 		t.Errorf("cannot init db: '%s'", err)
 	}
 	if err := SetupSchema(); err != nil {
@@ -69,7 +69,7 @@ func TestMigrate(t *testing.T) {
 func TestRUnlock(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	if err := InitTestDB(); err != nil {
-		t.Errorf("cannot open db: '%s'", err)
+		t.Errorf("cannot Open db: '%s'", err)
 	}
 
 	tests := []struct {
@@ -94,7 +94,7 @@ func TestRUnlock(t *testing.T) {
 func TestRead(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	if err := InitTestDB(); err != nil {
-		t.Errorf("cannot open db: '%s'", err)
+		t.Errorf("cannot Open db: '%s'", err)
 	}
 
 	tests := []struct {
@@ -121,7 +121,7 @@ func TestSetupSchema(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	dbPath = TEST_DB_PATH
 
-	if err := open(); err != nil {
+	if err := Open(true); err != nil {
 		t.Errorf("cannot init db: '%s'", err)
 	}
 
@@ -146,7 +146,7 @@ func TestSetupSchema(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	if err := InitTestDB(); err != nil {
-		t.Errorf("cannot open db: '%s'", err)
+		t.Errorf("cannot Open db: '%s'", err)
 	}
 
 	tests := []struct {
@@ -171,7 +171,7 @@ func TestUnlock(t *testing.T) {
 func TestWrite(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
 	if err := InitTestDB(); err != nil {
-		t.Errorf("cannot open db: '%s'", err)
+		t.Errorf("cannot Open db: '%s'", err)
 	}
 
 	tests := []struct {
@@ -216,8 +216,8 @@ func Test_open(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dbPath = tt.databasePath
-			if err := open(); (err != nil) != tt.wantErr {
-				t.Errorf("open() error = %v, wantErr %v", err, tt.wantErr)
+			if err := Open(true); (err != nil) != tt.wantErr {
+				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

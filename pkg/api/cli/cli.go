@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
-	"github.com/macarrie/relique/internal/types/client"
+	"github.com/macarrie/relique/internal/types/displayable"
+	"github.com/macarrie/relique/internal/types/module"
+	"github.com/spf13/cobra"
 
 	log "github.com/macarrie/relique/internal/logging"
 
@@ -16,84 +19,104 @@ import (
 	"github.com/pkg/errors"
 )
 
-func PingDaemon(config common.Configuration) error {
-	response, err := utils.PerformRequest(config,
-		config.PublicAddress,
-		config.Port,
-		"GET",
-		"/api/v1/ping",
-		nil)
-	if err != nil {
-		return errors.Wrap(err, "error when performing api request")
-	}
-
-	_, err = ioutil.ReadAll(response.Body)
-	if err != nil {
-		return errors.Wrap(err, "cannot read response body from api request")
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("cannot ping server (%d response): see server logs for more details", response.StatusCode)
-	}
-
-	return nil
+type Args struct {
+	Debug      bool
+	ConfigPath string
+	JSON       bool
 }
 
-func CheckServerConnection(config common.Configuration, serverAddr string, serverPort uint32, useIPv4 bool, useIPv6 bool) error {
-	useV4 := useIPv4
-	useV6 := useIPv6
-	if useIPv4 && useIPv6 {
-		log.Warning("Both IPv4 and IPv6 options are selected. Defaulting to IPv4 only")
-		useV4 = true
-		useV6 = false
+var Params = Args{}
+
+var ModuleInstallPath string
+var ModuleInstallIsArchive bool
+var ModuleInstallIsLocal bool
+var ModuleInstallForce bool
+
+func InitCommonParams() {
+	if Params.JSON {
+		displayable.DisplayMode = displayable.JSON
+	} else {
+		displayable.DisplayMode = displayable.TUI
 	}
-	params := client.ServerPingParams{
-		UseSSH:     true,
-		ServerAddr: serverAddr,
-		ServerPort: serverPort,
-		UseIPv4:    useV4,
-		UseIPv6:    useV6,
+	log.SetupCliLogger(Params.Debug, Params.JSON)
+}
+
+func GetCommonCliCommands(rootCmd *cobra.Command) {
+	// ROOT CMD
+	rootCmd.PersistentFlags().BoolVar(&Params.JSON, "json", false, "Output content as JSON")
+	rootCmd.PersistentFlags().BoolVarP(&Params.Debug, "verbose", "v", false, "verbose log output")
+
+	moduleCmd := &cobra.Command{
+		Use:   "module",
+		Short: "Module related commands",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			InitCommonParams()
+		},
+	}
+	moduleListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List installed modules command",
+		Run: func(cmd *cobra.Command, args []string) {
+			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			installedModules, err := module.GetLocallyInstalled()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("Cannot list installed modules")
+				os.Exit(1)
+			}
+
+			disp := make([]displayable.Displayable, len(installedModules))
+			for i, v := range installedModules {
+				disp[i] = v
+			}
+			displayable.Table(disp)
+		},
+	}
+	moduleInstallCmd := &cobra.Command{
+		Use:   "install",
+		Short: "Module install command",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleSource := args[0]
+			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			err := module.Install(moduleSource, ModuleInstallIsLocal, ModuleInstallIsArchive, ModuleInstallForce)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":    err,
+					"module": moduleSource,
+				}).Error("Cannot install relique module")
+				os.Exit(1)
+			}
+		},
+	}
+	moduleRemoveCmd := &cobra.Command{
+		Use:   "remove",
+		Short: "Module uninstall command",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleName := args[0]
+			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			err := module.Remove(moduleName)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":    err,
+					"module": moduleName,
+				}).Error("Cannot remove relique module")
+				os.Exit(1)
+			}
+		},
 	}
 
-	response, err := utils.PerformRequest(config,
-		config.PublicAddress,
-		config.Port,
-		"POST",
-		"/api/v1/check_server_connection",
-		params)
-	if err != nil {
-		return errors.Wrap(err, "error when performing api request")
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return errors.Wrap(err, "cannot read response body from api request")
-	}
-	defer response.Body.Close()
-
-	if err := json.Unmarshal(body, &params); err != nil {
-		return errors.Wrap(err, "cannot read params used for server ping from server")
-	}
-
-	if response.StatusCode != http.StatusOK {
-		log.WithFields(log.Fields{
-			"use_ssh":     params.UseSSH,
-			"server_addr": params.ServerAddr,
-			"server_port": params.ServerPort,
-			"client_addr": params.ClientAddr,
-			"err":         params.Message,
-		}).Error("Cannot establish connection with relique server")
-		return fmt.Errorf("cannot ping server: %v", params.Message)
-	}
-
-	log.WithFields(log.Fields{
-		"use_ssh":     params.UseSSH,
-		"server_addr": params.ServerAddr,
-		"server_port": params.ServerPort,
-	}).Info("Connection with relique server established successfully")
-
-	return nil
+	// MODULE CMD
+	rootCmd.AddCommand(moduleCmd)
+	moduleCmd.PersistentFlags().StringVarP(&ModuleInstallPath, "install-path", "p", "/var/lib/relique/modules", "Module install path")
+	moduleCmd.AddCommand(moduleListCmd)
+	moduleCmd.AddCommand(moduleInstallCmd)
+	moduleCmd.AddCommand(moduleRemoveCmd)
+	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsArchive, "archive", "a", false, "Module to install is packaged into a tar.gz archive instead of being a git repository")
+	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsLocal, "local", "l", false, "Module to install is already available locally on disk (offline install)")
+	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallForce, "force", "f", false, "Force module install. If module is already installed, files with be overwritten")
 }
 
 func ManualJobStart(config common.Configuration, params relique_job.JobSearchParams) (relique_job.ReliqueJob, error) {
@@ -103,7 +126,7 @@ func ManualJobStart(config common.Configuration, params relique_job.JobSearchPar
 		config.PublicAddress,
 		config.Port,
 		"POST",
-		"/api/v1/job/start",
+		"/api/v1/jobs/start",
 		params)
 	if err != nil {
 		return relique_job.ReliqueJob{}, errors.Wrap(err, "error when performing api request")
@@ -116,7 +139,7 @@ func ManualJobStart(config common.Configuration, params relique_job.JobSearchPar
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return relique_job.ReliqueJob{}, fmt.Errorf("cannot start job on client (%d response): '%s'", response.StatusCode, body)
+		return relique_job.ReliqueJob{}, fmt.Errorf("cannot start job (%d response): '%s'", response.StatusCode, body)
 	}
 
 	if err := json.Unmarshal(body, &job); err != nil {
@@ -154,28 +177,4 @@ func SearchJob(config common.Configuration, params relique_job.JobSearchParams) 
 	}
 
 	return jobs, nil
-}
-
-func CleanClientRetention(config common.Configuration) error {
-	response, err := utils.PerformRequest(config,
-		config.PublicAddress,
-		config.Port,
-		"POST",
-		"/api/v1/retention/clean",
-		nil)
-	if err != nil {
-		return errors.Wrap(err, "error when performing api request")
-	}
-
-	_, err = ioutil.ReadAll(response.Body)
-	if err != nil {
-		return errors.Wrap(err, "cannot read response body from api request")
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("cannot clean retention on client. See client logs for more details")
-	}
-
-	return nil
 }

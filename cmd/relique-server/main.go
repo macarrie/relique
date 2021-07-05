@@ -6,10 +6,10 @@ import (
 )
 
 func main() {
-	cli.Init()
-
 	// Set log without debug enabled as we do not have parsed cli params yet
-	log.Setup(false, "relique-server.log")
+	log.SetupCliLogger(false, false)
+
+	cli.Init()
 
 	// TODO: handle error
 	cli.Execute()

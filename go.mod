@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gin-gonic/gin v1.7.2
-	github.com/go-git/go-git/v5 v5.3.0 // indirect
+	github.com/go-git/go-git/v5 v5.3.0
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.1.2

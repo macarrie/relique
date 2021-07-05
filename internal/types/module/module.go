@@ -73,16 +73,20 @@ func (m *Module) LoadDefaultConfiguration() error {
 	return nil
 }
 
-func LoadFromFile(file string) (Module, error) {
+func LoadFromFile(file string) (m Module, err error) {
 	log.WithFields(log.Fields{
 		"path": file,
 	}).Debug("Loading module configuration parameters from file")
 
 	f, err := os.Open(file)
-	defer f.Close()
 	if err != nil {
 		return Module{}, errors.Wrap(err, "cannot open file")
 	}
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			err = errors.Wrap(cerr, "cannot close file correctly")
+		}
+	}()
 
 	content, _ := ioutil.ReadAll(f)
 

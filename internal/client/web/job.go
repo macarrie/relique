@@ -3,71 +3,93 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/macarrie/relique/internal/types/job_type"
-
-	"github.com/macarrie/relique/internal/client/scheduler"
-
-	clientConfig "github.com/macarrie/relique/internal/types/config/client_daemon_config"
-	"github.com/macarrie/relique/internal/types/module"
-
-	"github.com/macarrie/relique/internal/types/backup_type"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/relique_job"
 )
 
-func postJobStart(c *gin.Context) {
-	var params relique_job.JobSearchParams
-	if err := c.BindJSON(&params); err != nil {
-		c.String(http.StatusBadRequest, "cannot parse received job start parameters")
+func postJobLaunchScript(c *gin.Context) {
+	scriptType, err := strconv.Atoi(c.Param("script_type"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid script type parameter received in request from relique server")
 		return
 	}
-	jType := job_type.FromString(params.JobType)
-	bType := backup_type.FromString(params.BackupType)
-	if bType.Type == backup_type.Unknown && jType.Type == job_type.Backup {
-		c.String(http.StatusBadRequest, "unknown backup type received")
+
+	if scriptType != relique_job.PreScript && scriptType != relique_job.PostScript {
+		c.String(http.StatusBadRequest, "invalid script type parameter received in request from relique server")
 		return
 	}
-	var targetModule module.Module
-	var moduleFound bool = false
 
-	// Check for module in client configuration
-	for _, mod := range clientConfig.BackupConfig.Modules {
-		if mod.Name == params.Module {
-			mod.GetLog().Info("Using module found in client configuration for manual job start")
-			moduleFound = true
-			targetModule = mod
-			targetModule.BackupType = bType
-		}
+	var job relique_job.ReliqueJob
+	if err := c.ShouldBind(&job); err != nil {
+		c.String(http.StatusBadRequest, "cannot parse received job parameters")
+		return
 	}
 
-	if !moduleFound {
-		log.Info("Module not found in client configuration for manual job start. Checking if a module with this name is installed on client")
-		if jType.Type == job_type.Backup {
-			targetModule = module.Module{
-				ModuleType: params.Module,
-				Name:       fmt.Sprintf("ondemand-%s-%s-%s", params.Module, jType.String(), bType.String()),
-				BackupType: bType,
-			}
-		} else {
-			targetModule = module.Module{
-				ModuleType: params.Module,
-				Name:       fmt.Sprintf("ondemand-%s-%s", params.Module, jType.String()),
-				BackupType: bType,
-			}
+	if scriptType == relique_job.PreScript {
+		if err := job.StartPreScript(); err != nil {
+			job.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Error encountered during module pre script execution")
+			c.String(http.StatusInternalServerError, err.Error())
+			return
 		}
-		if err := targetModule.LoadDefaultConfiguration(); err != nil {
-			c.String(http.StatusBadRequest, "cannot load module default configuration")
+	} else {
+		if err := job.StartPostScript(); err != nil {
+			job.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Error encountered during module post script execution")
+			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
 
-	job := relique_job.New(clientConfig.BackupConfig, targetModule, jType)
-	job.RestoreJobUuid = params.RestoreJobUuid
-	job.RestoreDestination = params.RestoreDestination
-	scheduler.AddJob(job)
+	c.Status(http.StatusOK)
+}
 
-	c.JSON(http.StatusOK, job)
+func postJobSetup(c *gin.Context) {
+	var job relique_job.ReliqueJob
+	if err := c.ShouldBind(&job); err != nil {
+		c.String(http.StatusBadRequest, "cannot parse received job parameters")
+		return
+	}
+
+	if err := job.PreFlightCheck(); err != nil {
+		job.GetLog().WithFields(log.Fields{
+			"err": err,
+		}).Error("Error detected during job pre flight check")
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if job.JobType.Type == job_type.Restore {
+		// Create folders
+		for _, path := range job.Module.BackupPaths {
+			var pathToCreate string
+			if job.RestoreDestination == "" {
+				pathToCreate = filepath.Clean(path)
+			} else {
+				pathToCreate = filepath.Clean(fmt.Sprintf("%s/%s", job.RestoreDestination, path))
+			}
+
+			job.GetLog().WithFields(log.Fields{
+				"path": pathToCreate,
+			}).Debug("Creating path for data restoration")
+			if err := os.MkdirAll(pathToCreate, 0755); err != nil {
+				job.GetLog().WithFields(log.Fields{
+					"err":  err,
+					"path": pathToCreate,
+				}).Error("Cannot create path for restoration")
+				c.String(http.StatusInternalServerError, err.Error())
+			}
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

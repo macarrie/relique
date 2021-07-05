@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/kennygrant/sanitize"
 
 	"github.com/macarrie/relique/internal/types/job_type"
@@ -32,6 +34,11 @@ const (
 )
 
 const (
+	PreScript = iota
+	PostScript
+)
+
+const (
 	PreBackup = iota
 	PostBackup
 	PreRestore
@@ -45,7 +52,7 @@ type ReliqueJob struct {
 	ClientID int64
 
 	Uuid               string
-	Client             clientObject.Client
+	Client             *clientObject.Client
 	Module             module.Module
 	Status             job_status.JobStatus
 	Done               bool
@@ -76,28 +83,38 @@ func createLogFolder(j *ReliqueJob) error {
 	return os.MkdirAll(path, 0755)
 }
 
-func (j *ReliqueJob) GetLogFile(name string) (*os.File, error) {
+func (j *ReliqueJob) CreateLogFile(path string) (*os.File, error) {
 	if err := createLogFolder(j); err != nil {
 		return nil, errors.Wrap(err, "cannot create job log folder")
 	}
+	return os.Create(path)
+}
 
-	logFilePath := filepath.Clean(fmt.Sprintf(
+func (j *ReliqueJob) GetFullLogPath(filename string) string {
+	return filepath.Clean(fmt.Sprintf(
 		"%s/%s/%s.log",
 		log.GetLogRoot(),
 		j.Uuid,
-		sanitize.Accents(sanitize.BaseName(name)),
+		sanitize.Accents(sanitize.BaseName(filename)),
 	))
-	return os.Create(logFilePath)
 }
 
-func (j *ReliqueJob) GetRsyncLogFile(path string) (*os.File, error) {
-	name := fmt.Sprintf("rsync_log_%s", sanitize.Accents(sanitize.BaseName(path)))
-	return j.GetLogFile(name)
+func (j *ReliqueJob) GetRsyncLogFilePath(path string) string {
+	filename := fmt.Sprintf("rsync_log_%s", sanitize.Accents(sanitize.BaseName(path)))
+	return j.GetFullLogPath(filename)
 }
 
-func (j *ReliqueJob) GetRsyncErrorLogFile(path string) (*os.File, error) {
-	name := fmt.Sprintf("rsync_error_log_%s", sanitize.Accents(sanitize.BaseName(path)))
-	return j.GetLogFile(name)
+func (j *ReliqueJob) CreateRsyncLogFile(path string) (*os.File, error) {
+	return j.CreateLogFile(j.GetRsyncLogFilePath(path))
+}
+
+func (j *ReliqueJob) GetRsyncErrorLogFilePath(path string) string {
+	filename := fmt.Sprintf("rsync_error_log_%s", sanitize.Accents(sanitize.BaseName(path)))
+	return j.GetFullLogPath(filename)
+}
+
+func (j *ReliqueJob) CreateRsyncErrorLogFile(path string) (*os.File, error) {
+	return j.CreateLogFile(j.GetRsyncErrorLogFilePath(path))
 }
 
 func (j *ReliqueJob) Save() (int64, error) {
@@ -349,7 +366,7 @@ func (j *ReliqueJob) StartPreScript() error {
 		scriptType = PreRestore
 	}
 
-	logFile, err := j.GetLogFile(logFileName)
+	logFile, err := j.CreateLogFile(j.GetFullLogPath(logFileName))
 	if err != nil {
 		j.GetLog().WithFields(log.Fields{
 			"err": err,
@@ -375,7 +392,7 @@ func (j *ReliqueJob) StartPostScript() error {
 		scriptType = PostRestore
 	}
 
-	logFile, err := j.GetLogFile(logFileName)
+	logFile, err := j.CreateLogFile(j.GetFullLogPath(logFileName))
 	if err != nil {
 		j.GetLog().WithFields(log.Fields{
 			"err": err,
@@ -401,4 +418,19 @@ func (j *ReliqueJob) Duration() time.Duration {
 	}
 
 	return end.Sub(start).Truncate(time.Second)
+}
+
+func (j *ReliqueJob) PreFlightCheck() error {
+	var errorList *multierror.Error
+
+	moduleIsInstalled, err := module.IsInstalled(j.Module.ModuleType)
+	if err != nil {
+		errorList = multierror.Append(errorList, errors.Wrapf(err, "cannot check if module '%s' is installed", j.Module.Name))
+	} else {
+		if !moduleIsInstalled {
+			errorList = multierror.Append(errorList, fmt.Errorf("module '%s' is not installed", j.Module.Name))
+		}
+	}
+
+	return errorList.ErrorOrNil()
 }

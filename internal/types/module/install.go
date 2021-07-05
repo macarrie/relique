@@ -48,6 +48,21 @@ func GetLocallyInstalled() ([]Module, error) {
 	return modulesList, errorList.ErrorOrNil()
 }
 
+func IsInstalled(moduleName string) (bool, error) {
+	installedModules, err := GetLocallyInstalled()
+	if err != nil {
+		return false, errors.Wrap(err, "cannot get locally installed modules")
+	}
+
+	for _, mod := range installedModules {
+		if mod.Name == moduleName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func gitClone(source string, dest string) error {
 	log.WithFields(log.Fields{
 		"source_path": source,
@@ -254,7 +269,7 @@ func Remove(moduleName string) error {
 
 	// Control path to remove to avoid making huge mistakes
 	if MODULES_INSTALL_PATH == "/" {
-		return fmt.Errorf("Modules install path has been set to /. Refusing to remove module to avoid accidental disastrous file deletions")
+		return fmt.Errorf("modules install path has been set to /. Refusing to remove module to avoid accidental disastrous file deletions")
 	}
 
 	// Do not trust moduleName directly. Search for installed modules matching with provided name and remove it
@@ -279,7 +294,7 @@ func Remove(moduleName string) error {
 	// Add a / in front of path to make sure we have an absolute path
 	fullPath := filepath.Clean(fmt.Sprintf("/%s/%s", MODULES_INSTALL_PATH, foundModule.Name))
 	if fullPath == "/" {
-		return fmt.Errorf("Modules installed path to remove has been computed to /. Refusing to remove module to avoid accidental disastrous file deletions")
+		return fmt.Errorf("modules installed path to remove has been computed to /. Refusing to remove module to avoid accidental disastrous file deletions")
 	}
 
 	if err := os.RemoveAll(fullPath); err != nil {
