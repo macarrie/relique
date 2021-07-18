@@ -105,8 +105,10 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 	return job, nil
 }
 
-func PreviousFullJob(job ReliqueJob) (ReliqueJob, error) {
-	job.GetLog().Trace("Looking for previous full backup job")
+func PreviousJob(job ReliqueJob, backupType backup_type.BackupType) (ReliqueJob, error) {
+	job.GetLog().WithFields(log.Fields{
+		"backup_type": backupType.String(),
+	}).Trace("Looking for previous backup job")
 
 	request := sq.Select(
 		"uuid",
@@ -119,7 +121,7 @@ func PreviousFullJob(job ReliqueJob) (ReliqueJob, error) {
 	).Where(
 		"modules.module_type = ?", job.Module.ModuleType,
 	).Where(
-		"jobs.backup_type = ?", backup_type.Full,
+		"jobs.backup_type = ?", backupType.Type,
 	).Where(
 		"jobs.done = ?", true,
 	).Where(
@@ -155,7 +157,7 @@ func PreviousFullJob(job ReliqueJob) (ReliqueJob, error) {
 
 	if len(uuids) == 0 {
 		// No previous full job found
-		return ReliqueJob{}, nil
+		return ReliqueJob{}, fmt.Errorf("no job found with specified criteria")
 	}
 
 	// Get first job since previous jobs are listed by id DESC

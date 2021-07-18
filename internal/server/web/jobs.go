@@ -52,17 +52,21 @@ func postJobStart(c *gin.Context) {
 	moduleFound := false
 
 	// Check that client exists
-	targetClient, err := client.GetByName(params.Client)
-	if err != nil {
+	var targetClient client.Client
+	clientFound := false
+	for _, cl := range serverConfig.Config.Clients {
+		if cl.Name == params.Client {
+			clientFound = true
+			targetClient = cl
+			break
+		}
+	}
+
+	if !clientFound {
 		c.String(http.StatusBadRequest, fmt.Sprintf("Cannot find client '%s' in relique server configuration", params.Client))
 		return
 	}
 
-	for _, cl := range serverConfig.Config.Clients {
-		if cl.Name == targetClient.Name {
-			targetClient.Modules = cl.Modules
-		}
-	}
 	targetClient.GetLog().Info("Found requested client in server configuration for manual job start")
 
 	// Check for module in client configuration

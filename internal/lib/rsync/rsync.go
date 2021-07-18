@@ -211,7 +211,6 @@ func (r Rsync) Run() error {
 func New(backupPath string, source string, destination string, options Options) *Rsync {
 	arguments := append(getArguments(options), source, destination)
 	cmd := exec.Command("rsync", arguments...)
-	fmt.Printf("RSYNC CMD: %+v\n", cmd.String())
 	return &Rsync{
 		Path:        backupPath,
 		Source:      source,
