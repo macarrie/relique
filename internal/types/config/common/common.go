@@ -14,20 +14,20 @@ var customConfigFilePath string
 var customConfigFile bool
 
 type Configuration struct {
-	Version                   string `mapstructure:",omitempty"`
-	Clients                   []client.Client
-	Schedules                 []schedule.Schedule
-	BindAddr                  string `mapstructure:"bind_addr"`
-	PublicAddress             string `mapstructure:"public_address"`
-	Port                      uint32
-	SSLCert                   string `mapstructure:"ssl_cert"`
-	SSLKey                    string `mapstructure:"ssl_key"`
-	StrictSSLCertificateCheck bool   `mapstructure:"strict_ssl_certificate_check"`
-	ClientCfgPath             string `mapstructure:"client_cfg_path"`
-	SchedulesCfgPath          string `mapstructure:"schedules_cfg_path"`
-	BackupStoragePath         string `mapstructure:"backup_storage_path"`
-	ModuleInstallPath         string `mapstructure:"module_install_path"`
-	RetentionPath             string `mapstructure:"retention_path"`
+	Version                   string              `mapstructure:",omitempty"`
+	Clients                   []client.Client     `json:"clients"`
+	Schedules                 []schedule.Schedule `json:"schedules"`
+	BindAddr                  string              `mapstructure:"bind_addr" json:"bind_addr"`
+	PublicAddress             string              `mapstructure:"public_address" json:"public_address"`
+	Port                      uint32              `json:"port"`
+	SSLCert                   string              `mapstructure:"ssl_cert" json:"ssl_cert"`
+	SSLKey                    string              `mapstructure:"ssl_key" json:"ssl_key"`
+	StrictSSLCertificateCheck bool                `mapstructure:"strict_ssl_certificate_check" json:"strict_ssl_certificate_check"`
+	ClientCfgPath             string              `mapstructure:"client_cfg_path" json:"client_cfg_path"`
+	SchedulesCfgPath          string              `mapstructure:"schedules_cfg_path" json:"schedules_cfg_path"`
+	BackupStoragePath         string              `mapstructure:"backup_storage_path" json:"backup_storage_path"`
+	ModuleInstallPath         string              `mapstructure:"module_install_path" json:"module_install_path"`
+	RetentionPath             string              `mapstructure:"retention_path" json:"retention_path"`
 }
 
 func Load(fileName string) (Configuration, error) {

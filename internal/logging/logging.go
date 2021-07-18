@@ -3,6 +3,7 @@ package logging
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,6 +31,8 @@ func SetupCliLogger(debug bool, outputAsJson bool) {
 	var formatter log.Formatter
 	if outputAsJson {
 		formatter = &log.JSONFormatter{}
+		// Do not log when is json mode to allow easy parsing by external tools
+		logger.Out = ioutil.Discard
 	} else {
 		formatter = &log.TextFormatter{
 			DisableTimestamp: true,

@@ -36,31 +36,30 @@ func (m Module) Display() displayable.Struct {
 }
 
 func (d ModuleDisplay) Summary() string {
-	// TODO: Pretty display
-	return fmt.Sprintf("Module summary: %s (type '%s')", d.Name, d.ModuleType)
+	return fmt.Sprintf("%s (type '%s')", d.Name, d.ModuleType)
 }
 
 func (d ModuleDisplay) Details() string {
-	return fmt.Sprintf("Module DETAILS \n"+
-		"----------- \n"+
-		"\tName: %s\n"+
-		"\tType: %s\n"+
-		"\tSchedules: %s\n"+
-		"\tBackup type: %s\n"+
-		"\tBackup paths: %s\n"+
-		"\tPre backup script: %s\n"+
-		"\tPost backup script: %s\n"+
-		"\tPre restore script: %s\n"+
-		"\tPost restore script: %s\n",
+	return fmt.Sprintf(
+		`	Name: 			%s
+	Type: 			%s
+	Schedules: 		%s
+	Backup type: 		%s
+	Backup paths: 		%s
+	Pre backup script: 	%s
+	Post backup script: 	%s
+	Pre restore script:	%s
+	Post restore script: 	%s`,
 		d.Name,
 		d.ModuleType,
 		strings.Join(d.Schedules, ", "),
 		d.BackupType,
 		strings.Join(d.BackupPaths, ", "),
-		d.PreBackupScript,
-		d.PostBackupScript,
-		d.PreRestoreScript,
-		d.PostRestoreScript)
+		orNone(d.PreBackupScript),
+		orNone(d.PostBackupScript),
+		orNone(d.PreRestoreScript),
+		orNone(d.PostRestoreScript),
+	)
 }
 
 func (d ModuleDisplay) TableHeaders() []string {
@@ -81,4 +80,12 @@ func (d ModuleDisplay) TableRow() []string {
 		strings.Join(d.Schedules, ", "),
 		strings.Join(d.BackupPaths, ", "),
 	}
+}
+
+func orNone(s string) string {
+	if s == "" {
+		return "---"
+	}
+
+	return s
 }

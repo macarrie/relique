@@ -11,7 +11,7 @@ import (
 )
 
 type Timeranges struct {
-	Ranges []Timerange
+	Ranges []Timerange `json:"ranges"`
 }
 
 func (r *Timeranges) UnmarshalText(b []byte) error {

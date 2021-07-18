@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"fmt"
 	"os"
+
+	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
 	"github.com/macarrie/relique/internal/types/config/common"
 
@@ -24,6 +27,9 @@ var config common.Configuration
 
 var jobSearchParams relique_job.JobSearchParams
 var manualJobParams relique_job.JobSearchParams
+
+var configShowClientName string
+var configShowScheduleName string
 
 func Init() {
 	rootCmd = &cobra.Command{
@@ -158,6 +164,100 @@ func Init() {
 		},
 	}
 
+	configCmd := &cobra.Command{
+		Use:   "config",
+		Short: "Running configuration related commands",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cliApi.InitCommonParams()
+			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+				os.Exit(1)
+			}
+		},
+	}
+	configCheckCmd := &cobra.Command{
+		Use:   "check",
+		Short: "Check current relique configuration",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := server_daemon_config.Check(); err != nil {
+				// TODO: Pretty print errors
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Errors found in configuration")
+				os.Exit(1)
+			}
+			log.WithFields(log.Fields{
+				"path": cliApi.Params.ConfigPath,
+			}).Info("No errors found in configuration")
+		},
+	}
+	configShowCmd := &cobra.Command{
+		Use:   "show",
+		Short: "Show current relique configuration",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println()
+			displayable.Details(server_daemon_config.Config)
+		},
+	}
+	configShowClientsCmd := &cobra.Command{
+		Use:   "clients",
+		Short: "Show clients in configuration",
+		Run: func(cmd *cobra.Command, args []string) {
+			if configShowClientName != "" {
+				for _, cl := range server_daemon_config.Config.Clients {
+					if cl.Name == configShowClientName {
+						fmt.Println()
+						displayable.Details(cl)
+						os.Exit(0)
+					}
+				}
+
+				log.WithFields(log.Fields{
+					"name": configShowClientName,
+				}).Error("Cannot find client in server configuration")
+				os.Exit(1)
+			}
+
+			disp := make([]displayable.Displayable, len(server_daemon_config.Config.Clients))
+			for i, v := range server_daemon_config.Config.Clients {
+				disp[i] = v
+			}
+			fmt.Println()
+			displayable.Table(disp)
+		},
+	}
+	configShowSchedulesCmd := &cobra.Command{
+		Use:   "schedules",
+		Short: "Show schedules in configuration",
+		Run: func(cmd *cobra.Command, args []string) {
+			if configShowScheduleName != "" {
+				for _, cl := range server_daemon_config.Config.Schedules {
+					if cl.Name == configShowScheduleName {
+						fmt.Println()
+						displayable.Details(cl)
+						os.Exit(0)
+					}
+				}
+
+				log.WithFields(log.Fields{
+					"name": configShowScheduleName,
+				}).Error("Cannot find schedule in server configuration")
+				os.Exit(1)
+			}
+
+			disp := make([]displayable.Displayable, len(server_daemon_config.Config.Schedules))
+			for i, v := range server_daemon_config.Config.Schedules {
+				disp[i] = v
+			}
+			fmt.Println()
+			displayable.Table(disp)
+		},
+	}
+
 	// COMMON COMMANDS (CLIENT AND SERVER)
 	cliApi.GetCommonCliCommands(rootCmd)
 
@@ -207,6 +307,16 @@ func Init() {
 	// RETENTION CMD
 	rootCmd.AddCommand(retentionCmd)
 	retentionCmd.AddCommand(retentionCleanCmd)
+
+	// CONFIG CMD
+	rootCmd.AddCommand(configCmd)
+	configCmd.PersistentFlags().StringVarP(&cliApi.Params.ConfigPath, "config", "c", "/etc/relique/server.toml", "Configuration file path")
+	configCmd.AddCommand(configCheckCmd)
+	configCmd.AddCommand(configShowCmd)
+	configShowCmd.AddCommand(configShowClientsCmd)
+	configShowCmd.AddCommand(configShowSchedulesCmd)
+	configShowClientsCmd.PersistentFlags().StringVarP(&configShowClientName, "name", "n", "", "Show details for client with this name")
+	configShowSchedulesCmd.PersistentFlags().StringVarP(&configShowScheduleName, "name", "n", "", "Show details for client with this name")
 }
 
 func Execute() error {
