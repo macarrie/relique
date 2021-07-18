@@ -16,14 +16,14 @@ import (
 )
 
 type Schedule struct {
-	Name      string
-	Monday    Timeranges
-	Tuesday   Timeranges
-	Wednesday Timeranges
-	Thursday  Timeranges
-	Friday    Timeranges
-	Saturday  Timeranges
-	Sunday    Timeranges
+	Name      string     `json:"name"`
+	Monday    Timeranges `json:"monday"`
+	Tuesday   Timeranges `json:"tuesday"`
+	Wednesday Timeranges `json:"wednesday"`
+	Thursday  Timeranges `json:"thursday"`
+	Friday    Timeranges `json:"friday"`
+	Saturday  Timeranges `json:"saturday"`
+	Sunday    Timeranges `json:"sunday"`
 }
 
 func loadFromFile(file string) (Schedule, error) {

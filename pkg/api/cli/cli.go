@@ -148,33 +148,3 @@ func ManualJobStart(config common.Configuration, params relique_job.JobSearchPar
 
 	return job, nil
 }
-
-func SearchJob(config common.Configuration, params relique_job.JobSearchParams) ([]relique_job.ReliqueJob, error) {
-	var jobs []relique_job.ReliqueJob
-
-	response, err := utils.PerformRequest(config,
-		config.PublicAddress,
-		config.Port,
-		"POST",
-		"/api/v1/backup/jobs",
-		params)
-	if err != nil {
-		return []relique_job.ReliqueJob{}, errors.Wrap(err, "error when performing api request")
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return jobs, errors.Wrap(err, "cannot read response body from api requets")
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return jobs, fmt.Errorf("cannot get jobs from server (%d response): see server logs for more details", response.StatusCode)
-	}
-
-	if err := json.Unmarshal(body, &jobs); err != nil {
-		return jobs, errors.Wrap(err, "cannot parse jobs from search results")
-	}
-
-	return jobs, nil
-}

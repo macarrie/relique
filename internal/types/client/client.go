@@ -24,25 +24,15 @@ import (
 )
 
 type Client struct {
-	ID            int64
-	Name          string `json:"name" toml:"name"`
-	Address       string `json:"address" toml:"address"`
-	Port          uint32 `json:"port" toml:"port"`
-	Modules       []module.Module
-	Version       string
-	ServerAddress string `json:"server_address" toml:"server_address"`
-	ServerPort    uint32 `json:"server_port" toml:"server_port"`
-	Alive         bool
-}
-
-type ServerPingParams struct {
-	UseSSH     bool
-	UseIPv4    bool
-	UseIPv6    bool
-	ServerAddr string
-	ServerPort uint32
-	ClientAddr string
-	Message    string
+	ID            int64           `json:"-"`
+	Name          string          `json:"name" toml:"name"`
+	Address       string          `json:"address" toml:"address"`
+	Port          uint32          `json:"port" toml:"port"`
+	Modules       []module.Module `json:"modules"`
+	Version       string          `json:"-"`
+	ServerAddress string          `json:"server_address" toml:"server_address"`
+	ServerPort    uint32          `json:"server_port" toml:"server_port"`
+	Alive         bool            `json:"-"`
 }
 
 func (c *Client) String() string {
