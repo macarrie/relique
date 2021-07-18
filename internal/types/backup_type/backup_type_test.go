@@ -40,6 +40,11 @@ func TestBackupType_String(t1 *testing.T) {
 			want:   "restore",
 		},
 		{
+			name:   "cumulative_diff",
+			fields: fields{CumulativeDiff},
+			want:   "cumulative_diff",
+		},
+		{
 			name:   "unknown",
 			fields: fields{123},
 			want:   "unknown",
@@ -80,6 +85,11 @@ func TestFromString(t *testing.T) {
 			name: "restore",
 			args: args{"restore"},
 			want: BackupType{Type: Restore},
+		},
+		{
+			name: "cumulative_diff",
+			args: args{"cumulative_diff"},
+			want: BackupType{Type: CumulativeDiff},
 		},
 		{
 			name: "unknown",
@@ -123,6 +133,12 @@ func TestBackupType_Unmarshal(t *testing.T) {
 			name:    "restore",
 			args:    args{data: []byte("restore")},
 			want:    BackupType{Type: Restore},
+			wantErr: false,
+		},
+		{
+			name:    "cumulative_diff",
+			args:    args{data: []byte("cumulative_diff")},
+			want:    BackupType{Type: CumulativeDiff},
 			wantErr: false,
 		},
 		{

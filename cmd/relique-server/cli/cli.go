@@ -272,7 +272,7 @@ func Init() {
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Module, "module", "m", "", "Module name")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Client, "client", "c", "", "Client name")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Status, "status", "s", "", "Job status")
-	jobListCmd.Flags().StringVarP(&jobSearchParams.BackupType, "backup-type", "t", "", "Backup type (diff, full)")
+	jobListCmd.Flags().StringVarP(&jobSearchParams.BackupType, "backup-type", "t", "", "Backup type (diff, cumulative_diff, full)")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Uuid, "uuid", "u", "", "Job with UUID")
 	jobListCmd.Flags().IntVarP(&jobSearchParams.Limit, "limit", "l", 0, "Limit job search to LIMIT items (0 corresponds to no limit)")
 
@@ -286,7 +286,7 @@ func Init() {
 	backupCmd.AddCommand(backupStartCmd)
 	backupStartCmd.Flags().StringVarP(&manualJobParams.Client, "client", "", "", "Client name to backup from")
 	backupStartCmd.Flags().StringVarP(&manualJobParams.Module, "module", "m", "", "Module name")
-	backupStartCmd.Flags().StringVarP(&manualJobParams.BackupType, "backup-type", "t", "", "Backup type (diff, full)")
+	backupStartCmd.Flags().StringVarP(&manualJobParams.BackupType, "backup-type", "t", "", "Backup type (diff, cumulative_diff, full)")
 	backupStartCmd.MarkFlagRequired("client")
 	backupStartCmd.MarkFlagRequired("module")
 	backupStartCmd.MarkFlagRequired("backup-type")

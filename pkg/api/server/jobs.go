@@ -103,14 +103,53 @@ func RegisterJob(j *relique_job.ReliqueJob) error {
 		return fmt.Errorf("restore job has no target job UUID to restore data from")
 	}
 
-	if j.BackupType.Type == backup_type.Diff {
-		previousJob, err := relique_job.PreviousFullJob(*j)
-		if err != nil || previousJob.Uuid == "" {
-			j.BackupType.Type = backup_type.Full
-			j.GetLog().Info("No previous backup job found when registering job. This job backup type is now changed to 'full'")
-		}
+	switch j.BackupType.Type {
+	case backup_type.Diff:
+		j.GetLog().Debug("Looking for previous diff jobs to compute diff from")
+		previousDiffJob, diffErr := relique_job.PreviousJob(*j, backup_type.BackupType{Type: backup_type.Diff})
+		previousCDiffJob, cDiffErr := relique_job.PreviousJob(*j, backup_type.BackupType{Type: backup_type.CumulativeDiff})
+		if diffErr == nil {
+			j.PreviousJobUuid = previousDiffJob.Uuid
+			j.GetLog().WithFields(log.Fields{
+				"previous_job_uuid": j.PreviousJobUuid,
+			}).Debug("Previous diff job found for diff computation")
+		} else {
+			if cDiffErr == nil {
+				j.PreviousJobUuid = previousCDiffJob.Uuid
+				j.GetLog().WithFields(log.Fields{
+					"previous_job_uuid": j.PreviousJobUuid,
+				}).Info("Previous cumulative diff job found for diff computation")
 
-		j.PreviousJobUuid = previousJob.Uuid
+			} else {
+				// Drop back to cumulative diff if no previous diff or cumulative diff found
+				j.GetLog().Debug("Previous diff job not found, looking for previous full job to compute diff from")
+				previousFullJob, err := relique_job.PreviousJob(*j, backup_type.BackupType{Type: backup_type.Full})
+				if err == nil {
+					j.PreviousJobUuid = previousFullJob.Uuid
+					j.BackupType.Type = backup_type.CumulativeDiff
+					j.GetLog().WithFields(log.Fields{
+						"previous_job_uuid": j.PreviousJobUuid,
+					}).Info("No previous diff backup job found when registering job. This job backup type is changed to 'cumulative_diff'")
+				} else {
+					j.BackupType.Type = backup_type.Full
+					j.GetLog().WithFields(log.Fields{
+						"previous_job_uuid": j.PreviousJobUuid,
+					}).Info("No previous diff or full backup job found when registering job. This job backup type is changed to 'full'")
+				}
+			}
+		}
+	case backup_type.CumulativeDiff:
+		j.GetLog().Debug("Looking for previous full jobs to compute cumulative diff from")
+		previousFullJob, err := relique_job.PreviousJob(*j, backup_type.BackupType{Type: backup_type.Full})
+		if err == nil {
+			j.PreviousJobUuid = previousFullJob.Uuid
+			j.GetLog().WithFields(log.Fields{
+				"previous_job_uuid": j.PreviousJobUuid,
+			}).Debug("Previous full job found for cumulative diff computation")
+		} else {
+			j.BackupType.Type = backup_type.Full
+			j.GetLog().Info("No previous backup job found when registering job. This job backup type is changed to 'full'")
+		}
 	}
 
 	j.StartTime = time.Now()
