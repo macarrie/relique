@@ -11,7 +11,7 @@ import (
 
 func postConfig(c *gin.Context) {
 	var clientConfig clientObject.Client
-	if err := c.ShouldBind(&clientConfig); err != nil {
+	if err := c.Bind(&clientConfig); err != nil {
 		log.Error("Cannot bind config received")
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
@@ -20,6 +20,12 @@ func postConfig(c *gin.Context) {
 	log.WithFields(log.Fields{
 		"version": clientConfig.Version,
 	}).Info("Received new configuration from server")
+
+	if clientConfig.Version == "" {
+		log.Error("Received configuration with empty config version. This should not have happened !")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
 	client_daemon_config.BackupConfig = clientConfig
 	c.JSON(http.StatusOK, gin.H{})

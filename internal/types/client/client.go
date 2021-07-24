@@ -29,7 +29,7 @@ type Client struct {
 	Address       string          `json:"address" toml:"address"`
 	Port          uint32          `json:"port" toml:"port"`
 	Modules       []module.Module `json:"modules"`
-	Version       string          `json:"-"`
+	Version       string          `json:"version"`
 	ServerAddress string          `json:"server_address" toml:"server_address"`
 	ServerPort    uint32          `json:"server_port" toml:"server_port"`
 	Alive         bool            `json:"-"`
