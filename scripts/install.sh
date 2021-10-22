@@ -14,6 +14,7 @@ Options:
     --server: Install relique server
     --client: Install relique client
     --systemd: Install systemd service file
+    --freebsd: Install freebsd service file
     --skip-user-creation: Skip relique group and user creation
     "
 }
@@ -30,7 +31,7 @@ function install_file() {
     echo "--- Copying ${src_file} to ${PREFIX}/${src_file}"
 
     dest_path=$(dirname $src_file)
-    if [ ! -d "${dest_path}" ]; then
+    if [ ! -d "${PREFIX}/${dest_path}" ]; then
         mkdir -p "${PREFIX}/${dest_path}"
     fi
 
@@ -39,14 +40,13 @@ function install_file() {
 
 function copy_binaries() {
     echo -e "\nInstalling binaries"
-    install_file "usr/bin/relique" 1
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "usr/bin/relique-server" 1
+        install_file "bin/relique-server" 1
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "usr/bin/relique-client" 1
+        install_file "bin/relique-client" 1
     fi
 }
 
@@ -54,14 +54,18 @@ function copy_default_configuration() {
     echo -e "\nInstalling default configuration"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "etc/relique/server.toml"
+        install_file "etc/relique/server.toml.sample"
+        install_file "etc/relique/schedules/daily.toml"
+        install_file "etc/relique/schedules/weekly.toml"
+        install_file "etc/relique/schedules/manual.toml"
+        install_file "etc/relique/clients/example.toml.disabled"
         mkdir -p "${PREFIX}/opt/relique"
         mkdir -p "${PREFIX}/var/lib/relique"
         mkdir -p "${PREFIX}/var/log/relique"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "etc/relique/client.toml"
+        install_file "etc/relique/client.toml.sample"
     fi
 }
 
@@ -122,12 +126,32 @@ function install_systemd_service() {
     fi
 }
 
+function install_freebsd_service() {
+    echo -e "\nInstalling freebsd service files"
+
+    if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
+        install_file "etc/rc.d/relique-server"
+    fi
+
+    if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
+        install_file "etc/rc.d/relique-client"
+    fi
+}
+
 
 function install_default_modules() {
     echo -e "\nInstalling default relique modules"
 
+    if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
+        RELIQUE_BINARY="${SRC}/bin/relique-server"
+    fi
+
+    if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
+        RELIQUE_BINARY="${SRC}/bin/relique-server"
+    fi
+
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
-        ${SRC}/usr/bin/relique module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
+        ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
     done
 }
 
@@ -162,6 +186,11 @@ case $key in
 
     --systemd)
     SYSTEMD=1
+    shift # past argument
+    ;;
+
+    --freebsd)
+    FREEBSD=1
     shift # past argument
     ;;
 
@@ -210,7 +239,6 @@ if [ ! -d $PREFIX ]; then
     mkdir -p "${PREFIX}"
 fi
 
-create_user
 copy_binaries
 create_dir_structure
 copy_default_configuration
@@ -218,6 +246,10 @@ copy_certs
 
 if [ "X${SYSTEMD}X" == "X1X" ]; then
     install_systemd_service
+fi
+
+if [ "X${FREEBSD}X" == "X1X" ]; then
+    install_freebsd_service
 fi
 
 if [ "X${SKIPUSERCREATION}X" != "X1X" ]; then

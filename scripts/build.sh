@@ -18,7 +18,7 @@ function build_binaries() {
 
     for component in $components; do
         echo "Building $component"
-        go build -o "${OUTPUT_DIR}/usr/bin/${component}" cmd/${component}/main.go
+        go build -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
     done
 }
 
@@ -27,6 +27,11 @@ function copy_service_files() {
     echo "Copying systemd service files to '$OUTPUT_DIR'"
     mkdir -p "${OUTPUT_DIR}/usr/lib/systemd/system"
     cp -r build/init/*.service "${OUTPUT_DIR}/usr/lib/systemd/system"
+
+    echo "Copying freebsd init files to '$OUTPUT_DIR'"
+    mkdir -p "${OUTPUT_DIR}/etc/rc.d"
+    cp -r build/init/relique-client.freebsd.sh "${OUTPUT_DIR}/etc/rc.d/relique-client"
+    cp -r build/init/relique-server.freebsd.sh "${OUTPUT_DIR}/etc/rc.d/relique-server"
 }
 
 

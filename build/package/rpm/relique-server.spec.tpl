@@ -39,7 +39,7 @@ systemctl daemon-reload
 %dir %attr(0755, -, -) /var/lib/relique
 %dir %attr(0755, -, -) /var/lib/relique/db
 %dir %attr(0755, -, -) /opt/relique
-%config(noreplace) /etc/relique/server.toml
+%config /etc/relique/server.toml.sample
 /etc/relique/certs/cert.pem
 /etc/relique/certs/key.pem
 /var/lib/relique/modules/generic/
