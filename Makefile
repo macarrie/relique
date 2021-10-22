@@ -45,6 +45,8 @@ install:
 ## clean: Clean all build artefacts
 clean:
 	rm -rf output
+	$(MAKE) -C build/package/freebsd/relique-client clean
+	$(MAKE) -C build/package/freebsd/relique-server clean
 
 $(BUILD_OUTPUT_DIR):
 	mkdir -p $@
@@ -67,6 +69,16 @@ rpm: clean ~/rpmbuild tar
 	cp $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz ~/rpmbuild/SOURCES/
 	$(MAKE) build_single_rpm rpm=relique-client
 	$(MAKE) build_single_rpm rpm=relique-server
+
+## port_makesum: Compute port sum
+port_makesum:
+	$(MAKE) -C build/package/freebsd/relique-client clean makesum
+	$(MAKE) -C build/package/freebsd/relique-server clean makesum
+
+## freebsd: Build freebsd packages
+freebsd: port_makesum
+	$(MAKE) -C build/package/freebsd/relique-client package
+	$(MAKE) -C build/package/freebsd/relique-server package
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
 help: Makefile

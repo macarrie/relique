@@ -19,7 +19,7 @@ var lock sync.RWMutex
 
 const TEST_DB_PATH = "/var/lib/relique/db/unittests.db"
 
-var dbPath = "/var/lib/relique/db/server.db"
+var DbPath = "/var/lib/relique/db/server.db"
 
 func Init() error {
 	if err := Open(true); err != nil {
@@ -37,7 +37,7 @@ func Init() error {
 
 // Used for unit tests
 func InitTestDB() error {
-	dbPath = TEST_DB_PATH
+	DbPath = TEST_DB_PATH
 	if err := ResetTestDB(); err != nil {
 		return errors.Wrap(err, "cannot reset test DB")
 	}
@@ -48,13 +48,13 @@ func InitTestDB() error {
 // Used for unit tests
 func ResetTestDB() error {
 	pool = nil
-	dbPath = TEST_DB_PATH
-	if _, err := os.Lstat(dbPath); os.IsNotExist(err) {
+	DbPath = TEST_DB_PATH
+	if _, err := os.Lstat(DbPath); os.IsNotExist(err) {
 		// DB not created, nothing to do
 		return nil
 	}
 
-	if err := os.Remove(dbPath); err != nil {
+	if err := os.Remove(DbPath); err != nil {
 		return errors.Wrap(err, "cannot delete db file")
 	}
 
@@ -63,22 +63,22 @@ func ResetTestDB() error {
 
 func Open(RW bool) error {
 	log.WithFields(log.Fields{
-		"path": dbPath,
+		"path": DbPath,
 	}).Debug("Opening database connection")
 
-	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", dbPath))
+	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", DbPath))
 	if err != nil {
 		return errors.Wrap(err, "cannot Open sqlite connection")
 	}
 	pool = connection
 
-	if _, err := os.Lstat(dbPath); os.IsNotExist(err) {
+	if _, err := os.Lstat(DbPath); os.IsNotExist(err) {
 		// Do not check RW access to DB when it just has been created and the underlying file does not exist yet
 		return nil
 	}
 
 	if RW {
-		if err := unix.Access(dbPath, unix.W_OK); err != nil {
+		if err := unix.Access(DbPath, unix.W_OK); err != nil {
 			return errors.Wrap(err, "cannot get RW access to DB")
 		}
 	}

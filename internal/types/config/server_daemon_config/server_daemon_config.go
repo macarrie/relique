@@ -6,6 +6,7 @@ import (
 
 	clientObject "github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/schedule"
+	"github.com/macarrie/relique/internal/db"
 
 	"github.com/macarrie/relique/internal/types/config/common"
 
@@ -64,6 +65,8 @@ func Load(filePath string) error {
 	conf.Clients = clients
 
 	Config = conf
+	// Set DB path
+	db.DbPath = conf.DbPath
 
 	return nil
 }
