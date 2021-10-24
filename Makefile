@@ -39,6 +39,8 @@ clean: ## Clean all build artefacts
 	rm -rf output
 	$(MAKE) -C build/package/freebsd/relique-client clean
 	$(MAKE) -C build/package/freebsd/relique-server clean
+	rm -f build/package/freebsd/relique-server/distinfo
+	rm -f build/package/freebsd/relique-client/distinfo
 
 $(BUILD_OUTPUT_DIR):
 	mkdir -p $@

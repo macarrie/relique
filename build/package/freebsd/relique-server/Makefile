@@ -1,11 +1,12 @@
 PORTNAME=			relique-server
-DISTVERSION=		0.0.1.p2
+DISTVERSION=		0.0.1.p3
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
 MAINTAINER=		relique@mathieu.macarrie.fr
 COMMENT=		Rsync based backup utility
 
+BUILD_DEPENDS=	bash:shells/bash
 RUN_DEPENDS=	rsync:net/rsync
 USES=			go sqlite:3
 
