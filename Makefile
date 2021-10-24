@@ -11,39 +11,31 @@ BUILD_OUTPUT_DIR=output
 INSTALL_SRC=output
 INSTALL_ROOT=/
 
-## all: Build all relique components from scratch
-all: clean build
+all: clean build ## Build all relique components from scratch
 
-## build: Build relique package distribution
-build: clean $(BUILD_OUTPUT_DIR)
+build: clean $(BUILD_OUTPUT_DIR) ## Build relique package distribution
 	./scripts/build.sh --output-dir "$(BUILD_OUTPUT_DIR)"
 
-## server: Build relique-server
-server:
+server: ## Build relique-server
 	rm -f build/bin/relique-server
 	$(MAKE) build
 
-## client: Build relique-client
-client:
+client: ## Build relique-client
 	rm -f build/bin/relique-client
 	$(MAKE) build
 
-## check: Run code vet
-check:
+check: ## Run code vet
 	go vet ./...
 	staticcheck ./...
 
-## test: Run tests
-test: check
+test: check ## Run tests
 	# Parallel db setup during unit tests can create errors (read only db).Use -p 1 to ensure tests are run sequentially
 	sudo -u relique -g relique go test -p 1 ./... -cover
 
-## install: Install
-install:
+install: ## Install relique
 	./scripts/install.sh --prefix "$(INSTALL_ROOT)" --src "$(INSTALL_SRC)" $(INSTALL_ARGS)
 
-## clean: Clean all build artefacts
-clean:
+clean: ## Clean all build artefacts
 	rm -rf output
 	$(MAKE) -C build/package/freebsd/relique-client clean
 	$(MAKE) -C build/package/freebsd/relique-server clean
@@ -51,8 +43,7 @@ clean:
 $(BUILD_OUTPUT_DIR):
 	mkdir -p $@
 
-## tar: Package sources to tar for rpm build
-tar: $(BUILD_OUTPUT_DIR)
+tar: $(BUILD_OUTPUT_DIR) ## Package sources to tar for rpm build
 	tar --exclude "$(BUILD_OUTPUT_DIR)" --exclude "test" -zcf $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz .
 
 ~/rpmbuild:
@@ -64,23 +55,20 @@ build_single_rpm:
 	rpmbuild -ba ~/rpmbuild/SPECS/$(rpm).spec
 
 
-## rpm: Build rpm packages
-rpm: clean ~/rpmbuild tar
+rpm: clean ~/rpmbuild tar ## Build rpm packages
 	cp $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz ~/rpmbuild/SOURCES/
 	$(MAKE) build_single_rpm rpm=relique-client
 	$(MAKE) build_single_rpm rpm=relique-server
 
-## port_makesum: Compute port sum
-port_makesum:
+port_makesum: ## Compute port sum
 	$(MAKE) -C build/package/freebsd/relique-client clean makesum
 	$(MAKE) -C build/package/freebsd/relique-server clean makesum
 
-## freebsd: Build freebsd packages
-freebsd: port_makesum
+freebsd: port_makesum ## Build freebsd packages
 	$(MAKE) -C build/package/freebsd/relique-client package
 	$(MAKE) -C build/package/freebsd/relique-server package
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
-help: Makefile
-	echo " Choose a command to run:"
-	sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
+help: Makefile ## Show this help
+	echo " Choose a command run in "$(PROJECTNAME)":"
+	@grep -E '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

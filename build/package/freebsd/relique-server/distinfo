@@ -1,3 +1,5 @@
-TIMESTAMP = 1634921392
-SHA256 (macarrie-relique-0.0.1.p1_GH0.tar.gz) = 072d235005f83967135dc6fec28dd1fda3de8ba2544e45fd55a775d2c9e47325
-SIZE (macarrie-relique-0.0.1.p1_GH0.tar.gz) = 404479
+TIMESTAMP = 1635084539
+SHA256 (macarrie-relique-v0.0.1.p1_GH0.tar.gz) = 63fb6408f9b7cb6cc7a375918821847fc246b9f80365808e7dfcb26a23e1bb73
+SIZE (macarrie-relique-v0.0.1.p1_GH0.tar.gz) = 84673
+SHA256 (macarrie-relique-module-generic-0.0.1_GH0.tar.gz) = 596b829ca5e2274842468fa17f71aa9407f283487811004f5026933da9de5a45
+SIZE (macarrie-relique-module-generic-0.0.1_GH0.tar.gz) = 399
