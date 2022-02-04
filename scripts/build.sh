@@ -14,9 +14,17 @@ function usage() {
 
 function build_binaries() {
     echo "Building binaries to '$OUTPUT_DIR'"
-    components="relique-client relique-server"
+	components=()
 
-    for component in $components; do
+	if [ $BUILD_CLIENT -eq 1 ]; then
+		components+=("relique-client")
+	fi
+
+	if [ $BUILD_SERVER -eq 1 ]; then
+		components+=("relique-server")
+	fi
+
+    for component in "${components[@]}"; do
         echo "Building $component"
         go build -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
     done
@@ -80,6 +88,16 @@ do
             OUTPUT_DIR="$2"
             shift # past argument
             shift # past value
+            ;;
+
+        --server)
+			BUILD_SERVER=1
+            shift # past argument
+            ;;
+
+        --client)
+			BUILD_CLIENT=1
+            shift # past argument
             ;;
 
         -h|--help)

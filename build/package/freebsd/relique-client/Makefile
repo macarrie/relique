@@ -19,7 +19,7 @@ GH_TUPLE=		macarrie:relique-module-generic:0.0.1:reliquemodulegeneric/configs/va
 #GROUPS=			relique
 
 do-build:
-	make -C ${WRKSRC} build BUILD_OUTPUT_DIR=${WRKDIR}/package
+	make -C ${WRKSRC} clean build_client BUILD_OUTPUT_DIR=${WRKDIR}/package
 
 do-install:
 	make -C ${WRKSRC} install INSTALL_ROOT=${STAGEDIR}/${PREFIX} INSTALL_SRC=${WRKDIR}/package INSTALL_ARGS="--client --freebsd --skip-user-creation"

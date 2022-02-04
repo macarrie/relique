@@ -13,8 +13,15 @@ INSTALL_ROOT=/
 
 all: clean build ## Build all relique components from scratch
 
-build: clean $(BUILD_OUTPUT_DIR) ## Build relique package distribution
-	./scripts/build.sh --output-dir "$(BUILD_OUTPUT_DIR)"
+build: clean $(BUILD_OUTPUT_DIR) ## Build entire relique package distribution
+	$(MAKE) build_client $(BUILD_OUTPUT_DIR)
+	$(MAKE) build_server $(BUILD_OUTPUT_DIR)
+
+build_server: $(BUILD_OUTPUT_DIR) ## Build relique server package distribution
+	./scripts/build.sh --server --output-dir "$(BUILD_OUTPUT_DIR)"
+
+build_client: $(BUILD_OUTPUT_DIR) ## Build relique client package distribution
+	./scripts/build.sh --client --output-dir "$(BUILD_OUTPUT_DIR)"
 
 server: ## Build relique-server
 	rm -f build/bin/relique-server
