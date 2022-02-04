@@ -147,7 +147,7 @@ function install_default_modules() {
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        RELIQUE_BINARY="${SRC}/bin/relique-server"
+        RELIQUE_BINARY="${SRC}/bin/relique-client"
     fi
 
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do

@@ -16,11 +16,11 @@ function build_binaries() {
     echo "Building binaries to '$OUTPUT_DIR'"
 	components=()
 
-	if [ $BUILD_CLIENT -eq 1 ]; then
+	if [ "X${BUILD_CLIENT}X" == "X1X" ]; then
 		components+=("relique-client")
 	fi
 
-	if [ $BUILD_SERVER -eq 1 ]; then
+	if [ "X${BUILD_SERVER}X" == "X1X" ]; then
 		components+=("relique-server")
 	fi
 
