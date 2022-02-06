@@ -26,7 +26,7 @@ function build_binaries() {
 
     for component in "${components[@]}"; do
         echo "Building $component"
-        go build -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
+        go build -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
     done
 }
 
@@ -51,9 +51,11 @@ function copy_config_defaults() {
 function package_default_modules() {
     # TODO: Remove .git folders if found with tar --exclude-vcs --exclude-vcs-ignore
     echo "Packaging default modules tarballs to '$OUTPUT_DIR'"
-    for mod in $(ls -1 ${OUTPUT_DIR}/var/lib/relique/default_modules); do
-        pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${mod}" > /dev/null
-            tar -zcf ../${mod}.tar.gz .
+    for mod in $(find "${OUTPUT_DIR}/var/lib/relique/default_modules" -type d -depth 1); do
+		modname=$(basename $mod)
+		echo "Packaging default module '${modname}'"
+        pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${modname}" > /dev/null
+            tar -zcf ../${modname}.tar.gz .
         popd > /dev/null
     done
 }
