@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.1.p6
+DISTVERSION=		0.0.1.p7
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -8,7 +8,7 @@ COMMENT=		Rsync based backup utility
 
 BUILD_DEPENDS=	bash:shells/bash
 RUN_DEPENDS=	rsync:net/rsync
-USES=			go sqlite:3
+USES=			go:modules sqlite:3
 
 USE_GITHUB=		yes
 GH_ACCOUNT=		macarrie
