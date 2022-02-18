@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.1.p8
+DISTVERSION=		0.0.1.p9
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -15,7 +15,6 @@ GH_ACCOUNT=		macarrie
 GH_PROJECT=		relique
 # Generated with make gomod-vendor
 GH_TUPLE=		macarrie:relique-module-generic:0.0.1:reliquemodulegeneric/configs/var/lib/relique/default_modules/relique-module-generic \
-	GH_TUPLE=       \
                 Masterminds:squirrel:v1.5.2:masterminds_squirrel/vendor/github.com/Masterminds/squirrel \
                 Microsoft:go-winio:v0.4.16:microsoft_go_winio/vendor/github.com/Microsoft/go-winio \
                 ProtonMail:go-crypto:04723f9f07d7:protonmail_go_crypto/vendor/github.com/ProtonMail/go-crypto \
