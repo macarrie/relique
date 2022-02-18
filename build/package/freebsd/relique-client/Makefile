@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.1.p9
+DISTVERSION=		0.0.1.p10
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -76,6 +76,7 @@ GH_TUPLE=		macarrie:relique-module-generic:0.0.1:reliquemodulegeneric/configs/va
 #GROUPS=			relique
 
 do-build:
+	GOCACHE=off
 	make -C ${WRKSRC} clean build_client BUILD_OUTPUT_DIR=${WRKDIR}/package
 
 do-install:
