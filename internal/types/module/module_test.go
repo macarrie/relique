@@ -751,6 +751,7 @@ func TestInstall(t *testing.T) {
 		local   bool
 		archive bool
 		force   bool
+		skipChown bool
 	}
 	tests := []struct {
 		name    string
@@ -764,6 +765,7 @@ func TestInstall(t *testing.T) {
 				local:   false,
 				archive: false,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: false,
 		},
@@ -774,6 +776,7 @@ func TestInstall(t *testing.T) {
 				local:   false,
 				archive: false,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: true,
 		},
@@ -784,6 +787,7 @@ func TestInstall(t *testing.T) {
 				local:   false,
 				archive: true,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: false,
 		},
@@ -794,6 +798,7 @@ func TestInstall(t *testing.T) {
 				local:   false,
 				archive: true,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: true,
 		},
@@ -804,6 +809,7 @@ func TestInstall(t *testing.T) {
 				local:   true,
 				archive: true,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: false,
 		},
@@ -814,6 +820,7 @@ func TestInstall(t *testing.T) {
 				local:   true,
 				archive: true,
 				force:   false,
+				skipChown:   false,
 			},
 			wantErr: true,
 		},
@@ -828,7 +835,7 @@ func TestInstall(t *testing.T) {
 			defer os.RemoveAll(testInstallFolder)
 			MODULES_INSTALL_PATH = testInstallFolder
 
-			installErr := Install(tt.args.path, tt.args.local, tt.args.archive, tt.args.force)
+			installErr := Install(tt.args.path, tt.args.local, tt.args.archive, tt.args.force, tt.args.skipChown)
 			if (installErr != nil) != tt.wantErr {
 				t.Errorf("Install() error = %v, wantErr %v", installErr, tt.wantErr)
 			}

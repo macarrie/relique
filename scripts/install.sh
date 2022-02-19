@@ -154,7 +154,7 @@ function install_default_modules() {
     fi
 
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
-        ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force $mod
+        ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force --skip-chown $mod
     done
 }
 

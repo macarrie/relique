@@ -151,7 +151,7 @@ func extractArchive(source string, dest string) error {
 	return nil
 }
 
-func installModuleFiles(source string, dest string) error {
+func installModuleFiles(source string, dest string, skipChown bool) error {
 	log.WithFields(log.Fields{
 		"source_path": source,
 		"destination": dest,
@@ -177,20 +177,22 @@ func installModuleFiles(source string, dest string) error {
 		return errors.Wrap(err, fmt.Sprintf("cannot chmod installed module files: %s", out2.String()))
 	}
 
-	chownCmd := exec.Command("chown", "-R", ":relique", dest)
+	if !skipChown {
+		chownCmd := exec.Command("chown", "-R", ":relique", dest)
 
-	var out3 bytes.Buffer
-	chownCmd.Stdout = &out3
-	chownCmd.Stderr = &out3
+		var out3 bytes.Buffer
+		chownCmd.Stdout = &out3
+		chownCmd.Stderr = &out3
 
-	if err := chownCmd.Run(); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("cannot chown installed module files: %s", out3.String()))
+		if err := chownCmd.Run(); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("cannot chown installed module files: %s", out3.String()))
+		}
 	}
 
 	return nil
 }
 
-func Install(path string, local bool, archive bool, force bool) error {
+func Install(path string, local bool, archive bool, force bool, skipChown bool) error {
 	log.WithFields(log.Fields{
 		"install_path": MODULES_INSTALL_PATH,
 		"local":        local,
@@ -254,7 +256,7 @@ func Install(path string, local bool, archive bool, force bool) error {
 		}
 	}
 
-	if err := installModuleFiles(tempInstallFolder, installPath); err != nil {
+	if err := installModuleFiles(tempInstallFolder, installPath, skipChown); err != nil {
 		return errors.Wrap(err, "cannot install module files to their final destination")
 	}
 
