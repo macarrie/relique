@@ -1,5 +1,5 @@
 PORTNAME=			relique-server
-DISTVERSION=		0.0.1.p14
+DISTVERSION=		0.0.1.p16
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -76,7 +76,7 @@ GH_TUPLE=		macarrie:relique-module-generic:0.0.1:reliquemodulegeneric/configs/va
 #GROUPS=			relique
 
 do-build:
-	make -C ${WRKSRC} clean build_server BUILD_OUTPUT_DIR=${WRKDIR}/package
+	${SETENV} XDG_CACHE_HOME=${WRKDIR}/.cache GOMODCACHE=${WRKDIR}/gomodcache ${GO_ENV} make -C ${WRKSRC} clean build_server BUILD_OUTPUT_DIR=${WRKDIR}/package
 
 do-install:
 	make -C ${WRKSRC} install INSTALL_ROOT=${STAGEDIR}/${PREFIX} INSTALL_SRC=${WRKDIR}/package INSTALL_ARGS="--server --freebsd --skip-user-creation"
