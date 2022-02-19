@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.1.p16
+DISTVERSION=		0.0.1.p17
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -72,8 +72,8 @@ GH_TUPLE=		macarrie:relique-module-generic:0.0.1:reliquemodulegeneric/configs/va
                 ugorji:go:v1.1.7:ugorji_go_codec/vendor/github.com/ugorji/go \
                 xanzy:ssh-agent:v0.3.0:xanzy_ssh_agent/vendor/github.com/xanzy/ssh-agent
 
-#USERS=			relique
-#GROUPS=			relique
+USERS=			relique
+GROUPS=			relique
 
 do-build:
 	${SETENV} XDG_CACHE_HOME=${WRKDIR}/.cache GOMODCACHE=${WRKDIR}/gomodcache ${GO_ENV} make -C ${WRKSRC} clean build_client BUILD_OUTPUT_DIR=${WRKDIR}/package
