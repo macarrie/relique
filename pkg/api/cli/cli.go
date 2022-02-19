@@ -118,7 +118,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsArchive, "archive", "a", false, "Module to install is packaged into a tar.gz archive instead of being a git repository")
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsLocal, "local", "l", false, "Module to install is already available locally on disk (offline install)")
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallForce, "force", "f", false, "Force module install. If module is already installed, files with be overwritten")
-	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallSkipChown, "", "skip-chown", false, "Do not chown module files to relique user and group after install")
+	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallSkipChown, "skip-chown", "", false, "Do not chown module files to relique user and group after install")
 }
 
 func ManualJobStart(config common.Configuration, params relique_job.JobSearchParams) (relique_job.ReliqueJob, error) {
