@@ -27,7 +27,7 @@ function build_binaries() {
     for component in "${components[@]}"; do
         echo "Building $component"
 		go env
-        go build -mod=mod -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
+        go build -mod=vendor -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
 		echo "BUILD RESULT: $?"
     done
 }
