@@ -26,9 +26,9 @@ function build_binaries() {
 
     for component in "${components[@]}"; do
         echo "Building $component"
-		export GOCACHE=off
 		go env
         go build -mod=mod -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
+		echo "BUILD RESULT: $?"
     done
 }
 
