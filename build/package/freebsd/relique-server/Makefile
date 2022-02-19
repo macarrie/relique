@@ -1,5 +1,5 @@
 PORTNAME=			relique-server
-DISTVERSION=		0.0.1.p17
+DISTVERSION=		0.0.1.p18
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -79,7 +79,7 @@ do-build:
 	${SETENV} XDG_CACHE_HOME=${WRKDIR}/.cache GOMODCACHE=${WRKDIR}/gomodcache ${GO_ENV} make -C ${WRKSRC} clean build_server BUILD_OUTPUT_DIR=${WRKDIR}/package
 
 do-install:
-	make -C ${WRKSRC} install INSTALL_ROOT=${STAGEDIR}/${PREFIX} INSTALL_SRC=${WRKDIR}/package INSTALL_ARGS="--server --freebsd --skip-user-creation"
+	make -C ${WRKSRC} install INSTALL_ROOT=${STAGEDIR}/${PREFIX} INSTALL_SRC=${WRKDIR}/package INSTALL_ARGS="--server --freebsd"
 
 post-install:
 	# Strip relique binaries

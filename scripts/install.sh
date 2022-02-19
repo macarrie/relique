@@ -3,6 +3,9 @@
 USER=relique
 GROUP=relique
 
+ABS_PATH=$(readlink -f "$0")
+BASE=$(dirname "${ABS_PATH}")
+
 function usage() {
     echo "\
 usage: $0 [options]
@@ -253,7 +256,7 @@ if [ "X${FREEBSD}X" == "X1X" ]; then
 fi
 
 if [ "X${SKIPUSERCREATION}X" != "X1X" ]; then
-    ./create_user.sh
+    ${BASE}/create_user.sh
     setup_files_ownership
 fi
 
