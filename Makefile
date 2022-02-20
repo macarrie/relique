@@ -1,6 +1,6 @@
 PROJECTNAME="relique"
 GO=go
-VERSION=$(shell git describe --tags --always)
+VERSION=$(shell cat .current_version)
 GOOS=$(shell $(GO) env GOOS)
 GOARCH=$(shell $(GO) env GOARCH)
 PACKAGE_NAME=relique_$(VERSION)_$(GOOS)_$(GOARCH)
@@ -77,7 +77,24 @@ freebsd: port_makesum ## Build freebsd packages
 	$(MAKE) -C build/package/freebsd/relique-client package
 	$(MAKE) -C build/package/freebsd/relique-server package
 
+prepare_release: ## Template files with current version and release info
+	@echo "Templating freebsd port Makefiles"
+	sed "s/__VERSION__/$(VERSION)/" build/package/freebsd/relique-client/Makefile.tpl > build/package/freebsd/relique-client/Makefile
+	sed "s/__VERSION__/$(VERSION)/" build/package/freebsd/relique-server/Makefile.tpl > build/package/freebsd/relique-server/Makefile
+
+release: clean ## Create relique release $TAG
+	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=vx.y.z"; exit 1; fi
+	@git diff --exit-code --quiet || (echo "Please commit pending changes before creating release commit"; exit 1)
+	@echo "Writing current version file"
+	echo "$(TAG)" > .current_version
+	$(MAKE) prepare_release VERSION=$(TAG)
+	$(MAKE) tag TAG=$(TAG)
+
+tag:
+	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=vx.y.z"; exit 1; fi
+	@echo "Creating git tag $(TAG)"
+
+
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
 help: Makefile ## Show this help
-	echo " Choose a command run in "$(PROJECTNAME)":"
-	@grep -E '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[$$()% a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
