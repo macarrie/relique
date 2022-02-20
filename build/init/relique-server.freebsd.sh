@@ -16,6 +16,11 @@
 
 name=relique_server
 rcvar=relique_server_enable
+start_precmd="relique_prestart"
+
+relique_prestart() {
+	install -d -o relique -g relique -m 755 /var/log/relique
+}
 
 load_rc_config $name
 

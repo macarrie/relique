@@ -84,8 +84,5 @@ do-install:
 post-install:
 	# Strip relique binaries
 	${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/relique-server
-	${MKDIR} /var/log/relique/
-	${CHMOD} -R 755 /var/log/relique
-	${CHOWN} -R relique:relique /var/log/relique
 
 .include <bsd.port.mk>
