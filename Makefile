@@ -88,11 +88,13 @@ release: clean ## Create relique release $TAG
 	@echo "Writing current version file"
 	echo "$(TAG)" > .current_version
 	$(MAKE) prepare_release VERSION=$(TAG)
+	git commit -am "Release v$(TAG)"
 	$(MAKE) tag TAG=$(TAG)
 
 tag:
 	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=vx.y.z"; exit 1; fi
-	@echo "Creating git tag $(TAG)"
+	@echo "Creating git tag v$(TAG)"
+	git tag v$(TAG)
 
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
