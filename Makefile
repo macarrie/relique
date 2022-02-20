@@ -5,6 +5,8 @@ GOOS=$(shell $(GO) env GOOS)
 GOARCH=$(shell $(GO) env GOARCH)
 PACKAGE_NAME=relique_$(VERSION)_$(GOOS)_$(GOARCH)
 
+UNAME=$(shell uname)
+
 MAKEFLAGS += --silent
 
 BUILD_OUTPUT_DIR=output
@@ -44,8 +46,8 @@ install: ## Install relique
 
 clean: ## Clean all build artefacts
 	rm -rf output
-	$(MAKE) -C build/package/freebsd/relique-client clean
-	$(MAKE) -C build/package/freebsd/relique-server clean
+	if [ "$(UNAME)" = "FreeBSD" ]; then $(MAKE) -C build/package/freebsd/relique-client clean; fi
+	if [ "$(UNAME)" = "FreeBSD" ]; then $(MAKE) -C build/package/freebsd/relique-server clean; fi
 	rm -f build/package/freebsd/relique-server/distinfo
 	rm -f build/package/freebsd/relique-client/distinfo
 

@@ -41,6 +41,17 @@ function install_file() {
     cp "${SRC}/${src_file}" "${PREFIX}/${src_file}"
 }
 
+function install_template() {
+    src_file=$1
+    overwrite=$2
+
+    install_file "${src_file}" $overwrite
+
+    echo "--- Templating ${PREFIX}/${src_file}"
+    sed -i "s#__ROOT__#${PREFIX}#" "${PREFIX}/${src_file}"
+
+}
+
 function copy_binaries() {
     echo -e "\nInstalling binaries"
 
@@ -57,18 +68,17 @@ function copy_default_configuration() {
     echo -e "\nInstalling default configuration"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "etc/relique/server.toml.sample"
+        install_template "etc/relique/server.toml.sample"
         install_file "etc/relique/schedules/daily.toml"
         install_file "etc/relique/schedules/weekly.toml"
         install_file "etc/relique/schedules/manual.toml"
         install_file "etc/relique/clients/example.toml.disabled"
         mkdir -p "${PREFIX}/opt/relique"
         mkdir -p "${PREFIX}/var/lib/relique"
-        mkdir -p "${PREFIX}/var/log/relique"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "etc/relique/client.toml.sample"
+        install_template "etc/relique/client.toml.sample"
     fi
 }
 
@@ -102,7 +112,6 @@ function create_dir_structure {
         mkdir -p "${PREFIX}/var/lib/relique/db"
     fi
 
-    mkdir -p "${PREFIX}/var/log/relique"
     mkdir -p "${PREFIX}/opt/relique"
 }
 
@@ -112,7 +121,6 @@ function setup_files_ownership() {
 
     chown -R $USER:$GROUP "${PREFIX}/etc/relique"
     chown -R $USER:$GROUP "${PREFIX}/var/lib/relique"
-    chown -R $USER:$GROUP "${PREFIX}/var/log/relique"
     chown -R $USER:$GROUP "${PREFIX}/opt/relique"
 }
 
