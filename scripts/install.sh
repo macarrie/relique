@@ -48,7 +48,7 @@ function install_template() {
     install_file "${src_file}" $overwrite
 
     echo "--- Templating ${PREFIX}/${src_file}"
-    sed -i "s#__ROOT__#${PREFIX}#" "${PREFIX}/${src_file}"
+    sed "s#__ROOT__#${PREFIX}#" -i "${PREFIX}/${src_file}"
 
 }
 

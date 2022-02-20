@@ -46,8 +46,8 @@ install: ## Install relique
 
 clean: ## Clean all build artefacts
 	rm -rf output
-	if [ "$(UNAME)" = "FreeBSD" ]; then $(MAKE) -C build/package/freebsd/relique-client clean; fi
-	if [ "$(UNAME)" = "FreeBSD" ]; then $(MAKE) -C build/package/freebsd/relique-server clean; fi
+	if [ "$(UNAME)" = "FreeBSD" ]; then make -C build/package/freebsd/relique-client clean; fi
+	if [ "$(UNAME)" = "FreeBSD" ]; then make -C build/package/freebsd/relique-server clean; fi
 	rm -f build/package/freebsd/relique-server/distinfo
 	rm -f build/package/freebsd/relique-client/distinfo
 
