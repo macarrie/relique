@@ -4,14 +4,16 @@
 
 @(,,755) bin/relique-client
 @(,,755) etc/rc.d/relique-client
+
 etc/relique/certs/cert.pem
 etc/relique/certs/key.pem
+
 @sample etc/relique/client.toml.sample
 @dir(,,0755) etc/relique
 @dir(,,0755) etc/relique/certs
 @dir(,,0755) opt/relique
-@dir(,,0755) var/lib/relique
-@dir var/lib/relique/modules
-@dir var/lib/relique/modules/generic
-var/lib/relique/modules/generic/README.md
-var/lib/relique/modules/generic/default.toml
+
+@dir relique/modules
+@dir relique/modules/generic
+relique/modules/generic/README.md
+relique/modules/generic/default.toml
