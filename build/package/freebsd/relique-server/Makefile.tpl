@@ -83,6 +83,6 @@ do-install:
 
 post-install:
 	# Strip relique binaries
-	${STRIP_CMD} ${STAGEDIR}/bin/relique-server
+	${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/relique-server
 
 .include <bsd.port.mk>
