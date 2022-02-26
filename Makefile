@@ -1,11 +1,11 @@
 PROJECTNAME="relique"
 GO=go
-VERSION=$(shell cat .current_version)
-GOOS=$(shell $(GO) env GOOS)
-GOARCH=$(shell $(GO) env GOARCH)
+VERSION != cat .current_version
+GOOS != $(GO) env GOOS
+GOARCH != $(GO) env GOARCH
 PACKAGE_NAME=relique_$(VERSION)_$(GOOS)_$(GOARCH)
 
-UNAME=$(shell uname)
+UNAME != uname
 
 MAKEFLAGS += --silent
 
