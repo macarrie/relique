@@ -64,7 +64,7 @@ func ResetTestDB() error {
 func Open(RW bool) error {
 	log.WithFields(log.Fields{
 		"path": DbPath,
-	}).Debug("Opening database connection")
+	}).Info("Opening database connection")
 
 	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", DbPath))
 	if err != nil {

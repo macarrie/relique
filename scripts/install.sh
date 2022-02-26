@@ -6,6 +6,9 @@ GROUP=relique
 ABS_PATH=$(readlink -f "$0")
 BASE=$(dirname "${ABS_PATH}")
 
+ROOT_CFG_PATH="/etc/relique"
+DATA_CFG_PATH="/var/lib/relique"
+
 function usage() {
     echo "\
 usage: $0 [options]
@@ -48,7 +51,8 @@ function install_template() {
     install_file "${src_file}" $overwrite
 
     echo "--- Templating ${PREFIX}/${src_file}"
-    sed -i"" -e "s#__ROOT__#${PREFIX}#" "${PREFIX}/${src_file}"
+    sed -i"" -e "s#__CFG__#${ROOT_CFG_PATH}#"   "${PREFIX}/${src_file}"
+    sed -i"" -e "s#__DATA__#${DATA_CFG_PATH}#"  "${PREFIX}/${src_file}"
 }
 
 function copy_binaries() {
@@ -201,6 +205,8 @@ case $key in
 
     --freebsd)
     FREEBSD=1
+    ROOT_CFG_PATH="/usr/local/etc/relique"
+    ROOT_CFG_PATH="/usr/local/relique"
     shift # past argument
     ;;
 
