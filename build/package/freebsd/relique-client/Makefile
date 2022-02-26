@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.1.p30
+DISTVERSION=		0.0.1.p31
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
@@ -83,6 +83,6 @@ do-install:
 
 post-install:
 	# Strip relique binaries
-	${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/relique-client
+	${STRIP_CMD} ${STAGEDIR}/bin/relique-client
 
 .include <bsd.port.mk>
