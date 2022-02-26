@@ -206,7 +206,7 @@ case $key in
     --freebsd)
     FREEBSD=1
     ROOT_CFG_PATH="/usr/local/etc/relique"
-    ROOT_CFG_PATH="/usr/local/relique"
+    DATA_CFG_PATH="/usr/local/relique"
     shift # past argument
     ;;
 
