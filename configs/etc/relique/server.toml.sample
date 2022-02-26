@@ -8,7 +8,7 @@ strict_ssl_certificate_check = true
 
 client_cfg_path     = "clients"
 schedules_cfg_path  = "schedules"
-backup_storage_path = "/opt/relique"
+backup_storage_path = "__DATA__/storage"
 module_install_path = "__DATA__/modules"
 retention_path      = "__DATA__/retention.dat"
 db_path				= "__DATA__/db/server.db"

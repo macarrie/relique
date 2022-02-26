@@ -6,6 +6,7 @@ GROUP=relique
 ABS_PATH=$(readlink -f "$0")
 BASE=$(dirname "${ABS_PATH}")
 
+ROOT_BIN_PATH="/bin"
 ROOT_CFG_PATH="/etc/relique"
 ROOT_DATA_PATH="/var/lib/relique"
 
@@ -60,6 +61,13 @@ function install_cfg_file() {
     install_file "etc/relique/${src_file}" "${ROOT_CFG_PATH}/${src_file}" 0
 }
 
+function install_binary() {
+    local src_file=$1
+
+    # Install cfg files into ROOT_CFG_PATH without overwriting
+    install_file "bin/${src_file}" "${ROOT_BIN_PATH}/${src_file}" 1
+}
+
 function install_template() {
     local src_file=$1
 
@@ -75,11 +83,11 @@ function copy_binaries() {
     echo -e "\nInstalling binaries"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "bin/relique-server" "bin/relique-server" 1
+        install_binary "relique-server"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "bin/relique-client" "bin/relique-client" 1
+        install_binary "relique-client"
     fi
 }
 
@@ -92,8 +100,8 @@ function copy_default_configuration() {
         install_cfg_file "schedules/weekly.toml"
         install_cfg_file "schedules/manual.toml"
         install_cfg_file "clients/example.toml.disabled"
-        mkdir -p "${PREFIX}/opt/relique"
         mkdir -p "${PREFIX}/${ROOT_DATA_PATH}"
+        mkdir -p "${PREFIX}/${ROOT_DATA_PATH}/storage"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
@@ -129,9 +137,8 @@ function create_dir_structure {
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
         mkdir -p "${PREFIX}/${ROOT_DATA_PATH}/db"
+        mkdir -p "${PREFIX}/${ROOT_DATA_PATH}/storage"
     fi
-
-    mkdir -p "${PREFIX}/opt/relique"
 }
 
 
@@ -140,7 +147,6 @@ function setup_files_ownership() {
 
     chown -R $USER:$GROUP "${PREFIX}/${ROOT_CFG_PATH}"
     chown -R $USER:$GROUP "${PREFIX}/${ROOT_DATA_PATH}"
-    chown -R $USER:$GROUP "${PREFIX}/opt/relique"
 }
 
 
@@ -160,11 +166,11 @@ function install_freebsd_service() {
     echo -e "\nInstalling freebsd service files"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "etc/rc.d/relique-server"
+        install_file "etc/rc.d/relique-server" "usr/local/etc/rc.d/relique-server" 1
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "etc/rc.d/relique-client"
+        install_file "etc/rc.d/relique-client" "usr/local/etc/rc.d/relique-client" 1
     fi
 }
 
@@ -221,6 +227,7 @@ case $key in
 
     --freebsd)
     FREEBSD=1
+    ROOT_BIN_PATH="/usr/local/bin"
     ROOT_CFG_PATH="/usr/local/etc/relique"
     ROOT_DATA_PATH="/usr/local/relique"
     shift # past argument

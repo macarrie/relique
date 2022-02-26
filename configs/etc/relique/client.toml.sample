@@ -1,8 +1,8 @@
 port = 8434
 bind_addr = "0.0.0.0"
 
-ssl_cert = "__ROOT__/etc/relique/certs/cert.pem"
-ssl_key = "__ROOT__/etc/relique/certs/key.pem"
+ssl_cert    = "__CFG__/certs/cert.pem"
+ssl_key     = "__CFG__/certs/key.pem"
 strict_ssl_certificate_check = true
 
-module_install_path = "__ROOT__/var/lib/relique/modules"
+module_install_path = "__DATA__/modules"
