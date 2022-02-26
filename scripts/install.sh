@@ -7,7 +7,7 @@ ABS_PATH=$(readlink -f "$0")
 BASE=$(dirname "${ABS_PATH}")
 
 ROOT_CFG_PATH="/etc/relique"
-DATA_CFG_PATH="/var/lib/relique"
+ROOT_DATA_PATH="/var/lib/relique"
 
 function usage() {
     echo "\
@@ -26,44 +26,60 @@ Options:
 }
 
 function install_file() {
-    src_file=$1
-    overwrite=$2
+    local src_file=$1
+    local dest_file=$2
+    local overwrite=$3
 
-    if [ -f "${PREFIX}/${src_file}" ] && [ "X${overwrite}X" != "X1X" ]; then
-        echo "--- Skipping ${PREFIX}/${src_file} copy. File already exists"
+    if [ "X${dest_file}X" == "XX" ]; then
+        dest_file="${src_file}"
+    fi
+
+    if [ -f "${SRC}/${src_file}" ]; then
+        echo "--- Found '${SRC}/${src_file}' file to copy"
+    fi
+
+    if [ -f "${PREFIX}/${dest_file}" ] && [ "X${overwrite}X" != "X1X" ]; then
+        echo "--- Skipping ${PREFIX}/${dest_file} copy. File already exists"
         return
     fi
 
-    echo "--- Copying ${src_file} to ${PREFIX}/${src_file}"
-
-    dest_path=$(dirname $src_file)
+    dest_path=$(dirname $dest_file)
     if [ ! -d "${PREFIX}/${dest_path}" ]; then
+        echo "--- Creating non-existing directory '${PREFIX}/${dest_path}' before copying file"
         mkdir -p "${PREFIX}/${dest_path}"
     fi
 
-    cp "${SRC}/${src_file}" "${PREFIX}/${src_file}"
+    echo "--- Copying ${SRC}/${src_file} to ${PREFIX}/${dest_file}"
+    cp "${SRC}/${src_file}" "${PREFIX}/${dest_file}"
+}
+
+function install_cfg_file() {
+    local src_file=$1
+
+    # Install cfg files into ROOT_CFG_PATH without overwriting
+    install_file "etc/relique/${src_file}" "${ROOT_CFG_PATH}/${src_file}" 0
 }
 
 function install_template() {
-    src_file=$1
-    overwrite=$2
+    local src_file=$1
 
-    install_file "${src_file}" $overwrite
+    # Templating is only done for configuration files
+    install_cfg_file "${src_file}"
 
-    echo "--- Templating ${PREFIX}/${src_file}"
-    sed -i"" -e "s#__CFG__#${ROOT_CFG_PATH}#"   "${PREFIX}/${src_file}"
-    sed -i"" -e "s#__DATA__#${DATA_CFG_PATH}#"  "${PREFIX}/${src_file}"
+    echo "--- Templating ${PREFIX}/${ROOT_CFG_PATH}/${src_file}"
+    sed -i"" -e "s#__CFG__#${ROOT_CFG_PATH}#"   "${PREFIX}/${ROOT_CFG_PATH}/${src_file}"
+    sed -i"" -e "s#__DATA__#${ROOT_DATA_PATH}#"  "${PREFIX}/${ROOT_CFG_PATH}/${src_file}"
 }
 
 function copy_binaries() {
     echo -e "\nInstalling binaries"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_file "bin/relique-server" 1
+        install_file "bin/relique-server" "bin/relique-server" 1
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_file "bin/relique-client" 1
+        install_file "bin/relique-client" "bin/relique-client" 1
     fi
 }
 
@@ -71,17 +87,17 @@ function copy_default_configuration() {
     echo -e "\nInstalling default configuration"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        install_template "etc/relique/server.toml.sample"
-        install_file "etc/relique/schedules/daily.toml"
-        install_file "etc/relique/schedules/weekly.toml"
-        install_file "etc/relique/schedules/manual.toml"
-        install_file "etc/relique/clients/example.toml.disabled"
+        install_template "server.toml.sample"
+        install_cfg_file "schedules/daily.toml"
+        install_cfg_file "schedules/weekly.toml"
+        install_cfg_file "schedules/manual.toml"
+        install_cfg_file "clients/example.toml.disabled"
         mkdir -p "${PREFIX}/opt/relique"
-        mkdir -p "${PREFIX}/var/lib/relique"
+        mkdir -p "${PREFIX}/${ROOT_DATA_PATH}"
     fi
 
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
-        install_template "etc/relique/client.toml.sample"
+        install_template "client.toml.sample"
     fi
 }
 
@@ -89,8 +105,8 @@ function copy_default_configuration() {
 function copy_certs() {
     echo -e "\nInstalling self signed quick start certs"
 
-    install_file "etc/relique/certs/cert.pem"
-    install_file "etc/relique/certs/key.pem"
+    install_cfg_file "certs/cert.pem"
+    install_cfg_file "certs/key.pem"
 }
 
 
@@ -107,12 +123,12 @@ function create_user {
 function create_dir_structure {
     echo -e "\nCreating relique directory structure"
 
-    mkdir -p "${PREFIX}/etc/relique"
-    mkdir -p "${PREFIX}/var/lib/relique"
-    mkdir -p "${PREFIX}/var/lib/relique/modules"
+    mkdir -p "${PREFIX}/${ROOT_CFG_PATH}"
+    mkdir -p "${PREFIX}/${ROOT_DATA_PATH}"
+    mkdir -p "${PREFIX}/${ROOT_DATA_PATH}/modules"
 
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
-        mkdir -p "${PREFIX}/var/lib/relique/db"
+        mkdir -p "${PREFIX}/${ROOT_DATA_PATH}/db"
     fi
 
     mkdir -p "${PREFIX}/opt/relique"
@@ -122,8 +138,8 @@ function create_dir_structure {
 function setup_files_ownership() {
     echo -e "\nSetting files rights and ownership"
 
-    chown -R $USER:$GROUP "${PREFIX}/etc/relique"
-    chown -R $USER:$GROUP "${PREFIX}/var/lib/relique"
+    chown -R $USER:$GROUP "${PREFIX}/${ROOT_CFG_PATH}"
+    chown -R $USER:$GROUP "${PREFIX}/${ROOT_DATA_PATH}"
     chown -R $USER:$GROUP "${PREFIX}/opt/relique"
 }
 
@@ -165,7 +181,7 @@ function install_default_modules() {
     fi
 
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
-        ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/var/lib/relique/modules/" --force --skip-chown $mod
+        ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/${ROOT_DATA_PATH}/modules/" --force --skip-chown $mod
     done
 }
 
@@ -206,7 +222,7 @@ case $key in
     --freebsd)
     FREEBSD=1
     ROOT_CFG_PATH="/usr/local/etc/relique"
-    DATA_CFG_PATH="/usr/local/relique"
+    ROOT_DATA_PATH="/usr/local/relique"
     shift # past argument
     ;;
 
@@ -254,6 +270,9 @@ fi
 if [ ! -d $PREFIX ]; then
     mkdir -p "${PREFIX}"
 fi
+
+echo "Using '${ROOT_CFG_PATH}' as root configuration path"
+echo "Using '${ROOT_DATA_PATH}' as root data path"
 
 copy_binaries
 create_dir_structure
