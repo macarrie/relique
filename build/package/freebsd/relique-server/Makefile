@@ -1,5 +1,5 @@
 PORTNAME=			relique-server
-DISTVERSION=		0.0.1.p27
+DISTVERSION=		0.0.1.p28
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
