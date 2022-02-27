@@ -57,7 +57,7 @@ function package_default_modules() {
 		modname=$(basename $mod)
 		echo "Packaging default module '${modname}'"
         pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${modname}" > /dev/null
-            tar -zcf ../${modname}.tar.gz .
+            tar --exclude-vcs --exclude-vcs-ignores -zcf ../${modname}.tar.gz .
         popd > /dev/null
     done
 }
