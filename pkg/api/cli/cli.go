@@ -58,6 +58,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			if ModuleInstallPath != "" {
 				module.MODULES_INSTALL_PATH = ModuleInstallPath
+				module.ModulesInstallPathReadInConfig = true
 			}
 			installedModules, err := module.GetLocallyInstalled()
 			if err != nil {
@@ -82,6 +83,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 			moduleSource := args[0]
 			if ModuleInstallPath != "" {
 				module.MODULES_INSTALL_PATH = ModuleInstallPath
+				module.ModulesInstallPathReadInConfig = true
 			}
 			err := module.Install(moduleSource, ModuleInstallIsLocal, ModuleInstallIsArchive, ModuleInstallForce, ModuleInstallSkipChown)
 			if err != nil {
@@ -101,6 +103,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 			moduleName := args[0]
 			if ModuleInstallPath != "" {
 				module.MODULES_INSTALL_PATH = ModuleInstallPath
+				module.ModulesInstallPathReadInConfig = true
 			}
 			err := module.Remove(moduleName)
 			if err != nil {

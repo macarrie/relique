@@ -43,7 +43,6 @@ func Init() {
 					"err":  err,
 					"path": cliApi.Params.ConfigPath,
 				}).Error("Cannot load configuration")
-				os.Exit(1)
 			}
 
 			if err := db.Open(false); err != nil {
