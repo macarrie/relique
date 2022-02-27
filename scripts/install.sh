@@ -287,6 +287,12 @@ if [ ! -d $PREFIX ]; then
     mkdir -p "${PREFIX}"
 fi
 
+if [ "$INSTALL_SERVER" != "1" ] && [ "$INSTALL_CLIENT" != "1" ]; then
+    echo "Installing neither client or server. Please select at least one option with --client or --server"
+    usage
+    exit 1
+fi
+
 echo "Using '${ROOT_CFG_PATH}' as root configuration path"
 echo "Using '${ROOT_DATA_PATH}' as root data path"
 
@@ -311,3 +317,5 @@ fi
 if [ "X${SKIPMODULEINSTALL}X" != "X1X" ]; then
     install_default_modules
 fi
+
+echo -e "\nRelique distribution installed in '${PREFIX}'. Please check logs for any errors"

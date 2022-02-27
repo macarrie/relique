@@ -141,7 +141,7 @@ func extractArchive(source string, dest string) error {
 		return fmt.Errorf("cannot find archive file to extract")
 	}
 
-	extractCmd := exec.Command("tar", "--exclude-vcs -xvf", source, "-C", dest)
+	extractCmd := exec.Command("tar", "-xvf", source, "-C", dest)
 
 	var out bytes.Buffer
 	extractCmd.Stdout = &out
