@@ -4,9 +4,9 @@ import (
 	"github.com/macarrie/relique/internal/lib/rsync"
 	"github.com/pkg/errors"
 
+	"github.com/macarrie/relique/internal/db"
 	clientObject "github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/schedule"
-	"github.com/macarrie/relique/internal/db"
 
 	"github.com/macarrie/relique/internal/types/config/common"
 
@@ -66,6 +66,7 @@ func Load(filePath string) error {
 
 	Config = conf
 	// Set DB path
+	db.DbPathReadInConfig = true
 	db.DbPath = conf.DbPath
 
 	return nil

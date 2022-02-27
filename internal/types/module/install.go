@@ -20,6 +20,12 @@ import (
 )
 
 func GetLocallyInstalled() ([]Module, error) {
+	SetModulePathDefaultValue()
+
+	log.WithFields(log.Fields{
+		"path": MODULES_INSTALL_PATH,
+	}).Info("Using modules install folder")
+
 	items, err := ioutil.ReadDir(MODULES_INSTALL_PATH)
 	if err != nil {
 		return []Module{}, errors.Wrap(err, "cannot list installed modules from filesystem")
@@ -193,6 +199,8 @@ func installModuleFiles(source string, dest string, skipChown bool) error {
 }
 
 func Install(path string, local bool, archive bool, force bool, skipChown bool) error {
+	SetModulePathDefaultValue()
+
 	log.WithFields(log.Fields{
 		"install_path": MODULES_INSTALL_PATH,
 		"local":        local,
@@ -264,6 +272,8 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 }
 
 func Remove(moduleName string) error {
+	SetModulePathDefaultValue()
+
 	log.WithFields(log.Fields{
 		"install_path": MODULES_INSTALL_PATH,
 		"name":         moduleName,

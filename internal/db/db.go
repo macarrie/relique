@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 
 	log "github.com/macarrie/relique/internal/logging"
@@ -19,7 +20,26 @@ var lock sync.RWMutex
 
 const TEST_DB_PATH = "/var/lib/relique/db/unittests.db"
 
-var DbPath = "/var/lib/relique/db/server.db"
+var DbPath string
+var DbPathReadInConfig bool
+
+// Set default value for dbPath according to OS if not already set in configuration file
+func setDbPathDefaultValue() {
+	if DbPathReadInConfig {
+		return
+	}
+
+	switch runtime.GOOS {
+	case "freebsd":
+		DbPath = "/usr/local/relique/db/server.db"
+	default:
+		DbPath = "/var/lib/relique/db/server.db"
+	}
+
+	log.WithFields(log.Fields{
+		"path": DbPath,
+	}).Debug("Set default path for db")
+}
 
 func Init() error {
 	if err := Open(true); err != nil {
@@ -62,6 +82,8 @@ func ResetTestDB() error {
 }
 
 func Open(RW bool) error {
+	setDbPathDefaultValue()
+
 	log.WithFields(log.Fields{
 		"path": DbPath,
 	}).Info("Opening database connection")

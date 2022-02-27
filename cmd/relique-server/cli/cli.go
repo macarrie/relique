@@ -37,6 +37,15 @@ func Init() {
 		Short: "rsync based backup utility main server",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cliApi.InitCommonParams()
+
+			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+				os.Exit(1)
+			}
+
 			if err := db.Open(false); err != nil {
 				log.WithFields(log.Fields{
 					"err": err,
@@ -167,16 +176,6 @@ func Init() {
 	configCmd := &cobra.Command{
 		Use:   "config",
 		Short: "Running configuration related commands",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			cliApi.InitCommonParams()
-			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
-				log.WithFields(log.Fields{
-					"err":  err,
-					"path": cliApi.Params.ConfigPath,
-				}).Error("Cannot load configuration")
-				os.Exit(1)
-			}
-		},
 	}
 	configCheckCmd := &cobra.Command{
 		Use:   "check",
@@ -263,14 +262,13 @@ func Init() {
 
 	// DAEMON START
 	rootCmd.AddCommand(startCmd)
-	startCmd.PersistentFlags().StringVarP(&cliApi.Params.ConfigPath, "config", "c", "", "Configuration file path")
 	startCmd.PersistentFlags().BoolVarP(&cliApi.Params.Debug, "debug", "d", false, "debug log output")
 
 	// JOBS CMD
 	rootCmd.AddCommand(jobsCmd)
 	jobsCmd.AddCommand(jobListCmd)
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Module, "module", "m", "", "Module name")
-	jobListCmd.Flags().StringVarP(&jobSearchParams.Client, "client", "c", "", "Client name")
+	jobListCmd.Flags().StringVarP(&jobSearchParams.Client, "client", "", "", "Client name")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Status, "status", "s", "", "Job status")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.BackupType, "backup-type", "t", "", "Backup type (diff, cumulative_diff, full)")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Uuid, "uuid", "u", "", "Job with UUID")
@@ -310,7 +308,6 @@ func Init() {
 
 	// CONFIG CMD
 	rootCmd.AddCommand(configCmd)
-	configCmd.PersistentFlags().StringVarP(&cliApi.Params.ConfigPath, "config", "c", "/etc/relique/server.toml", "Configuration file path")
 	configCmd.AddCommand(configCheckCmd)
 	configCmd.AddCommand(configShowCmd)
 	configShowCmd.AddCommand(configShowClientsCmd)

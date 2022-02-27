@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"os"
+
 	"github.com/macarrie/relique/internal/client"
 	log "github.com/macarrie/relique/internal/logging"
+	"github.com/macarrie/relique/internal/types/config/client_daemon_config"
 	cliApi "github.com/macarrie/relique/pkg/api/cli"
 
 	"github.com/spf13/cobra"
@@ -16,6 +19,14 @@ func Init() {
 		Short: "rsync based backup utility client",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cliApi.InitCommonParams()
+
+			if err := client_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+				os.Exit(1)
+			}
 		},
 	}
 	startCmd := &cobra.Command{

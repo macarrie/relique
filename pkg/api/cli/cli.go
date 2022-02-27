@@ -46,19 +46,19 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 	// ROOT CMD
 	rootCmd.PersistentFlags().BoolVar(&Params.JSON, "json", false, "Output content as JSON")
 	rootCmd.PersistentFlags().BoolVarP(&Params.Debug, "verbose", "v", false, "verbose log output")
+	rootCmd.PersistentFlags().StringVarP(&Params.ConfigPath, "config", "c", "", "Configuration file path")
 
 	moduleCmd := &cobra.Command{
 		Use:   "module",
 		Short: "Module related commands",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			InitCommonParams()
-		},
 	}
 	moduleListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List installed modules command",
 		Run: func(cmd *cobra.Command, args []string) {
-			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			if ModuleInstallPath != "" {
+				module.MODULES_INSTALL_PATH = ModuleInstallPath
+			}
 			installedModules, err := module.GetLocallyInstalled()
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -80,7 +80,9 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			moduleSource := args[0]
-			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			if ModuleInstallPath != "" {
+				module.MODULES_INSTALL_PATH = ModuleInstallPath
+			}
 			err := module.Install(moduleSource, ModuleInstallIsLocal, ModuleInstallIsArchive, ModuleInstallForce, ModuleInstallSkipChown)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -97,7 +99,9 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			moduleName := args[0]
-			module.MODULES_INSTALL_PATH = ModuleInstallPath
+			if ModuleInstallPath != "" {
+				module.MODULES_INSTALL_PATH = ModuleInstallPath
+			}
 			err := module.Remove(moduleName)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -111,7 +115,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 
 	// MODULE CMD
 	rootCmd.AddCommand(moduleCmd)
-	moduleCmd.PersistentFlags().StringVarP(&ModuleInstallPath, "install-path", "p", "/var/lib/relique/modules", "Module install path")
+	moduleCmd.PersistentFlags().StringVarP(&ModuleInstallPath, "install-path", "p", "", "Module install path")
 	moduleCmd.AddCommand(moduleListCmd)
 	moduleCmd.AddCommand(moduleInstallCmd)
 	moduleCmd.AddCommand(moduleRemoveCmd)

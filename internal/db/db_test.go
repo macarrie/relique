@@ -29,7 +29,7 @@ func TestInit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dbPath = tt.databasePath
+			DbPath = tt.databasePath
 			if err := Init(); (err != nil) != tt.wantErr {
 				t.Errorf("Init() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -39,7 +39,7 @@ func TestInit(t *testing.T) {
 
 func TestMigrate(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
-	dbPath = TEST_DB_PATH
+	DbPath = TEST_DB_PATH
 
 	if err := Open(true); err != nil {
 		t.Errorf("cannot init db: '%s'", err)
@@ -119,7 +119,7 @@ func TestRead(t *testing.T) {
 
 func TestSetupSchema(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
-	dbPath = TEST_DB_PATH
+	DbPath = TEST_DB_PATH
 
 	if err := Open(true); err != nil {
 		t.Errorf("cannot init db: '%s'", err)
@@ -195,7 +195,7 @@ func TestWrite(t *testing.T) {
 
 func Test_open(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
-	dbPath = TEST_DB_PATH
+	DbPath = TEST_DB_PATH
 
 	tests := []struct {
 		name         string
@@ -215,7 +215,7 @@ func Test_open(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dbPath = tt.databasePath
+			DbPath = tt.databasePath
 			if err := Open(true); (err != nil) != tt.wantErr {
 				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
 			}

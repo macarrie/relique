@@ -28,7 +28,7 @@ type Configuration struct {
 	BackupStoragePath         string              `mapstructure:"backup_storage_path" json:"backup_storage_path"`
 	ModuleInstallPath         string              `mapstructure:"module_install_path" json:"module_install_path"`
 	RetentionPath             string              `mapstructure:"retention_path" json:"retention_path"`
-	DbPath					  string              `mapstructure:"db_path" json:"db_path"`
+	DbPath                    string              `mapstructure:"db_path" json:"db_path"`
 }
 
 func Load(fileName string) (Configuration, error) {
@@ -60,6 +60,7 @@ func Load(fileName string) (Configuration, error) {
 	}).Info("Configuration file loaded")
 
 	module.MODULES_INSTALL_PATH = conf.ModuleInstallPath
+	module.ModulesInstallPathReadInConfig = true
 	rsync.STORAGE_ROOT = conf.BackupStoragePath
 
 	return conf, nil

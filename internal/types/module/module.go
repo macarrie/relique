@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/macarrie/relique/internal/types/schedule"
@@ -25,6 +26,7 @@ import (
 )
 
 var MODULES_INSTALL_PATH = "/var/lib/relique/modules"
+var ModulesInstallPathReadInConfig bool
 
 type Module struct {
 	ID                int64
@@ -38,6 +40,24 @@ type Module struct {
 	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`
 	PreRestoreScript  string                 `json:"pre_restore_script" toml:"pre_restore_script"`
 	PostRestoreScript string                 `json:"post_restore_script" toml:"post_restore_script"`
+}
+
+// Set default value for dbPath according to OS if not already set in configuration file
+func SetModulePathDefaultValue() {
+	if ModulesInstallPathReadInConfig {
+		return
+	}
+
+	switch runtime.GOOS {
+	case "freebsd":
+		MODULES_INSTALL_PATH = "/usr/local/relique/modules/"
+	default:
+		MODULES_INSTALL_PATH = "/var/lib/relique/modules/"
+	}
+
+	log.WithFields(log.Fields{
+		"path": MODULES_INSTALL_PATH,
+	}).Debug("Set default install path for modules")
 }
 
 func (m *Module) String() string {
