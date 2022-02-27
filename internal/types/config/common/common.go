@@ -39,6 +39,7 @@ func Load(fileName string) (Configuration, error) {
 	} else {
 		viper.SetConfigName(fileName)
 		viper.AddConfigPath("$HOME/.config/relique/")
+		viper.AddConfigPath("/usr/local/etc/relique/")
 		viper.AddConfigPath("/etc/relique/")
 	}
 
@@ -76,7 +77,7 @@ func setDefaultValues() {
 	viper.SetDefault("strict_ssl_certificate_check", true)
 	viper.SetDefault("client_cfg_path", "clients")
 	viper.SetDefault("schedules_cfg_path", "schedules")
-	viper.SetDefault("backup_storage_path", "/opt/relique")
+	viper.SetDefault("backup_storage_path", "/var/lib/relique/storage")
 	viper.SetDefault("module_install_path", "/var/lib/relique/modules")
 	viper.SetDefault("retention_path", "/var/lib/relique/retention.dat")
 	viper.SetDefault("db_path", "/var/lib/relique/db/server.db")
