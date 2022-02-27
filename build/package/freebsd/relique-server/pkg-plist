@@ -8,8 +8,8 @@
 @dir(,,0755) etc/relique/schedules
 @dir(,,0755) relique/db
 @dir(,,0755) relique/storage
-@dir relique/modules
-@dir relique/modules/generic
+@dir(,,0755) relique/modules
+@dir(,,0755) relique/modules/generic
 
 @(,,755) bin/relique-server
 @(,,755) etc/rc.d/relique-server

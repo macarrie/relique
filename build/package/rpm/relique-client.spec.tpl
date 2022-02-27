@@ -41,4 +41,4 @@ systemctl daemon-reload
 %config /etc/relique/client.toml.sample
 /etc/relique/certs/cert.pem
 /etc/relique/certs/key.pem
-/var/lib/relique/modules/generic/
+%dir %attr(0755, -, -) /var/lib/relique/modules/generic/
