@@ -10,6 +10,8 @@
 #
 # relique_client_config : set to "/usr/local/etc/relique/client.toml" by default
 #
+# relique_client_daemon_options : set to empty ("") by default
+#
 # relique_client_options : set to empty ("") by default
 
 . /etc/rc.subr
@@ -26,11 +28,12 @@ load_rc_config $name
 
 : ${relique_client_enable="NO"}
 : ${relique_client_config="/usr/local/etc/relique/client.toml"}
+: ${relique_client_daemon_options=""}
 : ${relique_client_options=""}
 
 log_file="/var/log/relique/relique_client.log"
 
 command="/usr/sbin/daemon"
-command_args="-u relique -t relique -o ${log_file} /usr/local/bin/relique-client start --config ${relique_client_config} ${relique_client_options}"
+command_args="-u relique -t relique -o ${log_file} ${relique_client_daemon_options} /usr/local/bin/relique-client start --config ${relique_client_config} ${relique_client_options}"
 
 run_rc_command "$1"
