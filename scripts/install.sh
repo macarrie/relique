@@ -178,6 +178,8 @@ function install_freebsd_service() {
 function install_default_modules() {
     echo -e "\nInstalling default relique modules"
 
+    echo "--- Looking for relique binaries in '${SRC}'"
+
     if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
         RELIQUE_BINARY="${SRC}/bin/relique-server"
     fi
@@ -186,7 +188,14 @@ function install_default_modules() {
         RELIQUE_BINARY="${SRC}/bin/relique-client"
     fi
 
+    if [ "X${RELIQUE_BINARY}X" == "XX" ]; then
+        echo "ERROR: Cannot find relique binary to install default modules"
+        return
+    fi
+
+    echo "--- Using '${RELIQUE_BINARY}' as relique binary to install default modules"
     for mod in $(ls "${SRC}"/var/lib/relique/default_modules/*.tar.gz); do
+        echo "--- Install relique module '$(basename ${mod})'"
         ${RELIQUE_BINARY} module install --local --archive -p "${PREFIX}/${ROOT_DATA_PATH}/modules/" --force --skip-chown $mod
     done
 }
