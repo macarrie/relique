@@ -50,7 +50,6 @@ func Init() {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Error("Cannot open relique database")
-				os.Exit(1)
 			}
 		},
 	}

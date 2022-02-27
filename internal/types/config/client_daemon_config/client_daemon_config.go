@@ -22,7 +22,7 @@ func Load(filePath string) error {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Fatal("Cannot load configuration")
+		}).Error("Cannot load configuration")
 		return err
 	}
 

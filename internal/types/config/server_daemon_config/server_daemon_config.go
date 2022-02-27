@@ -30,7 +30,7 @@ func Load(filePath string) error {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Fatal("Cannot load configuration")
+		}).Error("Cannot load configuration")
 		return err
 	}
 	conf.Version = uuid.New().String()
@@ -40,7 +40,7 @@ func Load(filePath string) error {
 		log.WithFields(log.Fields{
 			"err":  err,
 			"file": conf.SchedulesCfgPath,
-		}).Fatal("Cannot load schedules from configuration")
+		}).Error("Cannot load schedules from configuration")
 		return err
 	}
 	conf.Schedules = schedules
@@ -50,7 +50,7 @@ func Load(filePath string) error {
 		log.WithFields(log.Fields{
 			"err":  err,
 			"file": conf.ClientCfgPath,
-		}).Fatal("Cannot load clients from configuration")
+		}).Error("Cannot load clients from configuration")
 		return err
 	}
 
