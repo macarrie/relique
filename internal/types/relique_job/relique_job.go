@@ -256,12 +256,12 @@ func (j *ReliqueJob) runModuleScript(path string, logFile *os.File) (int, error)
 		fmt.Sprintf("RELIQUE_JOB_UUID=%s", j.Uuid),
 		fmt.Sprintf("RELIQUE_JOB_TYPE=%s", j.JobType.String()),
 		fmt.Sprintf("RELIQUE_JOB_BACKUP_TYPE=%s", j.BackupType.String()),
-		fmt.Sprintf("RELIQUE_JOB_BACKUP_TYPE=%s", j.BackupType.String()),
 		fmt.Sprintf("RELIQUE_MODULE_NAME=%s", j.Module.Name),
 		fmt.Sprintf("RELIQUE_MODULE_TYPE=%s", j.Module.ModuleType),
 		fmt.Sprintf("RELIQUE_RESTORE_JOB_UUID=%s", j.RestoreJobUuid),
 		fmt.Sprintf("RELIQUE_RESTORE_DESTINATION=%s", j.RestoreDestination),
 	)
+	cmd.Env = append(cmd.Env, j.Module.ExtraParamsEnvVars("RELIQUE_MODULE_PARAM_")...)
 
 	if err := cmd.Start(); err != nil {
 		return Critical, errors.Wrap(err, "cannot start command")
@@ -294,18 +294,38 @@ func (j *ReliqueJob) runModuleScript(path string, logFile *os.File) (int, error)
 }
 
 func (j *ReliqueJob) startJobScript(path string, logFile *os.File, scriptType int) error {
-	if path == "" {
+	if path == "" || path == "none" {
 		j.GetLog().WithFields(log.Fields{
 			"script_type": scriptType,
 		}).Info("No module script to launch")
 		return nil
 	}
 
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(fmt.Sprintf("%s/%s/scripts/%s", module.MODULES_INSTALL_PATH, j.Module.Name, path))
+	// Try different paths for script (module directory and parent module directory)
+	scriptList := []string{j.Module.Name, j.Module.ModuleType}
+	scriptFound := false
+	scriptCompletePath := ""
+	for _, option := range scriptList {
+		fullpath := path
+		if !filepath.IsAbs(path) {
+			fullpath = j.Module.GetAbsScriptPath(option, path)
+		}
+
+		if _, err := os.Lstat(fullpath); !os.IsNotExist(err) {
+			scriptFound = true
+			scriptCompletePath = fullpath
+			j.GetLog().WithFields(log.Fields{
+				"path": scriptCompletePath,
+			}).Info("Found job script file to use")
+			break
+		}
+
+		j.GetLog().WithFields(log.Fields{
+			"path": fullpath,
+		}).Debug("Job script file not found")
 	}
 
-	if _, err := os.Lstat(path); os.IsNotExist(err) {
+	if !scriptFound {
 		j.Status.Status = job_status.Error
 		j.Done = true
 		return fmt.Errorf(
@@ -314,38 +334,38 @@ func (j *ReliqueJob) startJobScript(path string, logFile *os.File, scriptType in
 			j.Module.Name,
 			j.Module.ModuleType,
 		)
-	} else {
-		j.GetLog().WithFields(log.Fields{
-			"path":        path,
-			"script_type": scriptType,
-		}).Info("Starting module script")
+	}
 
-		exitCode, err := j.runModuleScript(path, logFile)
-		if err != nil {
-			switch exitCode {
-			case Critical:
-				j.Status.Status = job_status.Error
-				j.Done = true
-				j.GetLog().WithFields(log.Fields{
-					"err":         err,
-					"script_type": scriptType,
-				}).Error("Critical exit code returned from module script. Check client job logs for more details")
-				return fmt.Errorf("critical return code from module script. Check client job logs for more details")
-			case Warning, Unknown:
-				j.GetLog().WithFields(log.Fields{
-					"err": err,
-				}).Warning("Warning or Unknown exit code returned from module script. Check client job logs for more details")
-				j.Status.Status = job_status.Incomplete
-				return nil
-			default:
-				j.GetLog().WithFields(log.Fields{
-					"err":       err,
-					"exit_code": exitCode,
-				}).Error("Unknown exit code returned from module script")
-				j.Status.Status = job_status.Error
-				j.Done = true
-				return fmt.Errorf("unknown return code from module script. Check client job logs for more details")
-			}
+	j.GetLog().WithFields(log.Fields{
+		"path":        scriptCompletePath,
+		"script_type": scriptType,
+	}).Info("Starting module script")
+
+	exitCode, err := j.runModuleScript(scriptCompletePath, logFile)
+	if err != nil {
+		switch exitCode {
+		case Critical:
+			j.Status.Status = job_status.Error
+			j.Done = true
+			j.GetLog().WithFields(log.Fields{
+				"err":         err,
+				"script_type": scriptType,
+			}).Error("Critical exit code returned from module script. Check client job logs for more details")
+			return fmt.Errorf("critical return code from module script. Check client job logs for more details")
+		case Warning, Unknown:
+			j.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Warning("Warning or Unknown exit code returned from module script. Check client job logs for more details")
+			j.Status.Status = job_status.Incomplete
+			return nil
+		default:
+			j.GetLog().WithFields(log.Fields{
+				"err":       err,
+				"exit_code": exitCode,
+			}).Error("Unknown exit code returned from module script")
+			j.Status.Status = job_status.Error
+			j.Done = true
+			return fmt.Errorf("unknown return code from module script. Check client job logs for more details")
 		}
 	}
 

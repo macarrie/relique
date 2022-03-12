@@ -37,19 +37,6 @@ func Init() {
 		Short: "rsync based backup utility main server",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cliApi.InitCommonParams()
-
-			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
-				log.WithFields(log.Fields{
-					"err":  err,
-					"path": cliApi.Params.ConfigPath,
-				}).Error("Cannot load configuration")
-			}
-
-			if err := db.Open(false); err != nil {
-				log.WithFields(log.Fields{
-					"err": err,
-				}).Error("Cannot open relique database")
-			}
 		},
 	}
 	startCmd := &cobra.Command{
@@ -65,6 +52,22 @@ func Init() {
 	jobsCmd := &cobra.Command{
 		Use:   "jobs",
 		Short: "Perform job related operations",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cliApi.InitCommonParams()
+
+			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+			}
+
+			if err := db.Open(false); err != nil {
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("Cannot open relique database")
+			}
+		},
 	}
 	jobListCmd := &cobra.Command{
 		Use:   "list",
@@ -82,6 +85,8 @@ func Init() {
 			for i, v := range jobs {
 				disp[i] = v
 			}
+
+			fmt.Println()
 			displayable.Table(disp)
 		},
 	}
@@ -115,6 +120,16 @@ func Init() {
 	retentionCleanCmd := &cobra.Command{
 		Use:   "clean",
 		Short: "Clean server jobs retention",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cliApi.InitCommonParams()
+
+			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if config.Port == 0 {
 				config.Port = 8433
@@ -146,6 +161,8 @@ func Init() {
 				}).Error("Cannot start manual backup")
 				os.Exit(1)
 			}
+
+			fmt.Println()
 			displayable.Details(job)
 		},
 	}
@@ -167,6 +184,8 @@ func Init() {
 				}).Error("Cannot start manual restore")
 				os.Exit(1)
 			}
+
+			fmt.Println()
 			displayable.Details(job)
 		},
 	}
@@ -174,6 +193,16 @@ func Init() {
 	configCmd := &cobra.Command{
 		Use:   "config",
 		Short: "Running configuration related commands",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cliApi.InitCommonParams()
+
+			if err := server_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
+				log.WithFields(log.Fields{
+					"err":  err,
+					"path": cliApi.Params.ConfigPath,
+				}).Error("Cannot load configuration")
+			}
+		},
 	}
 	configCheckCmd := &cobra.Command{
 		Use:   "check",
@@ -223,6 +252,7 @@ func Init() {
 			for i, v := range server_daemon_config.Config.Clients {
 				disp[i] = v
 			}
+
 			fmt.Println()
 			displayable.Table(disp)
 		},
@@ -250,13 +280,14 @@ func Init() {
 			for i, v := range server_daemon_config.Config.Schedules {
 				disp[i] = v
 			}
+
 			fmt.Println()
 			displayable.Table(disp)
 		},
 	}
 
 	// COMMON COMMANDS (CLIENT AND SERVER)
-	cliApi.GetCommonCliCommands(rootCmd)
+	cliApi.GetCommonCliCommands(rootCmd, cliApi.SERVER)
 
 	// DAEMON START
 	rootCmd.AddCommand(startCmd)

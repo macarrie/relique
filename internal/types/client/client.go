@@ -77,6 +77,7 @@ func loadFromFile(file string) (cl Client, err error) {
 				"err": err,
 			}).Error("Module has invalid configuration. This module will not be loaded into configuration")
 		}
+
 	}
 	client.Modules = filteredModulesList
 

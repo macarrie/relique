@@ -6,7 +6,7 @@ GROUP=relique
 ABS_PATH=$(readlink -f "$0")
 BASE=$(dirname "${ABS_PATH}")
 
-ROOT_BIN_PATH="/bin"
+ROOT_BIN_PATH="/usr/bin"
 ROOT_CFG_PATH="/etc/relique"
 ROOT_DATA_PATH="/var/lib/relique"
 
