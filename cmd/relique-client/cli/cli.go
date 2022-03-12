@@ -3,7 +3,6 @@ package cli
 import (
 	"github.com/macarrie/relique/internal/client"
 	log "github.com/macarrie/relique/internal/logging"
-	"github.com/macarrie/relique/internal/types/config/client_daemon_config"
 	cliApi "github.com/macarrie/relique/pkg/api/cli"
 
 	"github.com/spf13/cobra"
@@ -18,12 +17,6 @@ func Init() {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cliApi.InitCommonParams()
 
-			if err := client_daemon_config.Load(cliApi.Params.ConfigPath); err != nil {
-				log.WithFields(log.Fields{
-					"err":  err,
-					"path": cliApi.Params.ConfigPath,
-				}).Error("Cannot load configuration")
-			}
 		},
 	}
 	startCmd := &cobra.Command{
@@ -37,7 +30,7 @@ func Init() {
 	}
 
 	// COMMON COMMANDS (CLIENT AND SERVER)
-	cliApi.GetCommonCliCommands(rootCmd)
+	cliApi.GetCommonCliCommands(rootCmd, cliApi.CLIENT)
 
 	// DAEMON START
 	rootCmd.AddCommand(startCmd)

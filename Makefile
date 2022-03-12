@@ -26,12 +26,12 @@ build_client: $(BUILD_OUTPUT_DIR) ## Build relique client package distribution
 	./scripts/build.sh --client --output-dir "$(BUILD_OUTPUT_DIR)"
 
 server: ## Build relique-server
-	rm -f build/bin/relique-server
-	$(MAKE) build
+	rm -f output/bin/relique-server
+	$(MAKE) build_server
 
 client: ## Build relique-client
-	rm -f build/bin/relique-client
-	$(MAKE) build
+	rm -f output/bin/relique-client
+	$(MAKE) build_client
 
 check: ## Run code vet
 	go vet ./...

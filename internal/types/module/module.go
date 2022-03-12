@@ -40,6 +40,7 @@ type Module struct {
 	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`
 	PreRestoreScript  string                 `json:"pre_restore_script" toml:"pre_restore_script"`
 	PostRestoreScript string                 `json:"post_restore_script" toml:"post_restore_script"`
+	Params            map[string]interface{} `json:"params" toml:"params"`
 }
 
 // Set default value for dbPath according to OS if not already set in configuration file
@@ -62,6 +63,10 @@ func SetModulePathDefaultValue() {
 
 func (m *Module) String() string {
 	return m.Name
+}
+
+func (m *Module) GetAbsScriptPath(module_name string, path string) string {
+	return filepath.Clean(fmt.Sprintf("%s/%s/scripts/%s", MODULES_INSTALL_PATH, module_name, path))
 }
 
 func (m *Module) LoadDefaultConfiguration() error {
@@ -90,6 +95,17 @@ func (m *Module) LoadDefaultConfiguration() error {
 		m.PostRestoreScript = defaults.PostRestoreScript
 	}
 
+	if m.Params == nil {
+		m.Params = make(map[string]interface{})
+	}
+
+	for key := range defaults.Params {
+		_, ok := m.Params[key]
+		if !ok {
+			m.Params[key] = defaults.Params[key]
+		}
+	}
+
 	return nil
 }
 
@@ -114,8 +130,6 @@ func LoadFromFile(file string) (m Module, err error) {
 	if err := toml.Unmarshal(content, &module); err != nil {
 		return Module{}, errors.Wrap(err, "cannot parse toml file")
 	}
-
-	// TODO: Load schedules by name
 
 	if err := module.Valid(); err != nil {
 		return Module{}, errors.Wrap(err, "invalid module loaded from file")
@@ -335,4 +349,14 @@ func (m *Module) Valid() error {
 	}
 
 	return objErrors.ErrorOrNil()
+}
+
+func (m *Module) ExtraParamsEnvVars(prefix string) []string {
+	envTable := []string{}
+
+	for param, val := range m.Params {
+		envTable = append(envTable, fmt.Sprintf("%s%s=%s", prefix, param, fmt.Sprintf("%+v", val)))
+	}
+
+	return envTable
 }

@@ -13,10 +13,17 @@ import (
 
 	log "github.com/macarrie/relique/internal/logging"
 
+	"github.com/macarrie/relique/internal/types/config/client_daemon_config"
 	"github.com/macarrie/relique/internal/types/config/common"
+	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
 	"github.com/macarrie/relique/internal/types/relique_job"
 	"github.com/macarrie/relique/pkg/api/utils"
 	"github.com/pkg/errors"
+)
+
+const (
+	SERVER = iota
+	CLIENT
 )
 
 type Args struct {
@@ -42,7 +49,7 @@ func InitCommonParams() {
 	log.SetupCliLogger(Params.Debug, Params.JSON)
 }
 
-func GetCommonCliCommands(rootCmd *cobra.Command) {
+func GetCommonCliCommands(rootCmd *cobra.Command, daemon_type int) {
 	// ROOT CMD
 	rootCmd.PersistentFlags().BoolVar(&Params.JSON, "json", false, "Output content as JSON")
 	rootCmd.PersistentFlags().BoolVarP(&Params.Debug, "verbose", "v", false, "verbose log output")
@@ -51,6 +58,26 @@ func GetCommonCliCommands(rootCmd *cobra.Command) {
 	moduleCmd := &cobra.Command{
 		Use:   "module",
 		Short: "Module related commands",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			InitCommonParams()
+
+			switch daemon_type {
+			case CLIENT:
+				if err := client_daemon_config.Load(Params.ConfigPath); err != nil {
+					log.WithFields(log.Fields{
+						"err":  err,
+						"path": Params.ConfigPath,
+					}).Error("Cannot load configuration")
+				}
+			case SERVER:
+				if err := server_daemon_config.Load(Params.ConfigPath); err != nil {
+					log.WithFields(log.Fields{
+						"err":  err,
+						"path": Params.ConfigPath,
+					}).Error("Cannot load configuration")
+				}
+			}
+		},
 	}
 	moduleListCmd := &cobra.Command{
 		Use:   "list",
