@@ -28,7 +28,12 @@ function build_binaries() {
         echo "Building $component"
 		go env
         go build -mod=vendor -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
-		echo "BUILD RESULT: $?"
+        build_result=$?
+		echo "BUILD RESULT: ${build_result}"
+        if [ "$build_result" -ne "0" ]; then
+            echo "Binary build failed !!! Aborting build script"
+            exit $build_result
+        fi
     done
 }
 

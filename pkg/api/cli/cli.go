@@ -39,6 +39,7 @@ var ModuleInstallIsArchive bool
 var ModuleInstallIsLocal bool
 var ModuleInstallForce bool
 var ModuleInstallSkipChown bool
+var ModuleShowVariant string
 
 func InitCommonParams() {
 	if Params.JSON {
@@ -102,8 +103,51 @@ func GetCommonCliCommands(rootCmd *cobra.Command, daemon_type int) {
 			displayable.Table(disp)
 		},
 	}
+	moduleShowCmd := &cobra.Command{
+		Use:   "show MODULE_NAME",
+		Short: "Show detailed information about installed module",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			moduleName := args[0]
+			if ModuleInstallPath != "" {
+				module.MODULES_INSTALL_PATH = ModuleInstallPath
+				module.ModulesInstallPathReadInConfig = true
+			}
+			isInstalled, err := module.IsInstalled(moduleName)
+			if err != nil || !isInstalled {
+				log.WithFields(log.Fields{
+					"err":    err,
+					"module": moduleName,
+				}).Error("Cannot find installed module")
+				os.Exit(1)
+			}
+
+			mod := module.Module{
+				Name:       moduleName,
+				ModuleType: moduleName,
+				Variant:    ModuleShowVariant,
+			}
+			if err := mod.LoadDefaultConfiguration(); err != nil {
+				log.WithFields(log.Fields{
+					"err":     err,
+					"module":  moduleName,
+					"variant": ModuleShowVariant,
+				}).Error("Cannot load installed module configuration")
+				os.Exit(1)
+			}
+			if err := mod.GetAvailableVariants(); err != nil {
+				log.WithFields(log.Fields{
+					"err":     err,
+					"module":  moduleName,
+					"variant": ModuleShowVariant,
+				}).Error("Cannot get module available variants")
+			}
+
+			displayable.Details(mod)
+		},
+	}
 	moduleInstallCmd := &cobra.Command{
-		Use:   "install",
+		Use:   "install MODULE_URL_OR_PATH",
 		Short: "Module install command",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -123,7 +167,7 @@ func GetCommonCliCommands(rootCmd *cobra.Command, daemon_type int) {
 		},
 	}
 	moduleRemoveCmd := &cobra.Command{
-		Use:   "remove",
+		Use:   "remove MODULE_NAME",
 		Short: "Module uninstall command",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -147,12 +191,14 @@ func GetCommonCliCommands(rootCmd *cobra.Command, daemon_type int) {
 	rootCmd.AddCommand(moduleCmd)
 	moduleCmd.PersistentFlags().StringVarP(&ModuleInstallPath, "install-path", "p", "", "Module install path")
 	moduleCmd.AddCommand(moduleListCmd)
+	moduleCmd.AddCommand(moduleShowCmd)
 	moduleCmd.AddCommand(moduleInstallCmd)
 	moduleCmd.AddCommand(moduleRemoveCmd)
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsArchive, "archive", "a", false, "Module to install is packaged into a tar.gz archive instead of being a git repository")
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallIsLocal, "local", "l", false, "Module to install is already available locally on disk (offline install)")
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallForce, "force", "f", false, "Force module install. If module is already installed, files with be overwritten")
 	moduleInstallCmd.Flags().BoolVarP(&ModuleInstallSkipChown, "skip-chown", "", false, "Do not chown module files to relique user and group after install")
+	moduleShowCmd.Flags().StringVarP(&ModuleShowVariant, "variant", "", "", "Module variant to show. Leave empty or 'default' for default variant")
 }
 
 func ManualJobStart(config common.Configuration, params relique_job.JobSearchParams) (relique_job.ReliqueJob, error) {

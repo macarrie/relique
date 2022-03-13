@@ -49,6 +49,12 @@ func GetLocallyInstalled() ([]Module, error) {
 			errorList = multierror.Append(errorList, err)
 			continue
 		}
+		if err := mod.GetAvailableVariants(); err != nil {
+			mod.GetLog().WithFields(log.Fields{
+				"err": err,
+			}).Error("Cannot get module available variants")
+			errorList = multierror.Append(errorList, err)
+		}
 		modulesList = append(modulesList, mod)
 	}
 	return modulesList, errorList.ErrorOrNil()
