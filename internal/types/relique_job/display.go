@@ -11,6 +11,7 @@ import (
 type BackupJobDisplay struct {
 	Uuid              string `json:"uuid"`
 	Module            string `json:"module"`
+	ModuleVariant     string `json:"variant"`
 	Client            string `json:"client"`
 	BackupType        string `json:"backup_type"`
 	JobType           string `json:"job_type"`
@@ -29,6 +30,7 @@ func (j ReliqueJob) Display() displayable.Struct {
 	var d displayable.Struct = BackupJobDisplay{
 		Uuid:              j.Uuid,
 		Module:            j.Module.Name,
+		ModuleVariant:     j.Module.GetVariant(),
 		Client:            j.Client.Name,
 		BackupType:        j.BackupType.String(),
 		JobType:           j.JobType.String(),
@@ -70,8 +72,15 @@ func (d BackupJobDisplay) Details() string {
 			"\tUuid: %s\n"+
 			"\tClient: %s\n"+
 			"\tModule: %s\n"+
+			"\tModule variant: %s\n"+
 			"\tJob type: %s\n"+
-			"\tRestore from job: %s\n", d.Uuid, d.Client, d.Module, d.JobType, d.RestoreJobUuid)
+			"\tRestore from job: %s\n",
+			d.Uuid,
+			d.Client,
+			d.Module,
+			d.ModuleVariant,
+			d.JobType,
+			d.RestoreJobUuid)
 	}
 
 	return fmt.Sprintf("JOB DETAILS \n"+
@@ -79,14 +88,45 @@ func (d BackupJobDisplay) Details() string {
 		"\tUuid: %s\n"+
 		"\tClient: %s\n"+
 		"\tModule: %s\n"+
+		"\tModule variant: %s\n"+
 		"\tJob type: %s\n"+
-		"\tBackup type: %s\n", d.Uuid, d.Client, d.Module, d.JobType, d.BackupType)
+		"\tBackup type: %s\n",
+		d.Uuid,
+		d.Client,
+		d.Module,
+		d.ModuleVariant,
+		d.JobType,
+		d.BackupType)
 }
 
 func (d BackupJobDisplay) TableHeaders() []string {
-	return []string{"UUID", "Done", "Status", "Client", "Module", "Job type", "Backup type", "Duration", "Start", "End"}
+	return []string{
+		"UUID",
+		"Done",
+		"Status",
+		"Client",
+		"Module",
+		"Variant",
+		"Job type",
+		"Backup type",
+		"Duration",
+		"Start",
+		"End",
+	}
 }
 
 func (d BackupJobDisplay) TableRow() []string {
-	return []string{d.Uuid, d.Done, d.Status, d.Client, d.Module, d.JobType, d.BackupType, d.Duration, d.Start, d.End}
+	return []string{
+		d.Uuid,
+		d.Done,
+		d.Status,
+		d.Client,
+		d.Module,
+		d.ModuleVariant,
+		d.JobType,
+		d.BackupType,
+		d.Duration,
+		d.Start,
+		d.End,
+	}
 }

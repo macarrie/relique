@@ -103,6 +103,7 @@ func postJobStart(c *gin.Context) {
 		}
 	}
 
+	targetModule.Variant = params.ModuleVariant
 	job := relique_job.New(&targetClient, targetModule, jType)
 	job.RestoreJobUuid = params.RestoreJobUuid
 	job.RestoreDestination = params.RestoreDestination

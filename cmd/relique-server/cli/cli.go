@@ -225,7 +225,6 @@ func Init() {
 		Use:   "show",
 		Short: "Show current relique configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println()
 			displayable.Details(server_daemon_config.Config)
 		},
 	}
@@ -314,6 +313,7 @@ func Init() {
 	backupStartCmd.Flags().StringVarP(&manualJobParams.Client, "client", "", "", "Client name to backup from")
 	backupStartCmd.Flags().StringVarP(&manualJobParams.Module, "module", "m", "", "Module name")
 	backupStartCmd.Flags().StringVarP(&manualJobParams.BackupType, "backup-type", "t", "", "Backup type (diff, cumulative_diff, full)")
+	backupStartCmd.Flags().StringVarP(&manualJobParams.ModuleVariant, "variant", "", "", "Module variant, leave empty for default variant")
 	backupStartCmd.MarkFlagRequired("client")
 	backupStartCmd.MarkFlagRequired("module")
 	backupStartCmd.MarkFlagRequired("backup-type")
@@ -325,6 +325,7 @@ func Init() {
 	restoreCmd.AddCommand(restoreStartCmd)
 	restoreStartCmd.Flags().StringVarP(&manualJobParams.Client, "client", "", "", "Target client for restoration")
 	restoreStartCmd.Flags().StringVarP(&manualJobParams.Module, "module", "m", "", "Module name")
+	restoreStartCmd.Flags().StringVarP(&manualJobParams.ModuleVariant, "variant", "", "", "Module variant, leave empty for default variant")
 	restoreStartCmd.Flags().StringVarP(&manualJobParams.RestoreJobUuid, "job", "j", "", "Job UUID to restore data from")
 	restoreStartCmd.Flags().StringVarP(&manualJobParams.RestoreDestination, "destination", "d", "", "Alternate file restore destination")
 	restoreStartCmd.MarkFlagRequired("client")

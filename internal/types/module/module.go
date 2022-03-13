@@ -40,6 +40,7 @@ type Module struct {
 	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`
 	PreRestoreScript  string                 `json:"pre_restore_script" toml:"pre_restore_script"`
 	PostRestoreScript string                 `json:"post_restore_script" toml:"post_restore_script"`
+	Variant           string                 `json:"variant" toml:"variant"`
 	Params            map[string]interface{} `json:"params" toml:"params"`
 }
 
@@ -62,7 +63,15 @@ func SetModulePathDefaultValue() {
 }
 
 func (m *Module) String() string {
-	return m.Name
+	return fmt.Sprintf("%s/%s", m.Name, m.GetVariant())
+}
+
+func (m *Module) GetVariant() string {
+	if m.Variant == "" {
+		return "default"
+	}
+
+	return m.Variant
 }
 
 func (m *Module) GetAbsScriptPath(module_name string, path string) string {
@@ -70,7 +79,8 @@ func (m *Module) GetAbsScriptPath(module_name string, path string) string {
 }
 
 func (m *Module) LoadDefaultConfiguration() error {
-	defaults, err := LoadFromFile(filepath.Clean(fmt.Sprintf("%s/%s/default.toml", MODULES_INSTALL_PATH, m.ModuleType)))
+	// Load module configuration from file with specified variant
+	defaults, err := LoadFromFile(filepath.Clean(fmt.Sprintf("%s/%s/%s.toml", MODULES_INSTALL_PATH, m.ModuleType, m.GetVariant())))
 	if err != nil {
 		return err
 	}
@@ -232,6 +242,7 @@ func (m *Module) GetLog() *log.Entry {
 		"name":        m.Name,
 		"type":        m.ModuleType,
 		"backup_type": m.BackupType.String(),
+		"variant":     m.GetVariant(),
 	})
 }
 

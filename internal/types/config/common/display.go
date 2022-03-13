@@ -77,7 +77,8 @@ func (d ConfigDisplay) Details() string {
 		installedModulesSummary = fmt.Sprintf("%s\t- %s\n", installedModulesSummary, mod.Display().Summary())
 	}
 	return fmt.Sprintf(
-		`GLOBAL CONFIGURATION
+		`
+GLOBAL CONFIGURATION
 --------------------
 
 Public address: 	%s
