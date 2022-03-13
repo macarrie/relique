@@ -17,6 +17,7 @@ type ModuleDisplay struct {
 	PostBackupScript  string   `json:"post_backup_script"`
 	PreRestoreScript  string   `json:"pre_restore_script"`
 	PostRestoreScript string   `json:"post_restore_script"`
+	Variant           string   `json:"variant"`
 }
 
 func (m Module) Display() displayable.Struct {
@@ -30,19 +31,21 @@ func (m Module) Display() displayable.Struct {
 		PostBackupScript:  m.PostBackupScript,
 		PreRestoreScript:  m.PreRestoreScript,
 		PostRestoreScript: m.PostRestoreScript,
+		Variant:           m.GetVariant(),
 	}
 
 	return d
 }
 
 func (d ModuleDisplay) Summary() string {
-	return fmt.Sprintf("%s (type '%s')", d.Name, d.ModuleType)
+	return fmt.Sprintf("%s (type '%s/%s')", d.Name, d.ModuleType, d.Variant)
 }
 
 func (d ModuleDisplay) Details() string {
 	return fmt.Sprintf(
 		`	Name: 			%s
 	Type: 			%s
+	Variant: 		%s
 	Schedules: 		%s
 	Backup type: 		%s
 	Backup paths: 		%s
@@ -52,6 +55,7 @@ func (d ModuleDisplay) Details() string {
 	Post restore script: 	%s`,
 		d.Name,
 		d.ModuleType,
+		d.Variant,
 		strings.Join(d.Schedules, ", "),
 		d.BackupType,
 		strings.Join(d.BackupPaths, ", "),
@@ -66,6 +70,7 @@ func (d ModuleDisplay) TableHeaders() []string {
 	return []string{
 		"Name",
 		"Type",
+		"Variant",
 		"Backup type",
 		"Schedules",
 		"Backup paths",
@@ -76,6 +81,7 @@ func (d ModuleDisplay) TableRow() []string {
 	return []string{
 		d.Name,
 		d.ModuleType,
+		d.Variant,
 		d.BackupType,
 		strings.Join(d.Schedules, ", "),
 		strings.Join(d.BackupPaths, ", "),

@@ -4,6 +4,7 @@ import log "github.com/macarrie/relique/internal/logging"
 
 type JobSearchParams struct {
 	Module             string `json:"module,omitempty" mapstructure:"module"`
+	ModuleVariant      string `json:"variant,omitempty" mapstructure:"variant"`
 	Status             string `json:"status,omitempty" mapstructure:"status"`
 	Client             string `json:"client,omitempty" mapstructure:"client"`
 	Uuid               string `json:"uuid,omitempty" mapstructure:"uuid"`
@@ -16,10 +17,11 @@ type JobSearchParams struct {
 
 func (p *JobSearchParams) GetLog() *log.Entry {
 	return log.WithFields(log.Fields{
-		"uuid":        p.Uuid,
-		"client":      p.Client,
-		"module":      p.Module,
-		"backup_type": p.BackupType,
-		"status":      p.Status,
+		"uuid":           p.Uuid,
+		"client":         p.Client,
+		"module":         p.Module,
+		"module_variant": p.ModuleVariant,
+		"backup_type":    p.BackupType,
+		"status":         p.Status,
 	})
 }
