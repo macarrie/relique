@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+server_path=$(which relique-server)
+server_installed=$?
+
+client_path=$(which relique-client)
+client_installed=$?
+
+exec=""
+if [ "${server_installed}" -eq "0" ]; then
+    exec=$server_path
+elif [ "${client_install}" -eq "0" ]; then
+    exec=$client_path
+else
+    echo "cannot find reliqe executable path"
+    exit 1
+fi
+
+$exec $@

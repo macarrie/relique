@@ -2,6 +2,7 @@
 @group relique
 @mode 0644
 
+@(,,755) bin/relique
 @(,,755) bin/relique-client
 @(,,755) etc/rc.d/relique-client
 

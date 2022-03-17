@@ -38,6 +38,12 @@ function build_binaries() {
 }
 
 
+function copy_generic_bin_script() {
+    echo "Copying generic relique script"
+    cp build/scripts/relique "${OUTPUT_DIR}/bin/relique"
+}
+
+
 function copy_service_files() {
     echo "Copying systemd service files to '$OUTPUT_DIR'"
     mkdir -p "${OUTPUT_DIR}/usr/lib/systemd/system"
@@ -128,6 +134,7 @@ if [ -z $OUTPUT_DIR ]; then
 fi
 
 build_binaries
+copy_generic_bin_script
 copy_service_files
 copy_config_defaults
 package_default_modules

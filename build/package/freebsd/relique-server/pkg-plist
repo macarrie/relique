@@ -11,6 +11,7 @@
 @dir(,,0755) relique/modules
 @dir(,,0755) relique/modules/generic
 
+@(,,755) bin/relique
 @(,,755) bin/relique-server
 @(,,755) etc/rc.d/relique-server
 

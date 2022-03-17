@@ -89,6 +89,9 @@ function copy_binaries() {
     if [ "X${INSTALL_CLIENT}X" == "X1X" ]; then
         install_binary "relique-client"
     fi
+
+    # Install generic relique binary
+    install_binary "relique"
 }
 
 function copy_default_configuration() {
