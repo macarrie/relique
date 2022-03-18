@@ -7,12 +7,12 @@ client_path=$(which relique-client)
 client_installed=$?
 
 exec=""
-if [ "${server_installed}" -eq "0" ]; then
+if [ "X${server_installed}X" == "X0X" ]; then
     exec=$server_path
-elif [ "${client_install}" -eq "0" ]; then
+elif [ "X${client_installed}X" == "X0X" ]; then
     exec=$client_path
 else
-    echo "cannot find reliqe executable path"
+    echo "cannot find relique executable path"
     exit 1
 fi
 
