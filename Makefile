@@ -98,6 +98,11 @@ tag:
 	@echo "Creating git tag v$(TAG)"
 	git tag v$(TAG)
 
+docker:
+	@echo "Building Docker image"
+	docker build --network host -t macarrie/relique-server:v$(VERSION) -f build/package/docker/server/Dockerfile .
+	docker build --network host -t macarrie/relique-client:v$(VERSION) -f build/package/docker/client/Dockerfile .
+
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
 help: Makefile ## Show this help

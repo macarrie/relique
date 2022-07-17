@@ -1,0 +1,10 @@
+version: "3"
+services:
+  relique-client:
+    image: macarrie/relique-client
+    ports:
+      - "8434:8434"
+    volumes:
+      - "/etc/relique:/etc/relique"
+      - "/var/lib/relique:/var/lib/relique"
+
