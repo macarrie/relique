@@ -1,0 +1,26 @@
+name: Docker Image CI
+
+on:
+	push:
+        branches: [ "master" ]
+		# Publish semver tags as releases.
+		tags: [ 'v*.*.*' ]
+
+jobs:
+	build:
+		runs-on: ubuntu-latest
+
+		steps:
+		  - name: Checkout repository
+			uses: actions/checkout@v3
+		  - name: Login to DockerHub Registry
+			run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+		  - name: Get the version
+			id: vars
+			run: echo ::set-output name=tag::$(echo ${GITHUB_REF:10})
+		  - name: Build the tagged Docker image
+			run: make docker
+		  - name: Push the tagged Docker server image
+			run: docker push macarrie/relique-server:${{steps.vars.outputs.tag}}
+		  - name: Push the tagged Docker client image
+			run: docker push macarrie/relique-client:${{steps.vars.outputs.tag}}
