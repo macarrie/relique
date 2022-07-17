@@ -1,5 +1,5 @@
 PORTNAME=			relique-client
-DISTVERSION=		0.0.5
+DISTVERSION=		0.0.6
 DISTVERSIONPREFIX= 	v
 CATEGORIES=			sysutils
 
