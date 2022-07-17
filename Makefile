@@ -1,6 +1,7 @@
 PROJECTNAME="relique"
 GO=go
 VERSION != cat .current_version
+CURRENT_TAG != git describe --tags
 GOOS != $(GO) env GOOS
 GOARCH != $(GO) env GOARCH
 PACKAGE_NAME=relique_$(VERSION)_$(GOOS)_$(GOARCH)
@@ -85,7 +86,7 @@ prepare_release: ## Template files with current version and release info
 	sed "s/__VERSION__/$(VERSION)/" build/package/freebsd/relique-server/Makefile.tpl > build/package/freebsd/relique-server/Makefile
 
 release: clean ## Create relique release $TAG
-	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=vx.y.z"; exit 1; fi
+	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=x.y.z"; exit 1; fi
 	@git diff --exit-code --quiet || (echo "Please commit pending changes before creating release commit"; exit 1)
 	@echo "Writing current version file"
 	echo "$(TAG)" > .current_version
@@ -94,7 +95,7 @@ release: clean ## Create relique release $TAG
 	$(MAKE) tag TAG=$(TAG)
 
 tag:
-	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=vx.y.z"; exit 1; fi
+	@if [ -z "$(TAG)" ]; then echo "Please provide tag with TAG=x.y.z"; exit 1; fi
 	@echo "Creating git tag v$(TAG)"
 	git tag v$(TAG)
 
@@ -102,6 +103,9 @@ docker:
 	@echo "Building Docker image"
 	docker build --network host -t macarrie/relique-server:v$(VERSION) -f build/package/docker/server/Dockerfile .
 	docker build --network host -t macarrie/relique-client:v$(VERSION) -f build/package/docker/client/Dockerfile .
+	@echo "Tagging built images as :latest"
+	docker tag macarrie/relique-server:v$(VERSION) macarrie/relique-server:latest
+	docker tag macarrie/relique-client:v$(VERSION) macarrie/relique-client:latest
 
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
