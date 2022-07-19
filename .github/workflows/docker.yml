@@ -1,11 +1,9 @@
-name: Docker Image CI
+name: Docker Images build
 
 on:
   push:
-    branches: 
-      - master
     # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
+    tags: [ 'v*.*.*' ]
 
 jobs:
   build:
@@ -24,7 +22,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - name: Build and push
+      - name: Build and push server images
         uses: docker/build-push-action@v3
         with:
           push: true
@@ -32,6 +30,17 @@ jobs:
           tags: |
             macarrie/relique-server:latest
             macarrie/relique-server:${{steps.vars.outputs.tag}}
+          platforms: |
+            linux/amd64
+            linux/arm64
+      - name: Build and push client images
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          file: build/package/docker/client/Dockerfile
+          tags: |
+            macarrie/relique-client:latest
+            macarrie/relique-client:${{steps.vars.outputs.tag}}
           platforms: |
             linux/amd64
             linux/arm64
