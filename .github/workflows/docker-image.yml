@@ -29,4 +29,9 @@ jobs:
         with:
           push: true
           file: build/package/docker/server/Dockerfile
-          tags: macarrie/relique-server:latest
+          tags: |
+            macarrie/relique-server:latest
+            macarrie/relique-server:${{steps.vars.outputs.tag}}
+          platforms: |
+            linux/amd64
+            linux/arm64
