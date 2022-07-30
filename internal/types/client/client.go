@@ -24,7 +24,7 @@ import (
 )
 
 type Client struct {
-	ID            int64           `json:"-"`
+	ID            int64           `json:"id"`
 	Name          string          `json:"name" toml:"name"`
 	Address       string          `json:"address" toml:"address"`
 	Port          uint32          `json:"port" toml:"port"`
@@ -32,7 +32,7 @@ type Client struct {
 	Version       string          `json:"version"`
 	ServerAddress string          `json:"server_address" toml:"server_address"`
 	ServerPort    uint32          `json:"server_port" toml:"server_port"`
-	Alive         bool            `json:"-"`
+	Alive         bool            `json:"alive"`
 }
 
 func (c *Client) String() string {

@@ -35,7 +35,7 @@ type Module struct {
 	BackupType        backup_type.BackupType `json:"backup_type" toml:"backup_type"`
 	Schedules         []schedule.Schedule    `json:"schedules" toml:"-"`
 	ScheduleNames     []string               `json:"-" toml:"schedules"`
-	AvailableVariants []string               `json:"-" toml:"available_variants"`
+	AvailableVariants []string               `json:"available_variants" toml:"available_variants"`
 	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
 	PreBackupScript   string                 `json:"pre_backup_script" toml:"pre_backup_script"`
 	PostBackupScript  string                 `json:"post_backup_script" toml:"post_backup_script"`

@@ -1,55 +1,141 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+PROGNAME=$(basename "$0")
+
+OUTPUT_DIR="output/"
+BUILD_SERVER=0
+BUILD_CLIENT=0
+
 
 function usage() {
-    echo "\
-        usage: $0 [options]
+    cat << EOF
+Relique build script
 
-    Options:
+Usage: ${PROGNAME} [flags]
     -h --help: Displays this help
     -o --output-dir: Output directory for generated artefacts
-    "
+    --server: Build relique-server components
+    --client: Build relique-client components
+EOF
 }
 
+function log() {
+    datestring=`date +"%Y-%m-%d %H:%M:%S"`
+    echo "${datestring} [${PROGNAME}] ${@}"
+}
+
+function log_exit() {
+    local exit_code=$?
+    echo
+    log "Script exited with status code '${exit_code}'"
+}
+
+function check_args() {
+    if [ -z $OUTPUT_DIR ]; then
+        OUTPUT_DIR="output/"
+    fi
+}
+
+function cmdline() {
+    POSITIONAL_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -o|--output-dir)
+                OUTPUT_DIR="$2"
+                shift # past argument
+                shift # past value
+                ;;
+
+            --server)
+                BUILD_SERVER=1
+                shift # past argument
+                ;;
+
+            --client)
+                BUILD_CLIENT=1
+                shift # past argument
+                ;;
+
+            -h|--help)
+                usage
+                exit 0
+                shift # past argument
+                ;;
+
+            -*|--*)
+                echo "Unknown option '$1'"
+                usage
+                exit 1
+                ;;
+
+            *)
+                POSITIONAL_ARGS+=("$1") # save positional arg
+                shift # past argument
+                ;;
+        esac
+    done
+
+    set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+    check_args
+}
 
 function build_binaries() {
-    echo "Building binaries to '$OUTPUT_DIR'"
-	components=()
+    log "Building binaries to '$OUTPUT_DIR'"
+    components=()
 
-	if [ "X${BUILD_CLIENT}X" == "X1X" ]; then
-		components+=("relique-client")
-	fi
+    if [ "X${BUILD_CLIENT}X" == "X1X" ]; then
+        components+=("relique-client")
+    fi
 
-	if [ "X${BUILD_SERVER}X" == "X1X" ]; then
-		components+=("relique-server")
-	fi
+    if [ "X${BUILD_SERVER}X" == "X1X" ]; then
+        components+=("relique-server")
+    fi
 
     for component in "${components[@]}"; do
-        echo "Building $component"
-		go env
+        log "Building $component"
+        go env
         go build -mod=vendor -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
         build_result=$?
-		echo "BUILD RESULT: ${build_result}"
         if [ "$build_result" -ne "0" ]; then
-            echo "Binary build failed !!! Aborting build script"
+            log "Binary build failed !!! Aborting build script"
             exit $build_result
         fi
     done
 }
 
+function build_webui() {
+    log "Building web UI to '$OUTPUT_DIR'"
+
+    if [ "X${BUILD_SERVER}X" != "X1X" ]; then
+        log "Not building relique-server. Skipping web UI build"
+        return
+    fi
+
+    pushd ui
+        if [ ! -f "./ui/node_modules" ]; then
+            npm install
+        fi
+        npm run build
+    popd
+}
+
 
 function copy_generic_bin_script() {
-    echo "Copying generic relique script"
+    log "Copying generic relique script"
     cp build/scripts/relique "${OUTPUT_DIR}/bin/relique"
 }
 
 
 function copy_service_files() {
-    echo "Copying systemd service files to '$OUTPUT_DIR'"
+    log "Copying systemd service files to '$OUTPUT_DIR'"
     mkdir -p "${OUTPUT_DIR}/usr/lib/systemd/system"
     cp -r build/init/*.service "${OUTPUT_DIR}/usr/lib/systemd/system"
 
-    echo "Copying freebsd init files to '$OUTPUT_DIR'"
+    log "Copying freebsd init files to '$OUTPUT_DIR'"
     mkdir -p "${OUTPUT_DIR}/etc/rc.d"
     cp -r build/init/relique-client.freebsd.sh "${OUTPUT_DIR}/etc/rc.d/relique-client"
     cp -r build/init/relique-server.freebsd.sh "${OUTPUT_DIR}/etc/rc.d/relique-server"
@@ -57,17 +143,29 @@ function copy_service_files() {
 
 
 function copy_config_defaults() {
-    echo "Copying default configuration files to '$OUTPUT_DIR'"
+    log "Copying default configuration files to '$OUTPUT_DIR'"
     cp -r configs/* "$OUTPUT_DIR"
 }
 
+function copy_webui_files() {
+    log "Copying web UI built files to '$OUTPUT_DIR'"
+
+    if [ "X${BUILD_SERVER}X" != "X1X" ]; then
+        log "Not building relique-server. Skipping web UI copy"
+        return
+    fi
+
+    mkdir -p "${OUTPUT_DIR}/var/lib/relique/ui"
+    cp -r ui/build/* "${OUTPUT_DIR}/var/lib/relique/ui/"
+}
+
 function package_default_modules() {
-    echo "Packaging default modules tarballs to '$OUTPUT_DIR'"
+    log "Packaging default modules tarballs to '$OUTPUT_DIR'"
     for mod in $(find "${OUTPUT_DIR}/var/lib/relique/default_modules" -mindepth 1 -maxdepth 1 -type d); do
-		modname=$(basename $mod)
-		echo "Packaging default module '${modname}'"
+        modname=$(basename $mod)
+        log "Packaging default module '${modname}'"
         pushd "${OUTPUT_DIR}/var/lib/relique/default_modules/${modname}" > /dev/null
-            tar --exclude-vcs -zcf ../${modname}.tar.gz .
+        tar --exclude-vcs -zcf ../${modname}.tar.gz .
         popd > /dev/null
     done
 }
@@ -91,51 +189,18 @@ function make_certs() {
     rm "${OUTPUT_DIR}/tmp.certs"
 }
 
+function main() {
+    trap log_exit EXIT
+    cmdline "${@}"
 
-POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-    key="$1"
+    build_binaries
+    build_webui
+    copy_generic_bin_script
+    copy_service_files
+    copy_config_defaults
+    copy_webui_files
+    package_default_modules
+    make_certs
+}
 
-    case $key in
-        -o|--output-dir)
-            OUTPUT_DIR="$2"
-            shift # past argument
-            shift # past value
-            ;;
-
-        --server)
-			BUILD_SERVER=1
-            shift # past argument
-            ;;
-
-        --client)
-			BUILD_CLIENT=1
-            shift # past argument
-            ;;
-
-        -h|--help)
-            usage
-            exit 0
-            shift # past argument
-            ;;
-
-        *)    # unknown option
-            POSITIONAL+=("$1") # save it in an array for later
-            shift # past argument
-            ;;
-    esac
-done
-set -- "${POSITIONAL[@]}" # restore positional parameters
-
-
-if [ -z $OUTPUT_DIR ]; then
-    OUTPUT_DIR="output/"
-fi
-
-build_binaries
-copy_generic_bin_script
-copy_service_files
-copy_config_defaults
-package_default_modules
-make_certs
+main "${@}"

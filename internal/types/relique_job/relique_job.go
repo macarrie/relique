@@ -51,18 +51,18 @@ type ReliqueJob struct {
 	ModuleID int64
 	ClientID int64
 
-	Uuid               string
-	Client             *clientObject.Client
-	Module             module.Module
-	Status             job_status.JobStatus
-	Done               bool
-	BackupType         backup_type.BackupType
-	JobType            job_type.JobType
-	PreviousJobUuid    string
-	RestoreJobUuid     string
-	RestoreDestination string
-	StartTime          time.Time
-	EndTime            time.Time
+	Uuid               string                 `json:"uuid"`
+	Client             *clientObject.Client   `json:"client"`
+	Module             module.Module          `json:"module"`
+	Status             job_status.JobStatus   `json:"status"`
+	Done               bool                   `json:"done"`
+	BackupType         backup_type.BackupType `json:"backup_type"`
+	JobType            job_type.JobType       `json:"job_type"`
+	PreviousJobUuid    string                 `json:"previous_job_uuid"`
+	RestoreJobUuid     string                 `json:"restore_job_uuid"`
+	RestoreDestination string                 `json:"restore_destination"`
+	StartTime          time.Time              `json:"start_time"`
+	EndTime            time.Time              `json:"end_time"`
 }
 
 func (j *ReliqueJob) GetLog() *log.Entry {

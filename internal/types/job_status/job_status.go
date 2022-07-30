@@ -11,7 +11,7 @@ const (
 )
 
 type JobStatus struct {
-	Status uint8
+	Status uint8 `json:"status"`
 }
 
 func New(status uint8) JobStatus {

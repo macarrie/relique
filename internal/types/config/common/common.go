@@ -29,6 +29,7 @@ type Configuration struct {
 	ModuleInstallPath         string              `mapstructure:"module_install_path" json:"module_install_path"`
 	RetentionPath             string              `mapstructure:"retention_path" json:"retention_path"`
 	DbPath                    string              `mapstructure:"db_path" json:"db_path"`
+	UiPath                    string              `mapstructure:"ui_path" json:"ui_path"`
 }
 
 func Load(fileName string) (Configuration, error) {
@@ -81,6 +82,7 @@ func setDefaultValues() {
 	viper.SetDefault("module_install_path", "/var/lib/relique/modules")
 	viper.SetDefault("retention_path", "/var/lib/relique/retention.dat")
 	viper.SetDefault("db_path", "/var/lib/relique/db/server.db")
+	viper.SetDefault("ui_path", "/var/lib/relique/ui")
 }
 
 func UseFile(filePath string) {

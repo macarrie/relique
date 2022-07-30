@@ -13,6 +13,7 @@ MAKEFLAGS += --silent
 BUILD_OUTPUT_DIR=output
 INSTALL_SRC=output
 INSTALL_ROOT=/
+INSTALL_ARGS="--client"
 
 all: clean build ## Build all relique components from scratch
 
@@ -20,7 +21,7 @@ build: clean $(BUILD_OUTPUT_DIR) ## Build entire relique package distribution
 	$(MAKE) build_client $(BUILD_OUTPUT_DIR)
 	$(MAKE) build_server $(BUILD_OUTPUT_DIR)
 
-build_server: $(BUILD_OUTPUT_DIR) ## Build relique server package distribution
+build_server: $(BUILD_OUTPUT_DIR) ## Build relique server packvar/ge distribution
 	./scripts/build.sh --server --output-dir "$(BUILD_OUTPUT_DIR)"
 
 build_client: $(BUILD_OUTPUT_DIR) ## Build relique client package distribution
@@ -51,6 +52,7 @@ clean: ## Clean all build artefacts
 	if [ "$(UNAME)" = "FreeBSD" ]; then make -C build/package/freebsd/relique-server clean; fi
 	rm -f build/package/freebsd/relique-server/distinfo
 	rm -f build/package/freebsd/relique-client/distinfo
+	rm -rf ui/build
 
 $(BUILD_OUTPUT_DIR):
 	mkdir -p $@
@@ -101,11 +103,8 @@ tag:
 
 docker:
 	@echo "Building Docker image"
-	docker build --network host -t macarrie/relique-server:v$(VERSION) -f build/package/docker/server/Dockerfile .
-	docker build --network host -t macarrie/relique-client:v$(VERSION) -f build/package/docker/client/Dockerfile .
-	@echo "Tagging built images as :latest"
-	docker tag macarrie/relique-server:v$(VERSION) macarrie/relique-server:latest
-	docker tag macarrie/relique-client:v$(VERSION) macarrie/relique-client:latest
+	docker build --network host -t macarrie/relique-server:latest -f build/package/docker/server/Dockerfile .
+	docker build --network host -t macarrie/relique-client:latest -f build/package/docker/client/Dockerfile .
 
 
 .PHONY: help clean server client cli test check certs install build_single_rpm rpm tar build
