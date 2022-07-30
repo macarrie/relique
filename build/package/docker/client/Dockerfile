@@ -8,7 +8,7 @@ WORKDIR /src
 RUN make build_client install INSTALL_ROOT=./output/install INSTALL_ARGS="--client --skip-user-creation"
 
 #-----------------------------
-FROM debian:stable
+FROM debian:stable-slim
 
 RUN mkdir -p /etc/relique/ /var/lib/relique /var/log/relique
 

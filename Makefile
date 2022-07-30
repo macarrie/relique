@@ -21,7 +21,7 @@ build: clean $(BUILD_OUTPUT_DIR) ## Build entire relique package distribution
 	$(MAKE) build_client $(BUILD_OUTPUT_DIR)
 	$(MAKE) build_server $(BUILD_OUTPUT_DIR)
 
-build_server: $(BUILD_OUTPUT_DIR) ## Build relique server packvar/ge distribution
+build_server: $(BUILD_OUTPUT_DIR) ## Build relique server packge distribution
 	./scripts/build.sh --server --output-dir "$(BUILD_OUTPUT_DIR)"
 
 build_client: $(BUILD_OUTPUT_DIR) ## Build relique client package distribution
