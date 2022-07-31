@@ -13,7 +13,6 @@ RUN mkdir -p /etc/relique/ /var/lib/relique /var/log/relique
 
 # Copy application files
 RUN apt-get update -y && apt-get install -y rsync
-WORKDIR /app
 COPY --from=builder /src/output/install/usr/bin/relique-server /usr/bin/
 COPY --from=builder /src/output/install/etc/relique /etc/relique
 COPY --from=builder /src/output/install/etc/relique/server.toml.sample /etc/relique/server.toml

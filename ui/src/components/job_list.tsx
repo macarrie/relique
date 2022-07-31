@@ -128,7 +128,7 @@ class JobList extends React.Component<any, State> {
             <table className="table-auto w-full">
             <thead className="bg-slate-50 uppercase text-slate-500 text-left">
             <tr className="border border-l-0 border-r-0 border-slate-100">
-            <th className="py-2 px-3">ID</th>
+            <th className="py-2 px-3 text-center">ID</th>
             <th className="py-2 px-3">Client</th>
             <th className="py-2 px-3">Module</th>
             <th className="py-2 px-3">Status</th>

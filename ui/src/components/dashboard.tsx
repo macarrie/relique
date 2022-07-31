@@ -8,10 +8,10 @@ class Dashboard extends React.Component<any, any> {
         return (
             <div className="grid grid-cols-4 gap-4">
                 <div className="bg-white shadow px-4 py-6 rounded">
-                    <a href="#" className="flex-col">
+                    <span className="flex-col">
                         <div className="text-center font-serif font-bold text-slate-700 text-5xl mb-4">82</div>
                         <div className="text-center uppercase text-slate-400">Running jobs</div>
-                    </a>
+                    </span>
                 </div>
                 <div className="bg-white shadow px-4 py-6 rounded">
                     <div className="flex flex-col">
@@ -21,10 +21,10 @@ class Dashboard extends React.Component<any, any> {
                 </div>
                 <div className="bg-white shadow px-4 py-6 rounded">
                     <div className="flex flex-row">
-                        <a href="#" className="flex-grow">
+                        <span className="flex-grow">
                             <div className="text-center font-serif font-bold text-slate-700 text-5xl mb-4">17</div>
                             <div className="text-center uppercase text-slate-400">Clients</div>
-                        </a>
+                        </span>
                         <div className="flex flex-col justify-around pr-4">
                             <div className="text-center uppercase text-blue-700 text-l">14 active</div>
                             <div className="text-center uppercase text-red-700 text-l">3 inactive</div>
