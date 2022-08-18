@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 
 import Module from "../types/module";
 
@@ -49,23 +49,23 @@ function ModuleCard(props :any) {
                 <div className={"ml-3 font-bold"}>{mod.name}</div>
             </div>
 
-            <div className={"py-3 grid grid-cols-2"}>
+            <div className={"py-3 grid grid-cols-1 md:grid-cols-2"}>
                 <div>
                     <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Module type</div>
                     <div className={"ml-3"}>{mod.module_type}</div>
                 </div>
-                <div>
+                <div className="mt-3 md:mt-0">
                     <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Variant</div>
                     <div className={"ml-3"}>{mod.variant}</div>
                 </div>
             </div>
 
-            <div className={"py-3 grid grid-cols-2"}>
+            <div className={"py-3 grid grid-cols-1 md:grid-cols-2"}>
                 <div>
                     <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Backup type</div>
                     <div className={"ml-3"}>{mod.backup_type}</div>
                 </div>
-                <div>
+                <div className="mt-3 md:mt-0">
                     <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Schedules</div>
                     <div className={"ml-3"}>{mod.schedules.map((s :any) => { return s.name }).join(", ")}</div>
                 </div>

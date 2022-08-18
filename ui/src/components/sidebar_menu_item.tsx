@@ -10,12 +10,12 @@ function SidebarMenuItem(props :any) {
         <li>
             <NavLink to={props.link}
                 className={({isActive}) => isActive ? activeClass : inactiveClass}>
-                <span className="h-12 px-6 flex flex items-center w-full">
+                <span className="h-12 px-2 mr-2 md:px-6 flex flex items-center w-full">
                     <div className="flex flex-row text-base">
                         <div className="text-xl">
                             <i className={props.icon}></i>
                         </div>
-                        <div className="ml-2 flex items-center">
+                        <div className="hidden md:block ml-2 flex items-center">
                             {props.label}
                         </div>
                     </div>

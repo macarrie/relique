@@ -1,5 +1,6 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import {Link} from "react-router-dom";
+import Moment from "react-moment";
 
 import API from "../utils/api";
 
@@ -55,55 +56,41 @@ function JobListRow(props :any) {
 
     return (
         <tr className="hover:bg-slate-50">
-            <td className="py-2 px-3">{uuidDisplay(job.uuid)}</td>
+            <td className="py-2 px-3 hidden md:table-cell">{uuidDisplay(job.uuid)}</td>
             <td className="py-2 px-3"><Link to={`/clients/${job.client.id}`}>{clientDisplayName(job.client)}</Link></td>
             <td className="py-2 px-3">{moduleDisplayName(job.module)}</td>
             <td className="py-2 px-3">{statusDisplay(job.status)}</td>
-            <td className="py-2 px-3">{job.start_time}</td>
-            <td className="py-2 px-3">{job.end_time}</td>
+            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.start_time} format={"DD/MM/YYYY HH:mm:ss"}/></td>
+            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.end_time} format={"DD/MM/YYYY HH:mm:ss"}/></td>
         </tr>
     );
 }
 
-type State = {
-    jobs :Job[]
-};
+function JobList(props :any) {
+    let [limit, setLimit] = useState(props.limit ? props.limit : 0);
+    let [jobs, setJobList] = useState([]);
 
-class JobList extends React.Component<any, State> {
-    get_jobs_interval :number;
-    limit :number;
+    useEffect(() => {
+        setLimit(props.limit);
+    }, [props.limit])
 
-    constructor(props: any) {
-        super(props);
-
-        this.get_jobs_interval = 0;
-        this.limit = this.props.limit ? this.props.limit : 0;
-    }
-
-    state :State = {
-        jobs: [],
-    };
-
-    componentDidMount() {
-        this.getJobs();
-    }
-
-    componentWillUnmount() {}
-
-    getJobs() {
-        API.jobs.list({
-            limit: this.limit,
-        }).then((response :any) => {
-            this.setState({
-                jobs: response.data,
+    useEffect(() => {
+        function getJobs() {
+            API.jobs.list({
+                limit: limit,
+            }).then((response :any) => {
+                setJobList(response.data);
+            }).catch(error => {
+                console.log("Cannot get job list", error);
             });
-        }).catch(error => {
-            console.log("Cannot get job list", error);
-        });
-    }
+        }
 
-    renderJobList() {
-        if (!this.state.jobs) {
+        getJobs();
+    }, [limit])
+
+
+    function renderJobList() {
+        if (!jobs) {
             return (
                 <>
                 Loading
@@ -111,7 +98,7 @@ class JobList extends React.Component<any, State> {
             )
         }
 
-        const jobList = this.state.jobs.map((job :Job) =>
+        const jobList = jobs.map((job :Job) =>
             <JobListRow key={job.uuid} job={job}/>
         );
 
@@ -122,23 +109,21 @@ class JobList extends React.Component<any, State> {
         )
     }
 
-    render() {
-        return (
-            <table className="table-auto w-full">
+    return (
+        <table className="table-auto w-full">
             <thead className="bg-slate-50 uppercase text-slate-500 text-left">
-            <tr className="border border-l-0 border-r-0 border-slate-100">
-            <th className="py-2 px-3 text-center">ID</th>
-            <th className="py-2 px-3">Client</th>
-            <th className="py-2 px-3">Module</th>
-            <th className="py-2 px-3">Status</th>
-            <th className="py-2 px-3">Start</th>
-            <th className="py-2 px-3">End</th>
-            </tr>
+                <tr className="border border-l-0 border-r-0 border-slate-100">
+                    <th className="py-2 px-3 text-center hidden md:table-cell">ID</th>
+                    <th className="py-2 px-3">Client</th>
+                    <th className="py-2 px-3">Module</th>
+                    <th className="py-2 px-3">Status</th>
+                    <th className="py-2 px-3 hidden md:table-cell">Start</th>
+                    <th className="py-2 px-3 hidden md:table-cell">End</th>
+                </tr>
             </thead>
-            {this.renderJobList()}
-            </table>
-        );
-    }
+            {renderJobList()}
+        </table>
+    );
 }
 
 export default JobList;

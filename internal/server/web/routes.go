@@ -3,10 +3,12 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/gin-contrib/static"
 
 	serverConfig "github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,17 +19,35 @@ func webPath(path string) string {
 
 func getRoutes() *gin.Engine {
 	router := gin.Default()
-	router.Use(static.Serve("/static", static.LocalFile(webPath("static"), true)))
+	router.Use(static.Serve("/ui/static", static.LocalFile(webPath("static"), true)))
+
+	router.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		method := c.Request.Method
+		fmt.Println(path)
+		fmt.Println(method)
+		if strings.HasPrefix(path, "/ui") {
+			c.File(webPath("index.html"))
+		}
+	})
 
 	root := router.Group("/")
 	{
 		root.GET("/", func(c *gin.Context) {
-			c.Redirect(http.StatusMovedPermanently, "/dashboard")
+			c.Redirect(http.StatusMovedPermanently, "/ui")
 		})
+	}
 
-		root.GET("/favicon.ico", func(c *gin.Context) {
+	ui := router.Group("/ui")
+	{
+		ui.GET("/favicon.ico", func(c *gin.Context) {
 			c.File(webPath("favicon.ico"))
 		})
+
+		ui.GET("/", func(c *gin.Context) {
+			c.File(webPath("index.html"))
+		})
+
 	}
 
 	v1 := router.Group("/api/v1")
@@ -40,7 +60,7 @@ func getRoutes() *gin.Engine {
 		v1.POST("/retention/clean", postRetentionClean)
 
 		v1.GET("/clients", getClients)
-		v1.POST("/clients/:id/ssh_ping", pingClient)
+		v1.GET("/clients/:id", getClient)
 	}
 
 	return router

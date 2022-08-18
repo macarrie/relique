@@ -19,12 +19,14 @@ func getClients(c *gin.Context) {
 		if id != 0 {
 			clients[index].ID = id
 		}
+
+		_ = serverApi.PingSSHClient(&clients[index])
 	}
 
 	c.JSON(http.StatusOK, clients)
 }
 
-func pingClient(c *gin.Context) {
+func getClient(c *gin.Context) {
 	idStr := c.Param("id")
 	id, strconvErr := strconv.ParseInt(idStr, 10, 64)
 	if strconvErr != nil {
@@ -42,10 +44,18 @@ func pingClient(c *gin.Context) {
 		return
 	}
 
+	// Get client from config to get modules details
+	for _, configClient := range serverConfig.Config.Clients {
+		if configClient.ID == id {
+			cl = configClient
+		}
+	}
+
 	if err := serverApi.PingSSHClient(&cl); err != nil {
 		cl.GetLog().WithFields(log.Fields{
 			"err": err,
 		}).Error("Cannot ping client")
-		c.AbortWithStatus(http.StatusUnauthorized)
 	}
+
+	c.JSON(http.StatusOK, cl)
 }

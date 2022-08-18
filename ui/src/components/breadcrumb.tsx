@@ -1,5 +1,5 @@
 import React from "react";
-import {Link, matchPath, PathMatch, useLocation, useMatch, useParams} from "react-router-dom";
+import {Link, matchPath, PathMatch, useLocation, useMatch} from "react-router-dom";
 import routes from "../routes";
 
 function Breadcrumb() {
@@ -32,15 +32,17 @@ function Breadcrumb() {
         });
     }
 
-    let matchedRoute = routes.find(({path}) => {
-        if (path === "*") {
+    let matchedRoute = routes.find((r) => {
+        if (r.path === "*") {
             return false;
         }
 
-        let match = matchPath(path, location.pathname);
-        if (match !== null) {
-            return true;
+        let match = matchPath(r.path, location.pathname);
+        if (match === null) {
+            return false;
         }
+
+        return true;
     });
 
     let path = matchedRoute === undefined ? "/" : matchedRoute.path;

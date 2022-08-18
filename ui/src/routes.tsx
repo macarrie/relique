@@ -5,7 +5,7 @@ import ClientDetails from "./components/client_details";
 import NotFound from "./components/not_found";
 import React from "react";
 
-export default [
+let routes = [
     {
         path: "/",
         name: "Home",
@@ -37,3 +37,5 @@ export default [
         elt: () => <NotFound />
     },
 ];
+
+export default routes;

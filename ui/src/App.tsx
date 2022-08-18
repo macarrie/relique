@@ -13,7 +13,7 @@ import Main from './layout/main';
 
 function App() {
     return (
-        <BrowserRouter>
+        <BrowserRouter basename="/ui">
             <div className="flex flex-row">
                 <Sidebar />
 

@@ -29,7 +29,7 @@ function DotStatus(props :any) {
 
     useEffect(() => {
         changeStatus(props.status);
-    }, [st]);
+    }, [props.status]);
 
     return (
         <div className={`w-3 h-3 ${getDotColor()} rounded-full m-auto`}></div>
