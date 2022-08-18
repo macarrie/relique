@@ -19,10 +19,6 @@ func getRoutes() *gin.Engine {
 	router := gin.Default()
 	router.Use(static.Serve("/static", static.LocalFile(webPath("static"), true)))
 
-	router.NoRoute(func(c *gin.Context) {
-		c.File(webPath("index.html"))
-	})
-
 	root := router.Group("/")
 	{
 		root.GET("/", func(c *gin.Context) {
@@ -44,6 +40,7 @@ func getRoutes() *gin.Engine {
 		v1.POST("/retention/clean", postRetentionClean)
 
 		v1.GET("/clients", getClients)
+		v1.POST("/clients/:id/ssh_ping", pingClient)
 	}
 
 	return router

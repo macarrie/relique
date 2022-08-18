@@ -20,6 +20,9 @@ export default class API {
         list: function (p = {}) {
             return API.handler().get('/clients', p);
         },
+        ssh_ping: function (id :number) {
+            return API.handler().post("/clients/" + id + "/ssh_ping");
+        },
     };
 }
 

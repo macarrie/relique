@@ -215,8 +215,8 @@ function copy_webui_files() {
         return
     fi
 
-    log "--- Copying ${webui_src} to ${PREFIX}/${ROOT_DATA_PATH}/ui"
-    cp -r "${SRC}/var/lib/relique/ui" "${PREFIX}/${ROOT_DATA_PATH}/ui"
+    log "--- Copying ${webui_src} to ${PREFIX}/${ROOT_DATA_PATH}/"
+    cp -r "${SRC}/var/lib/relique/ui" "${PREFIX}/${ROOT_DATA_PATH}/"
 }
 
 function copy_binaries() {

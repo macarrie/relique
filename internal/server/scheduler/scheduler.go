@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	consts "github.com/macarrie/relique/internal/types"
+
 	"github.com/macarrie/relique/internal/types/job_status"
 
 	"github.com/macarrie/relique/internal/types/module"
@@ -54,7 +56,7 @@ func poll() {
 			}).Error("Cannot send configuration to client")
 		}
 
-		if !cl.Alive {
+		if cl.APIAlive != consts.OK {
 			cl.GetLog().Warning("Client is not alive. Jobs for this client will not be started until relique client can be pinged")
 			continue
 		}

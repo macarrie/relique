@@ -9,7 +9,8 @@ type Client = {
     version :string,
     server_address :string,
     server_port :number,
-    alive :boolean,
+    api_alive :number,
+    ssh_alive :number,
 };
 
 export default Client;

@@ -101,7 +101,7 @@ func Init() {
 				Name:    clientAddr,
 				Address: clientAddr,
 			}
-			if err := serverApi.PingSSHClient(c); err != nil {
+			if err := serverApi.PingSSHClient(&c); err != nil {
 				c.GetLog().WithFields(log.Fields{
 					"err": err,
 				}).Error("Cannot ping client")

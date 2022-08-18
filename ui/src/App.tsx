@@ -1,16 +1,15 @@
 import React from 'react';
 import {
-  BrowserRouter,
-  Routes,
-  Route,
+    BrowserRouter,
+    Routes,
+    Route,
+    Navigate
 } from "react-router-dom";
+
+import appRoutes from "./routes"
 
 import Sidebar from './layout/sidebar';
 import Main from './layout/main';
-import Dashboard from './components/dashboard';
-import Jobs from './components/jobs';
-import Clients from './components/clients';
-import NotFound from './components/not_found';
 
 function App() {
     return (
@@ -20,11 +19,10 @@ function App() {
 
                 <Main>
                     <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/jobs" element={<Jobs />} />
-                        <Route path="/clients" element={<Clients />} />
-                        <Route path="*" element={<NotFound />} />
+                        <Route path="/" element={<Navigate to="/dashboard" replace={true} />} />
+                        {appRoutes.map(({path, elt}, key) => (
+                            <Route path={path} element={elt()} key={key} />
+                        ))}
                     </Routes>
                 </Main>
             </div>

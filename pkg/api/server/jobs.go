@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	consts "github.com/macarrie/relique/internal/types"
+
 	"github.com/macarrie/relique/internal/lib/rsync"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/backup_type"
@@ -40,9 +42,7 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		return errors.Wrap(err, "cannot not register job to relique server")
 	}
 
-	pingSuccess := true
-	if err := PingSSHClient(*job.Client); err != nil {
-		pingSuccess = false
+	if err := PingSSHClient(job.Client); err != nil {
 		job.Status.Status = job_status.Error
 		job.GetLog().WithFields(log.Fields{
 			"err": err,
@@ -77,7 +77,7 @@ func RunJob(job *relique_job.ReliqueJob) error {
 		}).Error("Error encountered during module pre script execution")
 	}
 
-	if setupSuccess && preJobScriptSuccess && pingSuccess {
+	if setupSuccess && preJobScriptSuccess && (job.Client.SSHAlive == consts.OK) {
 		if err := SyncFiles(job); err != nil {
 			return errors.Wrap(err, "error occurred when sending files to backup to server")
 		}
@@ -161,7 +161,7 @@ func RegisterJob(j *relique_job.ReliqueJob) error {
 	return nil
 }
 
-func PingSSHClient(c client.Client) error {
+func PingSSHClient(c *client.Client) error {
 	c.GetLog().Info("Checking SSH connexion with client")
 
 	currentUser, err := user.Current()
@@ -184,13 +184,16 @@ func PingSSHClient(c client.Client) error {
 	sshPingCmd.Stderr = &stderr
 
 	if err := sshPingCmd.Run(); err != nil {
+		c.SSHAlive = consts.CRITICAL
 		return errors.Wrap(err, fmt.Sprintf("cannot ping client via ssh:'%s'", stderr.String()))
 	}
 
 	if stderr.String() != "" {
+		c.SSHAlive = consts.CRITICAL
 		return fmt.Errorf("cannot ping client via ssh:'%s'", stderr.String())
 	}
 
+	c.SSHAlive = consts.OK
 	return nil
 }
 

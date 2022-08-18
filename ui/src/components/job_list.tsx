@@ -1,4 +1,5 @@
 import React from "react";
+import {Link} from "react-router-dom";
 
 import API from "../utils/api";
 
@@ -7,12 +8,12 @@ import Module from "../types/module";
 import Client from "../types/client";
 import JobStatus from "../types/job_status";
 
-class JobListRow extends React.Component<any, any> {
-    uuidDisplay(id :string) {
+function JobListRow(props :any) {
+    function uuidDisplay(id :string) {
         return id.split("-")[0]
     }
 
-    moduleDisplayName(mod :Module) {
+    function moduleDisplayName(mod :Module) {
         let module_display = <>{mod.name} <span className="italic text-slate-400">({mod.variant})</span></>;
         if (mod.variant === "" || mod.variant === "default") {
             module_display = <>{mod.name}</>;
@@ -21,7 +22,7 @@ class JobListRow extends React.Component<any, any> {
         return module_display
     }
 
-    clientDisplayName(client :Client) {
+    function clientDisplayName(client :Client) {
         let client_display = <>{client.name}</>;
         if (client.name !== client.address) {
             client_display = <>{client.name}  <span className="italic text-slate-400">({client.address})</span></>;
@@ -30,7 +31,7 @@ class JobListRow extends React.Component<any, any> {
         return client_display
     }
 
-    statusDisplay(s :JobStatus) {
+    function statusDisplay(s :JobStatus) {
         let status_str :string[] = [
             "Pending",
             "Active",
@@ -50,20 +51,18 @@ class JobListRow extends React.Component<any, any> {
         return <span className={status_colors[s.status]}>{status_str[s.status]}</span>
     }
 
-    render() {
-        let job = this.props.job;
+    let job = props.job;
 
-        return (
-            <tr className="hover:bg-slate-50">
-                <td className="py-2 px-3">{this.uuidDisplay(job.uuid)}</td>
-                <td className="py-2 px-3">{this.clientDisplayName(job.client)}</td>
-                <td className="py-2 px-3">{this.moduleDisplayName(job.module)}</td>
-                <td className="py-2 px-3">{this.statusDisplay(job.status)}</td>
-                <td className="py-2 px-3">{job.start_time}</td>
-                <td className="py-2 px-3">{job.end_time}</td>
-            </tr>
-        );
-    }
+    return (
+        <tr className="hover:bg-slate-50">
+            <td className="py-2 px-3">{uuidDisplay(job.uuid)}</td>
+            <td className="py-2 px-3"><Link to={`/clients/${job.client.id}`}>{clientDisplayName(job.client)}</Link></td>
+            <td className="py-2 px-3">{moduleDisplayName(job.module)}</td>
+            <td className="py-2 px-3">{statusDisplay(job.status)}</td>
+            <td className="py-2 px-3">{job.start_time}</td>
+            <td className="py-2 px-3">{job.end_time}</td>
+        </tr>
+    );
 }
 
 type State = {

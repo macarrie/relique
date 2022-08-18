@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	consts "github.com/macarrie/relique/internal/types"
+
 	"github.com/macarrie/relique/internal/types/schedule"
 
 	"github.com/macarrie/relique/internal/types/custom_errors"
@@ -32,7 +34,8 @@ type Client struct {
 	Version       string          `json:"version"`
 	ServerAddress string          `json:"server_address" toml:"server_address"`
 	ServerPort    uint32          `json:"server_port" toml:"server_port"`
-	Alive         bool            `json:"alive"`
+	APIAlive      uint8           `json:"api_alive"`
+	SSHAlive      uint8           `json:"ssh_alive"`
 }
 
 func (c *Client) String() string {
@@ -253,6 +256,17 @@ func FillServerPublicAddress(clients []Client, addr string, port uint32) []Clien
 	for _, client := range clients {
 		client.ServerAddress = addr
 		client.ServerPort = port
+		retList = append(retList, client)
+	}
+
+	return retList
+}
+
+func InitAliveStatus(clients []Client) []Client {
+	var retList []Client
+	for _, client := range clients {
+		client.SSHAlive = consts.UNKNOWN
+		client.APIAlive = consts.UNKNOWN
 		retList = append(retList, client)
 	}
 

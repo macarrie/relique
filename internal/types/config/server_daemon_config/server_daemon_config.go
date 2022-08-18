@@ -61,6 +61,7 @@ func Load(filePath string) error {
 
 	clients = clientObject.FillServerPublicAddress(clients, conf.PublicAddress, conf.Port)
 	clients = clientObject.FillConfigVersion(clients, conf.Version)
+	clients = clientObject.InitAliveStatus(clients)
 
 	conf.Clients = clients
 

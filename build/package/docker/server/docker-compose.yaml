@@ -6,5 +6,11 @@ services:
       - "8433:8433"
     volumes:
       - "/etc/relique:/etc/relique"
-      - "/var/lib/relique:/var/lib/relique"
+      - "relique_storage:/var/lib/relique/storage"
+      - "relique_db:/var/lib/relique/db"
+      - "relique_modules:/var/lib/relique/modules"
 
+volumes:
+  relique_storage:
+  relique_db:
+  relique_modules:
