@@ -18,7 +18,21 @@ import (
 	"github.com/macarrie/relique/internal/types/relique_job"
 )
 
-func getBackupJob(c *gin.Context) {
+func getJob(c *gin.Context) {
+	uuid := c.Param("uuid")
+	job, getJobErr := relique_job.GetByUuid(uuid)
+	if getJobErr != nil {
+		log.WithFields(log.Fields{
+			"uuid": uuid,
+		}).Error("Cannot find job in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, job)
+}
+
+func searchJob(c *gin.Context) {
 	var params relique_job.JobSearchParams
 	if err := c.BindJSON(&params); err != nil {
 		log.Error("Cannot bind received job search parameters")

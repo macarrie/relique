@@ -14,6 +14,9 @@ export default class API {
         list: function (p = {}) {
             return API.handler().post('/jobs', p);
         },
+        get: function (uuid :string) {
+            return API.handler().get('/jobs/' +uuid);
+        },
     };
 
     static clients = {
@@ -23,8 +26,14 @@ export default class API {
         get: function (id :number) {
             return API.handler().get('/clients/' +id);
         },
-        ssh_ping: function (id :number) {
-            return API.handler().post("/clients/" + id + "/ssh_ping");
+    };
+
+    static modules = {
+        list: function (p = {}) {
+            return API.handler().get('/modules', p);
+        },
+        get: function (name :string) {
+            return API.handler().get('/modules/' +name);
         },
     };
 }

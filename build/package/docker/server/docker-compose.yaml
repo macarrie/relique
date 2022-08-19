@@ -9,6 +9,7 @@ services:
       - "relique_storage:/var/lib/relique/storage"
       - "relique_db:/var/lib/relique/db"
       - "relique_modules:/var/lib/relique/modules"
+    network_mode: host
 
 volumes:
   relique_storage:

@@ -12,13 +12,9 @@ function ClientDetails(props :any) {
     let urlParams = useParams();
     let [client, setClient] = useState<Client | null>(null);
 
-    console.log(urlParams);
-    console.log(urlParams["client_id"]);
-
     useEffect(() => {
         function getClient() {
             API.clients.get(Number(urlParams["client_id"])).then((response :any) => {
-                console.log(response.data);
                 let cl = response.data;
                 if (cl.modules === null) {
                     cl.modules = [];

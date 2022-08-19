@@ -5,7 +5,6 @@ import ClientUtils from "../utils/client";
 
 import Client from "../types/client";
 import Module from "../types/module";
-import Const from "../types/const";
 
 import DotStatus from "./dot_status";
 import {Link} from "react-router-dom";
@@ -24,13 +23,13 @@ function ClientListRow(props :any) {
     );
 }
 
-type State = {
-    clients :Client[]
-};
-
 function ClientList(props :any) {
     let [limit, setLimit] = useState(props.limit || 0);
     let [clients, setClients] = useState([] as Client[]);
+
+    useEffect(() => {
+        setLimit(props.limit);
+    }, [props.limit])
 
     useEffect(() => {
         function getClients() {
@@ -40,42 +39,11 @@ function ClientList(props :any) {
                 setClients(response.data);
             }).catch(error => {
                 console.log("Cannot get client list", error);
-            }).finally(() => {
-                clients.map((client :Client, index :number) => {
-                    sshPing(index);
-                });
-            });
-        }
-
-        function sshPing(index :number) {
-            let c = clients[index];
-            API.clients.ssh_ping(c.id).then((response :any) => {
-                let clientList = clients;
-                clientList[index].ssh_alive = Const.OK;
-                setClients(clientList);
-            }).catch(error => {
-                let status :number
-                switch (error.response.status) {
-                    case 404:
-                        status = Const.UNKNOWN;
-                        break;
-                    case 401:
-                        status = Const.CRITICAL;
-                        break;
-                    default:
-                        status = Const.CRITICAL;
-                        console.log("Error when getting SSH ping status", error);
-                        break;
-                }
-
-                let clientList = clients;
-                clientList[index].ssh_alive = status;
-                setClients(clientList);
             });
         }
 
         getClients();
-    }, []);
+    }, [limit]);
 
     function renderClientList() {
         if (!clients) {

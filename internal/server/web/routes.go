@@ -54,13 +54,17 @@ func getRoutes() *gin.Engine {
 	{
 		v1.GET("/ping", ping)
 
-		v1.POST("/jobs/", getBackupJob)
+		v1.POST("/jobs/", searchJob)
 		v1.POST("/jobs/start", postJobStart)
+		v1.GET("/jobs/:uuid", getJob)
 
 		v1.POST("/retention/clean", postRetentionClean)
 
 		v1.GET("/clients", getClients)
 		v1.GET("/clients/:id", getClient)
+
+		v1.GET("/modules", getModules)
+		v1.GET("/modules/:name", getModule)
 	}
 
 	return router

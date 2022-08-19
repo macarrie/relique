@@ -56,7 +56,7 @@ function JobListRow(props :any) {
 
     return (
         <tr className="hover:bg-slate-50">
-            <td className="py-2 px-3 hidden md:table-cell">{uuidDisplay(job.uuid)}</td>
+            <td className="py-2 px-3 hidden md:table-cell"><Link to={`/jobs/${job.uuid}`}>{uuidDisplay(job.uuid)}</Link></td>
             <td className="py-2 px-3"><Link to={`/clients/${job.client.id}`}>{clientDisplayName(job.client)}</Link></td>
             <td className="py-2 px-3">{moduleDisplayName(job.module)}</td>
             <td className="py-2 px-3">{statusDisplay(job.status)}</td>
@@ -67,7 +67,7 @@ function JobListRow(props :any) {
 }
 
 function JobList(props :any) {
-    let [limit, setLimit] = useState(props.limit ? props.limit : 0);
+    let [limit, setLimit] = useState(props.limit || 0);
     let [jobs, setJobList] = useState([]);
 
     useEffect(() => {

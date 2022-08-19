@@ -46,6 +46,8 @@ function Breadcrumb() {
     });
 
     let path = matchedRoute === undefined ? "/" : matchedRoute.path;
+    console.log("Matched route: ", matchedRoute);
+    console.log("URL match: ", useMatch(path));
     let breadcrumbs = getCrumbs(matchedRoute, useMatch(path));
 
     function renderCrumb(nav :any) {

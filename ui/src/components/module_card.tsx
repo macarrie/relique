@@ -27,7 +27,7 @@ function ModuleCard(props :any) {
     }
 
     function displayScriptName(name :string) {
-        if (name === "none") {
+        if (name === "none" || name === "") {
             return <div className={"ml-3 text-slate-400 italic"}>None</div>;
         }
 
