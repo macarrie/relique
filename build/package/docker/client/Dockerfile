@@ -20,6 +20,9 @@ COPY --from=builder /src/output/install/etc/relique /etc/relique
 COPY --from=builder /src/output/install/etc/relique/client.toml.sample /etc/relique/client.toml
 COPY --from=builder /src/output/install/var/lib/relique /var/lib/relique
 
+RUN groupadd --gid 8433 relique && useradd -r -d /var/lib/relique -s /bin/sh -g relique -u 8433 relique
+USER relique
+
 # Run
 EXPOSE 8433
 CMD ["/usr/bin/relique-client", "start"]
