@@ -18,7 +18,7 @@ COPY --from=builder /src/output/install/etc/relique /etc/relique
 COPY --from=builder /src/output/install/etc/relique/server.toml.sample /etc/relique/server.toml
 COPY --from=builder /src/output/install/var/lib/relique /var/lib/relique
 
-RUN groupadd --gid 8433 relique && useradd -r -d /var/lib/relique -s /bin/sh -g relique -u 8433 relique
+RUN groupadd --gid 833 relique && useradd -r -d /var/lib/relique -s /bin/sh -g relique -u 833 relique
 USER relique
 
 # Run
