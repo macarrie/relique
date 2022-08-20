@@ -1,8 +1,8 @@
-import React from "react";
-import {Link, matchPath, PathMatch, useLocation, useMatch} from "react-router-dom";
+import {Link, matchPath, useLocation, useMatch} from "react-router-dom";
 import routes from "../routes";
+let _ = require("lodash");
 
-function Breadcrumb() {
+function useCrumbs() {
     let location = useLocation();
     let default_breadcrumbs = [
         {
@@ -15,40 +15,37 @@ function Breadcrumb() {
         }
     ]
 
-    function getCrumbs(currentRoute :any, urlMatch :PathMatch<string> | null) {
-        if (urlMatch === null || currentRoute === undefined) {
-            return default_breadcrumbs;
-        }
-
-        return routes.filter(({path}) => currentRoute.path.includes(path)).map(item => {
-            let toReplace = item.path;
-            Object.entries(urlMatch.params).forEach(([param, value], index) => {
-                if (value !== undefined) {
-                    toReplace = toReplace.replace(":" +param, value.toString())
-                }
-            });
-            item.path = toReplace;
-            return item;
-        });
-    }
-
-    let matchedRoute = routes.find((r) => {
+    let matchedRoute = routes.find((r :any) => {
         if (r.path === "*") {
             return false;
         }
 
         let match = matchPath(r.path, location.pathname);
-        if (match === null) {
-            return false;
-        }
+        return match !== null;
+    }) || {path: "/404"};
 
-        return true;
-    });
+    let urlMatch = useMatch(matchedRoute.path);
+    if (urlMatch === null) {
+        return default_breadcrumbs;
+    }
 
-    let path = matchedRoute === undefined ? "/" : matchedRoute.path;
-    console.log("Matched route: ", matchedRoute);
-    console.log("URL match: ", useMatch(path));
-    let breadcrumbs = getCrumbs(matchedRoute, useMatch(path));
+    let currentPath = matchedRoute.path;
+    return _.cloneDeep(routes).filter((route :any) => currentPath.includes(route.path))
+        .map((item :any) => {
+        let toReplace = item.path;
+        // @ts-ignore
+        Object.entries(urlMatch.params).forEach(([param, value], index) => {
+            if (value !== undefined) {
+                toReplace = toReplace.replace(":" +param, value.toString())
+            }
+        });
+        item.path = toReplace;
+        return item;
+    })
+}
+
+function Breadcrumb() {
+    let breadcrumbs = useCrumbs();
 
     function renderCrumb(nav :any) {
         if (nav.path === "/") {

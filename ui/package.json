@@ -13,6 +13,7 @@
     "@types/react": "",
     "@types/react-dom": "",
     "axios": "",
+    "lodash": "^4.17.21",
     "react": "",
     "react-dom": "",
     "react-moment": "^1.1.2",

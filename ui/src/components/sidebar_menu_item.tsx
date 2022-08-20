@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 
 function SidebarMenuItem(props :any) {
     let activeClass = "block rounded-l bg-slate-50 text-blue-900 font-semibold"
-    let inactiveClass = "block rounded-l hover:bg-gray-100 hover:text-blue-900"
+    let inactiveClass = "block rounded-l text-slate-50 hover:bg-gray-100 hover:text-blue-900"
 
     return (
         <li>

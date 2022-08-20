@@ -6,12 +6,10 @@
 @tailwind utilities;
 
 @layer base {
-    /*a {*/
-        /*@apply text-blue-500;*/
-
-    /*}*/
-        /*a:hover {*/
-            /*@apply text-blue-900;*/
-            /*@apply underline;*/
-        /*}*/
+    a {
+        @apply text-blue-600;
+    }
+        a:hover {
+            @apply text-blue-900;
+        }
 }

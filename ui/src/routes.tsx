@@ -8,7 +8,7 @@ import NotFound from "./components/not_found";
 import React from "react";
 import ModuleDetails from "./components/module_details";
 
-let routes = [
+const routes = [
     {
         path: "/",
         name: "Home",

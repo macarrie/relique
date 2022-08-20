@@ -10,68 +10,63 @@ func TestFromString(t *testing.T) {
 		val string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    JobStatus
-		wantErr bool
+		name string
+		args args
+		want JobStatus
 	}{
-		// TODO: Add test cases.
 		{
 			name: "pending",
 			args: args{
 				val: "pending",
 			},
-			want:    JobStatus{Status: Pending},
-			wantErr: false,
+			want: JobStatus{Status: Pending},
 		},
 		{
 			name: "active",
 			args: args{
 				val: "active",
 			},
-			want:    JobStatus{Status: Active},
-			wantErr: false,
+			want: JobStatus{Status: Active},
 		},
 		{
 			name: "success",
 			args: args{
 				val: "success",
 			},
-			want:    JobStatus{Status: Success},
-			wantErr: false,
+			want: JobStatus{Status: Success},
 		},
 		{
 			name: "incomplete",
 			args: args{
 				val: "incomplete",
 			},
-			want:    JobStatus{Status: Incomplete},
-			wantErr: false,
+			want: JobStatus{Status: Incomplete},
 		},
 		{
 			name: "error",
 			args: args{
 				val: "error",
 			},
-			want:    JobStatus{Status: Error},
-			wantErr: false,
+			want: JobStatus{Status: Error},
 		},
 		{
 			name: "unknown",
 			args: args{
 				val: "pouet",
 			},
-			want:    JobStatus{},
-			wantErr: true,
+			want: JobStatus{Status: Unknown},
+		},
+		{
+			name: "random_value",
+			args: args{
+				val: "pouet",
+			},
+			want: JobStatus{Status: Unknown},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FromString(tt.args.val)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("FromString() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := FromString(tt.args.val)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("FromString() got = %v, want %v", got, tt.want)
 			}

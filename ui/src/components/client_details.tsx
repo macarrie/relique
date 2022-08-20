@@ -8,13 +8,13 @@ import Module from "../types/module";
 import ModuleCard from "./module_card";
 import ClientUtils from "../utils/client";
 
-function ClientDetails(props :any) {
-    let urlParams = useParams();
+function ClientDetails() {
+    const {client_id} = useParams();
     let [client, setClient] = useState<Client | null>(null);
 
     useEffect(() => {
         function getClient() {
-            API.clients.get(Number(urlParams["client_id"])).then((response :any) => {
+            API.clients.get(Number(client_id)).then((response :any) => {
                 let cl = response.data;
                 if (cl.modules === null) {
                     cl.modules = [];
@@ -27,7 +27,7 @@ function ClientDetails(props :any) {
         }
 
         getClient();
-    }, [urlParams])
+    }, [client_id])
 
     function displayModules(mods :Module[]) {
         if (mods.length === 0) {

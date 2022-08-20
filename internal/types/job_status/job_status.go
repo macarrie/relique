@@ -1,13 +1,12 @@
 package job_status
 
-import "fmt"
-
 const (
 	Pending = iota
 	Active
 	Success
 	Incomplete
 	Error
+	Unknown
 )
 
 type JobStatus struct {
@@ -37,7 +36,7 @@ func (s *JobStatus) String() string {
 	}
 }
 
-func FromString(val string) (JobStatus, error) {
+func FromString(val string) JobStatus {
 	s := JobStatus{}
 	switch val {
 	case "pending":
@@ -51,8 +50,20 @@ func FromString(val string) (JobStatus, error) {
 	case "error":
 		s.Status = Error
 	default:
-		return s, fmt.Errorf("unknown variant '%s'", val)
+		s.Status = Unknown
 	}
 
-	return s, nil
+	return s
+}
+
+func (t *JobStatus) UnmarshalText(b []byte) error {
+	tmp := FromString(string(b))
+
+	*t = tmp
+
+	return nil
+}
+
+func (t JobStatus) MarshalText() ([]byte, error) {
+	return []byte(t.String()), nil
 }

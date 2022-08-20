@@ -264,10 +264,7 @@ func Search(params JobSearchParams) ([]ReliqueJob, error) {
 		request = request.Where("jobs.job_type = ?", bType.Type)
 	}
 	if params.Status != "" {
-		status, err := job_status.FromString(params.Status)
-		if err != nil {
-			return []ReliqueJob{}, errors.Wrap(err, "cannot parse status filter")
-		}
+		status := job_status.FromString(params.Status)
 		request = request.Where("jobs.status = ?", status.Status)
 	}
 	if params.Uuid != "" {

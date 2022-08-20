@@ -1,10 +1,16 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 
 import Module from "../types/module";
 
 function ModuleCard(props :any) {
     let mod :Module = props.module;
     let [showMoreContent, setShowMoreContent] = useState(false);
+
+    useEffect(() => {
+        if (props.full) {
+            setShowMoreContent(true);
+        }
+    }, [props.full])
 
     if (mod === null) {
         return <div>Loading</div>
@@ -14,7 +20,7 @@ function ModuleCard(props :any) {
         mod.variant = "default";
     }
 
-    if (mod.schedules.length === 0) {
+    if (mod.schedules === null || mod.schedules.length === 0) {
         mod.schedules = [{name: "none"}];
     }
 
@@ -35,11 +41,25 @@ function ModuleCard(props :any) {
     }
 
     function displayAdditionalParams(params :any) {
-        if (Object.keys(params).length === 0) {
+        if (params === null || Object.keys(params).length === 0) {
             return <div className={"ml-3 text-slate-400 italic"}>None</div>;
         }
 
         return <div className={"ml-3 font-mono text-pink-500 whitespace-pre"}>{JSON.stringify(params, null, 2)}</div>;
+    }
+
+    function displayBackupPaths(paths :any) {
+        if (paths === null || paths.length === 0 || (paths.length === 1 && paths[0] === "")) {
+            return <div className={"ml-3 text-slate-400 italic"}>None</div>;
+        }
+
+        return (
+            <>
+                {mod.backup_paths.map((path :string) => {
+                    return <div key={path} className={"ml-3 font-mono text-pink-500"}>{path}</div>
+                })}
+            </>
+        )
     }
 
     return (
@@ -74,9 +94,7 @@ function ModuleCard(props :any) {
 
             <div className={`py-3 ${!showMoreContent && "hidden"}`}>
                 <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Backup paths</div>
-                {mod.backup_paths.map((path :string) => {
-                    return <div key={path} className={"ml-3 font-mono text-pink-500"}>{path}</div>
-                })}
+                {displayBackupPaths(mod.backup_paths)}
             </div>
 
             <div className={`py-3 ${!showMoreContent && "hidden"}`}>
@@ -101,7 +119,9 @@ function ModuleCard(props :any) {
             <div className={`py-3 ${!showMoreContent && "hidden"}`}>
                 <div className={"mb-2 font-bold text-xs text-slate-400 uppercase"}>Additional params</div>
                 {displayAdditionalParams(mod.params)}
-                <div className={"text-right text-blue-600 text-xs"} onClick={() => showLess()}>Show less</div>
+                {!props.full && (
+                    <div className={"text-right text-blue-600 text-xs"} onClick={() => showLess()}>Show less</div>
+                )}
             </div>
         </div>
     );
