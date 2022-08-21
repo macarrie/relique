@@ -19,6 +19,8 @@ COPY --from=builder /src/output/install/etc/relique/server.toml.sample /etc/reli
 COPY --from=builder /src/output/install/var/lib/relique /var/lib/relique
 
 RUN groupadd --gid 833 relique && useradd -r -d /var/lib/relique -s /bin/sh -g relique -u 833 relique
+RUN mkdir ~relique/.ssh && ssh-keygen -t rsa -f ~relique/.ssh/id_rsa -N ''
+RUN chown -R relique:relique /var/lib/relique /var/log/relique /etc/relique
 USER relique
 
 # Run
