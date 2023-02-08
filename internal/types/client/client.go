@@ -3,7 +3,7 @@ package client
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -26,16 +26,17 @@ import (
 )
 
 type Client struct {
-	ID            int64           `json:"id"`
-	Name          string          `json:"name" toml:"name"`
-	Address       string          `json:"address" toml:"address"`
-	Port          uint32          `json:"port" toml:"port"`
-	Modules       []module.Module `json:"modules"`
-	Version       string          `json:"version"`
-	ServerAddress string          `json:"server_address" toml:"server_address"`
-	ServerPort    uint32          `json:"server_port" toml:"server_port"`
-	APIAlive      uint8           `json:"api_alive"`
-	SSHAlive      uint8           `json:"ssh_alive"`
+	ID              int64           `json:"id"`
+	Name            string          `json:"name" toml:"name"`
+	Address         string          `json:"address" toml:"address"`
+	Port            uint32          `json:"port" toml:"port"`
+	Modules         []module.Module `json:"modules"`
+	Version         string          `json:"version"`
+	ServerAddress   string          `json:"server_address" toml:"server_address"`
+	ServerPort      uint32          `json:"server_port" toml:"server_port"`
+	APIAlive        uint8           `json:"api_alive"`
+	SSHAlive        uint8           `json:"ssh_alive"`
+	SSHAliveMessage string          `json:"ssh_alive_message"`
 }
 
 func (c *Client) String() string {
@@ -57,7 +58,7 @@ func loadFromFile(file string) (cl Client, err error) {
 		}
 	}()
 
-	content, _ := ioutil.ReadAll(f)
+	content, _ := io.ReadAll(f)
 
 	var client Client
 	if err := toml.Unmarshal(content, &client); err != nil {

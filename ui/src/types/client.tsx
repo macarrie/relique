@@ -11,6 +11,7 @@ type Client = {
     server_port :number,
     api_alive :number,
     ssh_alive :number,
+    ssh_alive_message :string,
 };
 
 export default Client;

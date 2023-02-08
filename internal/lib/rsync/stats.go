@@ -1,7 +1,7 @@
 package rsync
 
 import (
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -68,7 +68,7 @@ func (s *Stats) GetFromRsyncLog(path string) error {
 	log.WithFields(log.Fields{
 		"path": path,
 	}).Debug("Getting rsync task stats from log file")
-	logContentsBuffer, err := ioutil.ReadFile(path)
+	logContentsBuffer, err := os.ReadFile(path)
 	if err != nil {
 		return errors.Wrap(err, "cannot read log file")
 	}

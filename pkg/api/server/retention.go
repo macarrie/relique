@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/macarrie/relique/internal/types/config/common"
@@ -21,7 +21,7 @@ func CleanRetention(config common.Configuration) error {
 		return errors.Wrap(err, "error when performing api request")
 	}
 
-	_, err = ioutil.ReadAll(response.Body)
+	_, err = io.ReadAll(response.Body)
 	if err != nil {
 		return errors.Wrap(err, "cannot read response body from api request")
 	}

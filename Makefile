@@ -41,7 +41,8 @@ check: ## Run code vet
 
 test: check ## Run tests
 	# Parallel db setup during unit tests can create errors (read only db).Use -p 1 to ensure tests are run sequentially
-	sudo -u relique -g relique go test -p 1 ./... -cover
+	#sudo -u relique -g relique go test -p 1 ./... -cover
+	go test -p 1 ./... -cover
 
 install: ## Install relique
 	./scripts/install.sh --prefix "$(INSTALL_ROOT)" --src "$(INSTALL_SRC)" $(INSTALL_ARGS)

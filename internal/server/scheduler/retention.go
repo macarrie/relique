@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 
 	log "github.com/macarrie/relique/internal/logging"
@@ -33,7 +33,7 @@ func LoadRetention(path string) (err error) {
 		}
 	}()
 
-	byteVal, err := ioutil.ReadAll(f)
+	byteVal, err := io.ReadAll(f)
 	if err != nil {
 		return errors.Wrap(err, "cannot read retention file contents")
 	}
@@ -57,7 +57,7 @@ func UpdateRetention(path string) error {
 		return errors.Wrap(err, "cannot form json from retention data")
 	}
 
-	if err := ioutil.WriteFile(path, jsonData, 0644); err != nil {
+	if err := os.WriteFile(path, jsonData, 0644); err != nil {
 		return errors.Wrap(err, "cannot write jobs to retention file")
 	}
 

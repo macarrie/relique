@@ -14,7 +14,7 @@ import Main from './layout/main';
 function App() {
     return (
         <BrowserRouter basename="/ui">
-            <div className="flex flex-row">
+            <div className="flex flex-row min-h-screen">
                 <Sidebar />
 
                 <Main>

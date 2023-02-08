@@ -6,29 +6,30 @@ import Job from "../types/job";
 import ModuleCard from "./module_card";
 import Moment from "react-moment";
 import JobUtils from "../utils/job";
+import JobLogs from "./job_logs";
 import {Tabs, Tab} from "./tabs";
 
 function JobDetails() {
     const {job_uuid} = useParams();
     let [j, setJob] = useState<Job | null>(null);
 
-    useEffect(() => {
-        function getJob() {
-            if (job_uuid === undefined) {
-                console.log("Job uuid undefined, cannot get job details");
-                return;
-            }
-
-            API.jobs.get(job_uuid).then((response :any) => {
-                setJob(response.data);
-            }).catch(error => {
-                console.log("Cannot get job details", error);
-                setJob(null);
-            });
+    function getJob() {
+        if (job_uuid === undefined) {
+            console.log("Job uuid undefined, cannot get job details");
+            return;
         }
 
+        API.jobs.get(job_uuid).then((response :any) => {
+            setJob(response.data);
+        }).catch(error => {
+            console.log("Cannot get job details", error);
+            setJob(null);
+        });
+    }
+
+    useEffect(() => {
         getJob();
-    }, [job_uuid])
+    }, [])
 
     if (j === null) {
         return <div>Loading</div>
@@ -125,18 +126,25 @@ function JobDetails() {
         </div>
 
         <div className={"bg-white shadow rounded mt-3"}>
-            <Tabs title="Logs">
-                <Tab title="Pre backup">
-                    Tab 1 content
+            <Tabs title="Logs" initialActiveTab="pre">
+                <Tab title="Setup script" key="pre">
+                    {j.module.pre_backup_script === "none" ? (
+                        <div className="center italic text-slate-400">No pre-backup/restore script configured in module</div>
+                    ) : (
+                        <div>TODO: Pre script logs contents</div>
+                    )}
                 </Tab>
-                <Tab title="rsync /a/b/c">
-                    Tab 2 content
-                </Tab>
-                <Tab title="rsync errors /a/b/c">
-                    Tab 3 content
-                </Tab>
-                <Tab title="Post backup">
-                    Tab 4 content
+                {j.module.backup_paths.map((path :string, index :number) => {
+                    return <Tab headerClassName="font-mono text-xs" title={path} key={index}>
+                        <JobLogs uuid={job_uuid} path={path} />
+                    </Tab>
+                })}
+                <Tab title="Teardown script" key="post">
+                    {j.module.post_backup_script === "none" ? (
+                        <div className="center italic text-slate-400">No pre-backup/restore script configured in module</div>
+                    ) : (
+                        <div>TODO: Post script logs contents</div>
+                    )}
                 </Tab>
             </Tabs>
         </div>

@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -214,7 +214,7 @@ func ManualJobStart(config common.Configuration, params relique_job.JobSearchPar
 		return relique_job.ReliqueJob{}, errors.Wrap(err, "error when performing api request")
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return relique_job.ReliqueJob{}, errors.Wrap(err, "cannot read response body from api request")
 	}

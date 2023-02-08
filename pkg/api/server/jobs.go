@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os/exec"
 	"os/user"
@@ -177,6 +177,10 @@ func PingSSHClient(c *client.Client) error {
 		}).Warning("Relique server usually runs as user 'relique' but you are trying to ping client with another user account (probably from cli). SSH ping check can possibly yield false results")
 	}
 	sshPingCmd := exec.Command("ssh", "-f", "-o BatchMode=yes", fmt.Sprintf("relique@%s", c.Address), "echo 'ping'")
+	log.WithFields(log.Fields{
+		"cmd":    sshPingCmd,
+		"client": c.Name,
+	}).Debug("Trying to ping client with following command")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -184,13 +188,17 @@ func PingSSHClient(c *client.Client) error {
 	sshPingCmd.Stderr = &stderr
 
 	if err := sshPingCmd.Run(); err != nil {
+		errorMessage := fmt.Sprintf("cannot ping client via ssh:'%s'", stderr.String())
 		c.SSHAlive = consts.CRITICAL
-		return errors.Wrap(err, fmt.Sprintf("cannot ping client via ssh:'%s'", stderr.String()))
+		c.SSHAliveMessage = errorMessage
+		return errors.Wrap(err, errorMessage)
 	}
 
 	if stderr.String() != "" {
+		errorMessage := fmt.Errorf("cannot ping client via ssh:'%s'", stderr.String())
 		c.SSHAlive = consts.CRITICAL
-		return fmt.Errorf("cannot ping client via ssh:'%s'", stderr.String())
+		c.SSHAliveMessage = errorMessage.Error()
+		return errorMessage
 	}
 
 	c.SSHAlive = consts.OK
@@ -216,7 +224,7 @@ func LaunchJobSetupOnClient(job *relique_job.ReliqueJob) error {
 
 	if response.StatusCode != http.StatusOK {
 		job.Status.Status = job_status.Error
-		bodyBytes, err := ioutil.ReadAll(response.Body)
+		bodyBytes, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrap(err, "cannot read response body")
 		}
@@ -256,7 +264,7 @@ func startModuleScript(job *relique_job.ReliqueJob, scriptType int) error {
 
 	if response.StatusCode != http.StatusOK {
 		job.Status.Status = job_status.Error
-		bodyBytes, err := ioutil.ReadAll(response.Body)
+		bodyBytes, err := io.ReadAll(response.Body)
 		if err != nil {
 			return errors.Wrap(err, "cannot read response body")
 		}
@@ -309,24 +317,25 @@ func SyncFiles(job *relique_job.ReliqueJob) error {
 				}).Error("Cannot create standard log file for rsync task")
 			} else {
 				rsyncTask.Cmd.Stdout = rsyncLogFile
+				rsyncTask.Cmd.Stderr = rsyncLogFile
 			}
 
-			rsyncErrorLogFile, err := job.CreateRsyncErrorLogFile(task.Path)
-			defer func() {
-				if err := rsyncErrorLogFile.Close(); err != nil {
-					job.GetLog().WithFields(log.Fields{
-						"err": err,
-					}).Error("Cannot close stderr rsync log file")
-				}
-			}()
-			if err != nil {
-				job.GetLog().WithFields(log.Fields{
-					"err":  err,
-					"path": task.Path,
-				}).Error("Cannot create error log file for rsync task")
-			} else {
-				rsyncTask.Cmd.Stderr = rsyncErrorLogFile
-			}
+			//rsyncErrorLogFile, err := job.CreateRsyncErrorLogFile(task.Path)
+			//defer func() {
+			//	if err := rsyncErrorLogFile.Close(); err != nil {
+			//		job.GetLog().WithFields(log.Fields{
+			//			"err": err,
+			//		}).Error("Cannot close stderr rsync log file")
+			//	}
+			//}()
+			//if err != nil {
+			//	job.GetLog().WithFields(log.Fields{
+			//		"err":  err,
+			//		"path": task.Path,
+			//	}).Error("Cannot create error log file for rsync task")
+			//} else {
+			//	rsyncTask.Cmd.Stderr = rsyncErrorLogFile
+			//}
 
 			if err := rsyncTask.Run(); err != nil {
 				job.GetLog().WithFields(log.Fields{

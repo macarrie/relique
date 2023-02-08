@@ -17,6 +17,11 @@ export default class API {
         get: function (uuid :string) {
             return API.handler().get('/jobs/' +uuid);
         },
+        getLogs: function (uuid :string, backup_path :string) {
+            let params = {"bp": backup_path};
+            let sp = new URLSearchParams(params)
+            return API.handler().get('/jobs/' +uuid+ '/logs?' +sp.toString());
+        },
     };
 
     static clients = {

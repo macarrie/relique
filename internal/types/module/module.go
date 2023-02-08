@@ -3,7 +3,7 @@ package module
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -82,7 +82,7 @@ func (m *Module) GetAbsScriptPath(module_name string, path string) string {
 func (m *Module) GetAvailableVariants() error {
 	var availableVariants []string
 	itemPath := fmt.Sprintf("%s/%s", MODULES_INSTALL_PATH, m.Name)
-	files, err := ioutil.ReadDir(itemPath)
+	files, err := os.ReadDir(itemPath)
 	if err != nil {
 		return errors.Wrap(err, "cannot list variants for module")
 	}
@@ -153,7 +153,7 @@ func LoadFromFile(file string) (m Module, err error) {
 		}
 	}()
 
-	content, _ := ioutil.ReadAll(f)
+	content, _ := io.ReadAll(f)
 
 	var module Module
 	if err := toml.Unmarshal(content, &module); err != nil {

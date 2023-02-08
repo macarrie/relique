@@ -4,7 +4,7 @@ import SidebarMenuItem from "./sidebar_menu_item"
 
 function SidebarMenu() {
     return (
-        <ul className="flex-grow space-y-1 pl-2">
+        <ul className="flex-grow space-y-1">
             <SidebarMenuItem
                 label="Overview"
                 icon="ri-home-2-line"

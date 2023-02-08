@@ -2,7 +2,6 @@ package module
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -635,7 +634,7 @@ func Test_extractArchive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-extract-*")
+			tmpTestFolder, err := os.MkdirTemp("", "relique-test-module-extract-*")
 			defer os.RemoveAll(tmpTestFolder)
 			if err != nil {
 				t.Errorf("extractArchive() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
@@ -684,7 +683,7 @@ func Test_gitClone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-git-clone-*")
+			tmpTestFolder, err := os.MkdirTemp("", "relique-test-module-git-clone-*")
 			defer os.RemoveAll(tmpTestFolder)
 			if err != nil {
 				t.Errorf("gitClone() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
@@ -728,7 +727,7 @@ func Test_downloadArchive(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpTestFolder, err := ioutil.TempDir("", "relique-test-module-download-archive-*")
+			tmpTestFolder, err := os.MkdirTemp("", "relique-test-module-download-archive-*")
 			defer os.RemoveAll(tmpTestFolder)
 			if err != nil {
 				t.Errorf("downloadArchive() cannot create test folder, error = %v, wantErr %v", err, tt.wantErr)
@@ -747,10 +746,10 @@ func TestInstall(t *testing.T) {
 	SetupTest(t)
 
 	type args struct {
-		path    string
-		local   bool
-		archive bool
-		force   bool
+		path      string
+		local     bool
+		archive   bool
+		force     bool
 		skipChown bool
 	}
 	tests := []struct {
@@ -761,66 +760,66 @@ func TestInstall(t *testing.T) {
 		{
 			name: "remote_git_install",
 			args: args{
-				path:    "https://github.com/macarrie/relique-module-generic",
-				local:   false,
-				archive: false,
-				force:   false,
-				skipChown:   false,
+				path:      "https://github.com/macarrie/relique-module-generic",
+				local:     false,
+				archive:   false,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: false,
 		},
 		{
 			name: "remote_git_install_404",
 			args: args{
-				path:    "https://github.com/macarrie/relique-module-doesnotexist",
-				local:   false,
-				archive: false,
-				force:   false,
-				skipChown:   false,
+				path:      "https://github.com/macarrie/relique-module-doesnotexist",
+				local:     false,
+				archive:   false,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: true,
 		},
 		{
 			name: "remote_archive_install",
 			args: args{
-				path:    "https://github.com/macarrie/relique-module-generic/releases/download/0.0.1/relique-module-generic.tar.gz",
-				local:   false,
-				archive: true,
-				force:   false,
-				skipChown:   false,
+				path:      "https://github.com/macarrie/relique-module-generic/releases/download/0.0.1/relique-module-generic.tar.gz",
+				local:     false,
+				archive:   true,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: false,
 		},
 		{
 			name: "remote_archive_install_404",
 			args: args{
-				path:    "https://localhost:8433/archive-does-not-exist.tar.gz",
-				local:   false,
-				archive: true,
-				force:   false,
-				skipChown:   false,
+				path:      "https://localhost:8433/archive-does-not-exist.tar.gz",
+				local:     false,
+				archive:   true,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: true,
 		},
 		{
 			name: "local_archive_install",
 			args: args{
-				path:    "../../../test/modules/relique-module-generic.tar.gz",
-				local:   true,
-				archive: true,
-				force:   false,
-				skipChown:   false,
+				path:      "../../../test/modules/relique-module-generic.tar.gz",
+				local:     true,
+				archive:   true,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: false,
 		},
 		{
 			name: "local_archive_install_404",
 			args: args{
-				path:    "/tmp/relique-module-archive-does-not-exist.tar.gz",
-				local:   true,
-				archive: true,
-				force:   false,
-				skipChown:   false,
+				path:      "/tmp/relique-module-archive-does-not-exist.tar.gz",
+				local:     true,
+				archive:   true,
+				force:     false,
+				skipChown: false,
 			},
 			wantErr: true,
 		},
@@ -828,7 +827,7 @@ func TestInstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// TODO: Set custom installed modules
-			testInstallFolder, err := ioutil.TempDir("", "relique-module-unittest-install-*")
+			testInstallFolder, err := os.MkdirTemp("", "relique-module-unittest-install-*")
 			if err != nil {
 				t.Errorf("Install() error = %v, cannot create temporary install folder", err)
 			}

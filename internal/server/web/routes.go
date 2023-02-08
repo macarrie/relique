@@ -57,6 +57,7 @@ func getRoutes() *gin.Engine {
 		v1.POST("/jobs/", searchJob)
 		v1.POST("/jobs/start", postJobStart)
 		v1.GET("/jobs/:uuid", getJob)
+		v1.GET("/jobs/:uuid/logs", getJobLogs)
 
 		v1.POST("/retention/clean", postRetentionClean)
 

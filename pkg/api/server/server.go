@@ -4,7 +4,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	consts "github.com/macarrie/relique/internal/types"
@@ -28,7 +28,7 @@ func GetConfigVersion(cl *client.Client) (string, error) {
 		return "", errors.Wrap(err, "error when performing api request")
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		cl.APIAlive = consts.CRITICAL
 		return "", errors.Wrap(err, "cannot read response body from api requets")

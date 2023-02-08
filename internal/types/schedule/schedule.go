@@ -2,7 +2,7 @@ package schedule
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -37,7 +37,7 @@ func loadFromFile(file string) (Schedule, error) {
 	}
 	defer tomlFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(tomlFile)
+	byteValue, _ := io.ReadAll(tomlFile)
 
 	var schedule Schedule
 	if err := toml.Unmarshal(byteValue, &schedule); err != nil {

@@ -3,6 +3,8 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
 
 	serverConfig "github.com/macarrie/relique/internal/types/config/server_daemon_config"
 
@@ -124,4 +126,66 @@ func postJobStart(c *gin.Context) {
 	scheduler.AddJob(job)
 
 	c.JSON(http.StatusOK, job)
+}
+
+func getJobLogs(c *gin.Context) {
+	uuid := c.Param("uuid")
+	job, getJobErr := relique_job.GetByUuid(uuid)
+	if getJobErr != nil {
+		log.WithFields(log.Fields{
+			"uuid": uuid,
+		}).Error("Cannot find job in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	backupPathSelectionEnc := c.Query("bp")
+	backupPathSelection, urlDecodeErr := url.QueryUnescape(backupPathSelectionEnc)
+	if urlDecodeErr != nil {
+		log.WithFields(log.Fields{
+			"err": urlDecodeErr,
+		}).Error("Cannot decode backup path from URL parameter")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	bpFound := false
+	for _, path := range job.Module.BackupPaths {
+		if backupPathSelection == path {
+			bpFound = true
+			break
+		}
+	}
+
+	if !bpFound {
+		log.Error("Cannot find requested backup path in job module")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	// TODO: Filter from backup path
+	logPath := job.GetRsyncLogFilePath(backupPathSelection)
+	f, err := os.Open(logPath)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"uuid": uuid,
+			"err":  err,
+		}).Error("Cannot open log file for reading")
+		if os.IsNotExist(err) {
+			c.String(http.StatusNotFound, "Log file does not exist")
+			return
+		}
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	fileStats, err := f.Stat()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Error("Cannot get log file stats")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.DataFromReader(http.StatusOK, fileStats.Size(), "text", f, nil)
 }

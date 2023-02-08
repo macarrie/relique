@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,7 +25,7 @@ func GetLocallyInstalled() ([]Module, error) {
 		"path": MODULES_INSTALL_PATH,
 	}).Info("Using modules install folder")
 
-	items, err := ioutil.ReadDir(MODULES_INSTALL_PATH)
+	items, err := os.ReadDir(MODULES_INSTALL_PATH)
 	if err != nil {
 		return []Module{}, errors.Wrap(err, "cannot list installed modules from filesystem")
 	}
@@ -218,7 +217,7 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 		return errors.Wrap(err, "module install path does not exist. Please check that relique is correctly installed and that provided module install path is correct")
 	}
 
-	tempInstallFolder, err := ioutil.TempDir("", "relique-module-install-*")
+	tempInstallFolder, err := os.MkdirTemp("", "relique-module-install-*")
 	if err != nil {
 		return errors.Wrap(err, "cannot create temporary install folder")
 	}
@@ -227,7 +226,7 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 	archivePath := path
 	if !local {
 		if archive {
-			tempDownloadFolder, err := ioutil.TempDir("", "relique-module-download-*")
+			tempDownloadFolder, err := os.MkdirTemp("", "relique-module-download-*")
 			if err != nil {
 				return errors.Wrap(err, "cannot create temporary download folder")
 			}

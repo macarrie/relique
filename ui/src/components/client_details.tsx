@@ -7,6 +7,7 @@ import Client from "../types/client";
 import Module from "../types/module";
 import ModuleCard from "./module_card";
 import ClientUtils from "../utils/client";
+import Const from "../types/const";
 
 function ClientDetails() {
     const {client_id} = useParams();
@@ -101,7 +102,14 @@ function ClientDetails() {
                             <DotStatus status={client.ssh_alive} />
                         </div>
                         <div>
-                            {ClientUtils.SSHAliveLabel(client)}
+                            <div>
+                                {ClientUtils.SSHAliveLabel(client)}
+                            </div>
+                            {(client.ssh_alive !== Const.OK && client.ssh_alive_message) && (
+                                <div className="border-l-2 border-slate-200 bg-slate-100 p-1 pl-2 mt-1 text-xs font-mono text-pink-900">
+                                    {client.ssh_alive_message}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
