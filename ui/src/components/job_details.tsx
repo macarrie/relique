@@ -15,23 +15,23 @@ function JobDetails() {
     const {job_uuid} = useParams();
     let [j, setJob] = useState<Job | null>(null);
 
-    function getJob() {
-        if (job_uuid === undefined) {
-            console.log("Job uuid undefined, cannot get job details");
-            return;
+    useEffect(() => {
+        function getJob() {
+            if (job_uuid === undefined) {
+                console.log("Job uuid undefined, cannot get job details");
+                return;
+            }
+
+            API.jobs.get(job_uuid).then((response: any) => {
+                setJob(response.data);
+            }).catch(error => {
+                console.log("Cannot get job details", error);
+                setJob(null);
+            });
         }
 
-        API.jobs.get(job_uuid).then((response :any) => {
-            setJob(response.data);
-        }).catch(error => {
-            console.log("Cannot get job details", error);
-            setJob(null);
-        });
-    }
-
-    useEffect(() => {
         getJob();
-    }, [])
+    }, [job_uuid])
 
     if (j === null) {
         return <div>Loading</div>
