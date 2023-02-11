@@ -12,9 +12,15 @@ import (
 
 var logger *log.Logger
 
-const TEST_LOG_PATH = "/tmp/relique_tests.log"
+const TEST_LOG_PATH = "/relique_tests.log"
+
+var IsTest = false
 
 func GetLogRoot() string {
+	if IsTest {
+		return "/tmp/"
+	}
+
 	logRoot := os.Getenv("RELIQUE_LOG_ROOT")
 	if logRoot == "" {
 		return "/var/log/relique/"

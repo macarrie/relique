@@ -38,7 +38,7 @@ function JobLogs(props :any) {
     if (!loaded) {
         return (<div className="flex flex-col content-center">
             <button
-                className="mx-auto my-4 text-white bg-blue-500 hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 font-medium rounded test-sm px-5 py-2"
+                className="button mx-auto my-4"
                 onClick={() => getJobLog(path)}>
                 Load logs
             </button>
@@ -59,8 +59,8 @@ function JobLogs(props :any) {
                 {lineCountBlock}
             </div>
 
-            <code className="block whitespace-pre font-mono text-pink-900 overflow-x-scroll">
-            {logs}
+            <code className="block whitespace-pre code overflow-x-scroll">
+                {logs}
             </code>
         </div>
     </>);

@@ -34,8 +34,8 @@ export default class ClientUtils {
 
     static GlobalAliveLabel = function (c :Client) :string {
         if (c.api_alive === Const.OK && c.ssh_alive === Const.OK) {
-            return "Client connectivity is OK";
+            return "Client connectivity OK";
         }
-        return "Connectivity issues detected between relique server and client"
+        return "Connectivity issues detected"
     };
 }

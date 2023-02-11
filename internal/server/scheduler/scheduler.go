@@ -134,6 +134,7 @@ func CreateJobs(cl *client.Client) error {
 			}
 
 			job := relique_job.New(cl, m, job_type.JobType{Type: job_type.Backup})
+			job.StorageRoot = serverConfig.Config.BackupStoragePath
 			AddJob(job)
 		} else {
 			if previousLoopIterHasActiveSchedules {

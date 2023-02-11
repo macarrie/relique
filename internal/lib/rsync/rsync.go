@@ -13,8 +13,6 @@ import (
 	"github.com/macarrie/relique/internal/types/relique_job"
 )
 
-var STORAGE_ROOT string
-
 type Rsync struct {
 	// Backup path from relique job
 	Path string
@@ -593,11 +591,11 @@ func GetRestoreTask(j *relique_job.ReliqueJob, path string) *Rsync {
 }
 
 func getJobStorageRoot(j *relique_job.ReliqueJob) string {
-	if STORAGE_ROOT == "" {
+	if j.StorageRoot == "" {
 		j.GetLog().Fatal("Found empty storage root parameter. This should not happen, cancelling job")
 	}
 
-	return filepath.Clean(fmt.Sprintf("%s/%s", STORAGE_ROOT, j.Uuid))
+	return filepath.Clean(fmt.Sprintf("%s/%s/_data", j.StorageRoot, j.Uuid))
 }
 
 func GetBackupTask(j *relique_job.ReliqueJob, path string) *Rsync {

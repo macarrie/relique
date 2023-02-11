@@ -98,7 +98,8 @@ function build_binaries() {
     for component in "${components[@]}"; do
         log "Building $component"
         go env
-        go build -mod=vendor -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
+        #go build -mod=vendor -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
+        go build -v -o "${OUTPUT_DIR}/bin/${component}" cmd/${component}/main.go
         build_result=$?
         if [ "$build_result" -ne "0" ]; then
             log "Binary build failed !!! Aborting build script"

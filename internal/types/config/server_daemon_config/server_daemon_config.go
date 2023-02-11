@@ -22,29 +22,6 @@ func init() {
 	SyncTasks = make(map[string][]*rsync.Rsync)
 }
 
-func SaveConfigObjectsInDb() {
-	// Save clients
-	for _, cl := range Config.Clients {
-		if _, err := cl.Save(nil); err != nil {
-			cl.GetLog().WithFields(log.Fields{
-				"err": err,
-			}).Error("Cannot save client found in configuration into database")
-		} else {
-			cl.GetLog().Debug("Saved client found in configuration into database")
-		}
-
-		for _, mod := range cl.Modules {
-			if _, err := mod.Save(nil); err != nil {
-				mod.GetLog().WithFields(log.Fields{
-					"err": err,
-				}).Error("Cannot save client module found in configuration into database")
-			} else {
-				mod.GetLog().Debug("Saved client module found in configuration into database")
-			}
-		}
-	}
-}
-
 func Load(filePath string) error {
 	if filePath != "" {
 		common.UseFile(filePath)

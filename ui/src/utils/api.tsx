@@ -28,8 +28,8 @@ export default class API {
         list: function (p = {}) {
             return API.handler().get('/clients', p);
         },
-        get: function (id :number) {
-            return API.handler().get('/clients/' +id);
+        get: function (name: string) {
+            return API.handler().get('/clients/' + name);
         },
     };
 

@@ -18,6 +18,7 @@ import (
 
 func SetupTest(t *testing.T) {
 	log.Setup(true, log.TEST_LOG_PATH)
+	log.IsTest = true
 	if err := db.InitTestDB(); err != nil {
 		t.Errorf("cannot open db: '%s'", err)
 	}
@@ -59,20 +60,6 @@ func TestReliqueJob_Update(t *testing.T) {
 		t.Errorf("Cannot save restoreJob for TestReliqueJob_Update setup")
 	}
 
-	missingModuleJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	missingModuleJobID, err := missingModuleJob.Save()
-	if missingModuleJobID == 0 || err != nil {
-		t.Errorf("Cannot save missingModuleJobID for TestReliqueJob_Update setup")
-	}
-	missingModuleJob.Module = module.Module{}
-
-	missingClientJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	missingClientJobID, err := missingClientJob.Save()
-	if missingClientJobID == 0 || err != nil {
-		t.Errorf("Cannot save missingClientJobID for TestReliqueJob_Update setup")
-	}
-	missingClientJob.Client = &client.Client{}
-
 	tests := []struct {
 		name    string
 		job     ReliqueJob
@@ -93,20 +80,6 @@ func TestReliqueJob_Update(t *testing.T) {
 			inTx:    false,
 			want:    restoreJobID,
 			wantErr: false,
-		},
-		{
-			name:    "missingModuleJob_update_regular_save",
-			job:     missingModuleJob,
-			inTx:    false,
-			want:    0,
-			wantErr: true,
-		},
-		{
-			name:    "missingClientJob_update_regular_save",
-			job:     missingClientJob,
-			inTx:    false,
-			want:    0,
-			wantErr: true,
 		},
 		{
 			name:    "backupJob_update_transaction_save",
@@ -171,12 +144,6 @@ func TestReliqueJob_Save(t *testing.T) {
 		ServerPort:    8433,
 	}
 
-	missingModuleJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	missingModuleJob.Module = module.Module{}
-
-	missingClientJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
-	missingClientJob.Client = &client.Client{}
-
 	backupJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	existingBackupJob := New(&newClient, newModule, job_type.JobType{Type: job_type.Backup})
 	if _, err := existingBackupJob.Save(); err != nil {
@@ -191,7 +158,6 @@ func TestReliqueJob_Save(t *testing.T) {
 			Port:    8434,
 			Modules: []module.Module{
 				module.Module{
-					ID:                0,
 					ModuleType:        "relique",
 					Name:              "relique-diff",
 					BackupType:        backup_type.BackupType{Type: 1},
@@ -250,32 +216,12 @@ func TestReliqueJob_Save(t *testing.T) {
 			want:    1,
 			wantErr: false,
 		},
-		{
-			name:    "save_missing_module",
-			job:     missingModuleJob,
-			want:    0,
-			wantErr: true,
-		},
-		{
-			name:    "save_missing_client",
-			job:     missingClientJob,
-			want:    0,
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.job.Save()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && tt.job.Module.ID == 0 {
-				t.Errorf("Save() error, got zero ID for module. Module should be saved and have a DB ID")
-				return
-			}
-			if !tt.wantErr && tt.job.Client.ID == 0 {
-				t.Errorf("Save() error, got zero ID for module. Module should be saved and have a DB ID")
 				return
 			}
 

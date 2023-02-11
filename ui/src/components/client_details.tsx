@@ -1,21 +1,29 @@
 import React, {useEffect, useState} from "react";
 import { useParams } from "react-router-dom";
 
-import DotStatus from "./dot_status";
+import StatusDot from "./status_dot";
 import API from "../utils/api";
 import Client from "../types/client";
 import Module from "../types/module";
 import ModuleCard from "./module_card";
 import ClientUtils from "../utils/client";
 import Const from "../types/const";
+import Card from "./card";
 
 function ClientDetails() {
-    const {client_id} = useParams();
+    const {client_name} = useParams();
     let [client, setClient] = useState<Client | null>(null);
+    let [notFound, setNotFound] = useState<boolean>(false);
+    let [err, setErr] = useState<boolean>(false);
 
     useEffect(() => {
         function getClient() {
-            API.clients.get(Number(client_id)).then((response :any) => {
+            if (!client_name) {
+                console.log("Cannot get client: no name provided")
+                return;
+            }
+
+            API.clients.get(client_name).then((response: any) => {
                 let cl = response.data;
                 if (cl.modules === null) {
                     cl.modules = [];
@@ -23,16 +31,20 @@ function ClientDetails() {
 
                 setClient(cl);
             }).catch(error => {
+                setErr(true)
+                if (error.response.status === 404) {
+                    setNotFound(true)
+                }
                 console.log("Cannot get client details", error);
             });
         }
 
         getClient();
-    }, [client_id])
+    }, [client_name])
 
     function displayModules(mods :Module[]) {
         if (mods.length === 0) {
-            return <div className={"ml-3 text-slate-400 italic"}>None</div>;
+            return <div className={"text-slate-400 italic"}>None</div>;
         }
 
         return <>
@@ -44,86 +56,100 @@ function ClientDetails() {
     }
 
     if (client === null) {
+        if (err) {
+            if (notFound) {
+                return <div>Client not found</div>
+            }
+            return <div>Cannot load client</div>
+        }
         return <div>Loading</div>
     }
 
     return (
-        <div className="bg-white shadow rounded">
+        <Card>
             <div className="flex flex-row px-4 py-3 items-center">
                 <span className="flex-grow text-xl font-bold">Client details</span>
             </div>
 
-            <div className="flex flex-col px-4 py-3 pb-4 bg-slate-50 space-y-3">
-                <div className={"uppercase font-bold text-slate-500 mb-2"}>General info</div>
-                <div className="flex flex-col md:flex-row content-center">
-                    <div className={"w-24 py-2 px-3 font-bold text-sm text-slate-400 uppercase"}>Name</div>
-                    <div className={"flex-grow bg-white py-2 px-3 md:ml-6 rounded shadow-sm text-slate-900"}>{client.name}</div>
-                </div>
-                <div className="flex flex-col md:flex-row">
-                    <div className={"w-24 py-2 px-3 font-bold text-sm text-slate-400 uppercase"}>Address</div>
-                    <div className={"flex-grow bg-white py-2 px-3 md:ml-6 rounded shadow-sm text-slate-900"}>{client.address}</div>
-                </div>
-                <div className="flex flex-col md:flex-row">
-                    <div className={"w-24 py-2 px-3 font-bold text-sm text-slate-400 uppercase"}>Port</div>
-                    <div className={"flex-grow bg-white py-2 px-3 md:ml-6 rounded shadow-sm text-slate-900"}>{client.port}</div>
-                </div>
-            </div>
-
-            <hr />
-
-            <div className="flex flex-col px-4 py-3 bg-slate-50 space-y-3">
-                <div className={"uppercase font-bold text-slate-500 mb-2"}>Health</div>
-                <div className="flex flex-col md:flex-row items-center">
-                    <div className={"md:w-48 py-2 px-3 font-bold text-sm text-slate-400 uppercase"}>Global health</div>
-                    <div className={"flex flex-row items-center py-2 px-3 ml-3"}>
-                        <div className={"mr-2"}>
-                            <DotStatus status={ClientUtils.alive(client)} />
-                        </div>
-                        <div>
-                            {ClientUtils.GlobalAliveLabel(client)}
-                        </div>
+            <div className="grid grid-cols-2 gap-4 m-4">
+                <Card className="bg-white bg-opacity-60">
+                    <div className="p-4 flex flex-row items-center mb-2">
+                        <div className="font-bold text-slate-500">General info</div>
                     </div>
-                </div>
-                <div className="flex flex-col md:flex-row items-center">
-                    <div className={"md:w-48 py-2 px-3 md:ml-8 font-bold text-sm text-slate-400 uppercase"}>API status</div>
-                    <div className={"flex flex-row items-center py-2 px-3 ml-3"}>
-                        <div className={"mr-2"}>
-                            <DotStatus status={client.api_alive} />
-                        </div>
-                        <div>
-                            {ClientUtils.APIAliveLabel(client)}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex flex-col md:flex-row items-center">
-                    <div className={"md:w-48 py-2 px-3 md:ml-8 font-bold text-sm text-slate-400 uppercase"}>SSH availability</div>
-                    <div className={"flex flex-row items-center py-2 px-3 ml-3"}>
-                        <div className={"mr-2"}>
-                            <DotStatus status={client.ssh_alive} />
-                        </div>
-                        <div>
-                            <div>
-                                {ClientUtils.SSHAliveLabel(client)}
+                    <table className="details-table ml-4">
+                        <tr>
+                            <td>Name</td>
+                            <td>{client.name}</td>
+                        </tr>
+                        <tr>
+                            <td>Address</td>
+                            <td className="code text-base">{client.address}</td>
+                        </tr>
+                        <tr>
+                            <td>Port</td>
+                            <td className="code text-base">{client.port}</td>
+                        </tr>
+                    </table>
+                </Card>
+
+                <Card className="bg-white bg-opacity-60">
+                    <div className="p-4 flex flex-row items-center mb-2">
+                        <div className="flex-grow font-bold text-slate-500">Health</div>
+                        <div className={"flex flex-row items-center"}>
+                            <div className={"mr-2"}>
+                                <StatusDot status={ClientUtils.alive(client)}/>
                             </div>
-                            {(client.ssh_alive !== Const.OK && client.ssh_alive_message) && (
-                                <div className="border-l-2 border-slate-200 bg-slate-100 p-1 pl-2 mt-1 text-xs font-mono text-pink-900">
-                                    {client.ssh_alive_message}
-                                </div>
-                            )}
+                            <div className="text-xs">
+                                {ClientUtils.GlobalAliveLabel(client)}
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <table className="details-table ml-4">
+                        <tr>
+                            <td>API Status</td>
+                            <td>
+                                <div className={"flex flex-row items-center"}>
+                                    <div className={"mr-2"}>
+                                        <StatusDot status={client.api_alive}/>
+                                    </div>
+                                    <div>
+                                        {ClientUtils.APIAliveLabel(client)}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>SSH availability</td>
+                            <td>
+                                <div className={"flex flex-row items-center"}>
+                                    <div className={"mr-2"}>
+                                        <StatusDot status={client.ssh_alive}/>
+                                    </div>
+                                    <div>
+                                        <div>
+                                            {ClientUtils.SSHAliveLabel(client)}
+                                        </div>
+                                    </div>
+                                </div>
+                                {(client.ssh_alive !== Const.OK && client.ssh_alive_message) && (
+                                    <div
+                                        className="rounded border-l-2 border-red-200 bg-red-100 m-1 ml-5 py-1 px-2 mt-1 text-xs font-mono text-pink-900">
+                                        {client.ssh_alive_message}
+                                    </div>
+                                )}
+                            </td>
+                        </tr>
+                    </table>
+                </Card>
             </div>
 
-            <hr />
-
-            <div className="flex flex-col px-4 py-3 pb-4 bg-slate-50 space-y-3">
-                <div className={"uppercase font-bold text-slate-500 mb-2"}>Modules</div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="flex flex-col px-4 pt-8 pb-4 bg-slate-50">
+                <div className={"font-bold text-slate-500 mb-8"}>Modules</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {displayModules(client.modules)}
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }
 

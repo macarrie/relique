@@ -2,7 +2,6 @@ package common
 
 import (
 	"github.com/hashicorp/go-multierror"
-	"github.com/macarrie/relique/internal/lib/rsync"
 	log "github.com/macarrie/relique/internal/logging"
 	"github.com/macarrie/relique/internal/types/client"
 	"github.com/macarrie/relique/internal/types/module"
@@ -63,7 +62,6 @@ func Load(fileName string) (Configuration, error) {
 
 	module.MODULES_INSTALL_PATH = conf.ModuleInstallPath
 	module.ModulesInstallPathReadInConfig = true
-	rsync.STORAGE_ROOT = conf.BackupStoragePath
 
 	return conf, nil
 }

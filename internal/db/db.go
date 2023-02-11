@@ -18,13 +18,20 @@ import (
 var pool *sql.DB
 var lock sync.RWMutex
 
-const TEST_DB_PATH = "/var/lib/relique/db/unittests.db"
+const TEST_DB_PATH = "/tmp/unittests.db"
+
+var IsTest = false
 
 var DbPath string
 var DbPathReadInConfig bool
 
 // Set default value for dbPath according to OS if not already set in configuration file
 func setDbPathDefaultValue() {
+	if IsTest {
+		// Let test suite define DBPath
+		return
+	}
+
 	if DbPathReadInConfig {
 		return
 	}
@@ -57,7 +64,7 @@ func Init() error {
 
 // Used for unit tests
 func InitTestDB() error {
-	DbPath = TEST_DB_PATH
+	IsTest = true
 	if err := ResetTestDB(); err != nil {
 		return errors.Wrap(err, "cannot reset test DB")
 	}
@@ -90,7 +97,7 @@ func Open(RW bool) error {
 
 	connection, err := sql.Open("sqlite3", fmt.Sprintf("%s?cache=shared&mode=rwc", DbPath))
 	if err != nil {
-		return errors.Wrap(err, "cannot Open sqlite connection")
+		return errors.Wrap(err, "cannot open sqlite connection")
 	}
 	pool = connection
 
@@ -142,26 +149,6 @@ func Unlock() {
 func SetupSchema() error {
 	log.Info("Setting up database schema")
 	schema := `
-CREATE TABLE IF NOT EXISTS modules (
-	id INTEGER PRIMARY KEY,
-	module_type TEXT NOT NULL,
-	name TEXT NOT NULL UNIQUE,
-	backup_type INTEGER NOT NULL,
-	backup_paths TEXT,
-	pre_backup_script TEXT,
-	post_backup_script TEXT,
-	pre_restore_script TEXT,
-	post_restore_script TEXT
-);
-CREATE TABLE IF NOT EXISTS clients (
-	 id INTEGER PRIMARY KEY,
-	 config_version TEXT,
-	 name TEXT NOT NULL UNIQUE,
-	 address TEXT NOT NULL,
-	 port INTEGER NOT NULL,
-	 server_address INTEGER NOT NULL,
-	 server_port INTEGER NOT NULL
-);
 CREATE TABLE IF NOT EXISTS schedules (
 	 id INTEGER PRIMARY KEY,
 	 name TEXT NOT NULL UNIQUE,
@@ -173,12 +160,7 @@ CREATE TABLE IF NOT EXISTS schedules (
 	 saturday TEXT,
 	 sunday TEXT
 );
-CREATE TABLE IF NOT EXISTS modules_schedules (
-	schedule_id INTEGER,
-	module_id INTEGER,
-	FOREIGN KEY(schedule_id) REFERENCES schedules(id),
-	FOREIGN KEY(module_id) REFERENCES modules(id)
-);
+
 CREATE TABLE IF NOT EXISTS jobs (
 	id INTEGER PRIMARY KEY,
 	uuid TEXT NOT NULL UNIQUE,
@@ -186,15 +168,14 @@ CREATE TABLE IF NOT EXISTS jobs (
 	backup_type INTEGER NOT NULL,
 	job_type INTEGER NOT NULL,
 	done INTEGER NOT NULL,
-	module_id INTEGER NOT NULL,
-	client_id INTEGER NOT NULL,
 	start_time TIMESTAMP,
 	end_time TIMESTAMP,
     restore_job_uuid TEXT,
     restore_destination TEXT,
-	FOREIGN KEY(module_id) REFERENCES modules(id) ON DELETE CASCADE ON UPDATE CASCADE,
-	FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE
-); `
+    storage_root TEXT,
+    module_type TEXT,
+    client_name TEXT
+);`
 
 	_, err := Write().Exec(schema)
 	defer Unlock()
@@ -207,6 +188,12 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 func Migrate() error {
 	log.Info("Performing database migrations")
-	// TODO: Perform database migrations
+
+	//if err := migration_migrationName(); err != nil {
+	//log.WithFields(log.Fields{
+	//"err": err,
+	//}).Fatal("Cannot perform DB migration. Exiting")
+	//}
+
 	return nil
 }

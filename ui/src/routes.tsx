@@ -35,9 +35,9 @@ const routes = [
         elt: () => <Clients />
     },
     {
-        path: "/clients/:client_id",
+        path: "/clients/:client_name",
         name: "Client details",
-        elt: () => <ClientDetails />
+        elt: () => <ClientDetails/>
     },
     {
         path: "/modules",
