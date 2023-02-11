@@ -149,18 +149,6 @@ func Unlock() {
 func SetupSchema() error {
 	log.Info("Setting up database schema")
 	schema := `
-CREATE TABLE IF NOT EXISTS schedules (
-	 id INTEGER PRIMARY KEY,
-	 name TEXT NOT NULL UNIQUE,
-	 monday TEXT,
-	 tuesday TEXT,
-	 wednesday TEXT,
-	 thursday TEXT,
-	 friday TEXT,
-	 saturday TEXT,
-	 sunday TEXT
-);
-
 CREATE TABLE IF NOT EXISTS jobs (
 	id INTEGER PRIMARY KEY,
 	uuid TEXT NOT NULL UNIQUE,
