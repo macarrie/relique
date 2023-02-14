@@ -49,7 +49,7 @@ function JobDetails() {
                 <div className="grid grid-cols-2 gap-4 m-4">
                     <Card className="bg-white">
                         <div className="p-4 flex flex-row items-center mb-2">
-                            <div className="font-bold text-slate-500">General info</div>
+                            <div className="font-bold text-slate-500 dark:text-slate-300">General info</div>
                         </div>
                         <table className="details-table ml-4">
                             <tr>
@@ -98,7 +98,7 @@ function JobDetails() {
                     </Card>
                     <Card className="bg-white">
                         <div className="p-4 flex flex-row items-center mb-2">
-                            <div className={"flex-grow font-bold text-slate-500"}>Client</div>
+                            <div className={"flex-grow font-bold text-slate-500 dark:text-slate-300"}>Client</div>
                             <Link className="button button-small button-text" to={`/clients/${j.client.name}`}>
                                 Details
                             </Link>
@@ -121,7 +121,7 @@ function JobDetails() {
                 </div>
 
                 <div className="flex flex-col px-4 py-3 pb-4 space-y-3">
-                    <div className={"font-bold text-slate-500 mb-2"}>Module</div>
+                    <div className={"font-bold text-slate-500 dark:text-slate-300 mb-2"}>Module</div>
                     <ModuleCard module={j.module} full/>
                 </div>
             </Card>
@@ -130,7 +130,8 @@ function JobDetails() {
                 <Tabs title="Logs" initialActiveTab="pre">
                     <Tab title="Setup script" key="pre">
                         {j.module.pre_backup_script === "none" ? (
-                            <div className="center italic text-slate-400">No pre-backup/restore script configured in
+                            <div className="center italic text-slate-400 dark:text-slate-600">No pre-backup/restore
+                                script configured in
                                 module</div>
                         ) : (
                             <div>TODO: Pre script logs contents</div>
@@ -143,7 +144,8 @@ function JobDetails() {
                     })}
                     <Tab title="Teardown script" key="post">
                         {j.module.post_backup_script === "none" ? (
-                            <div className="center italic text-slate-400">No pre-backup/restore script configured in
+                            <div className="center italic text-slate-400 dark:text-slate-600">No pre-backup/restore
+                                script configured in
                                 module</div>
                         ) : (
                             <div>TODO: Post script logs contents</div>

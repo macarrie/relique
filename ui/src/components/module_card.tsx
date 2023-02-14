@@ -66,7 +66,7 @@ function ModuleCard(props :any) {
     return (
         <Card className={`bg-white bg-opacity-60 ${props.className}`}>
             <div className="p-4 flex flex-row items-center mb-2">
-                <div className="flex-grow font-bold text-slate-500">Module <span
+                <div className="flex-grow font-bold text-slate-500 dark:text-slate-300">Module <span
                     className="ml-1 badge">{mod.name}</span></div>
 
                 {(!props.full && showMoreContent) && (

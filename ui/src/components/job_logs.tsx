@@ -54,8 +54,9 @@ function JobLogs(props :any) {
         lineCountBlock += (i + 1) + "\n";
     }
     return (<>
-        <div className="flex flow-row bg-slate-100">
-            <div className="whitespace-pre font-mono text-pink-500 text-right mr-2 pr-2 border-r-2 border-slate-200">
+        <div className="flex flow-row bg-slate-100 dark:bg-slate-800">
+            <div
+                className="whitespace-pre font-mono text-pink-500 dark:text-pink-400 text-right mr-2 pr-2 border-r-2 border-slate-200 dark:border-slate-700">
                 {lineCountBlock}
             </div>
 

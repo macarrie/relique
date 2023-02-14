@@ -143,8 +143,8 @@ function ClientDetails() {
                 </Card>
             </div>
 
-            <div className="flex flex-col px-4 pt-8 pb-4 bg-slate-50">
-                <div className={"font-bold text-slate-500 mb-8"}>Modules</div>
+            <div className="flex flex-col px-4 pt-8 pb-4">
+                <div className={"font-bold text-slate-500 dark:text-slate-300 mb-8"}>Modules</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {displayModules(client.modules)}
                 </div>
