@@ -62,7 +62,7 @@ func getRoutes() *gin.Engine {
 		v1.POST("/retention/clean", postRetentionClean)
 
 		v1.GET("/clients", getClients)
-		v1.GET("/clients/:id", getClient)
+		v1.GET("/clients/:name", getClient)
 
 		v1.GET("/modules", getModules)
 		v1.GET("/modules/:name", getModule)

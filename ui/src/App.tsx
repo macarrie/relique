@@ -14,14 +14,14 @@ import Main from './layout/main';
 function App() {
     return (
         <BrowserRouter basename="/ui">
-            <div className="flex flex-row min-h-screen">
-                <Sidebar />
+            <div className="flex flex-row min-h-screen bg-blue-50 text-slate-700">
+                <Sidebar/>
 
                 <Main>
                     <Routes>
-                        <Route path="/" element={<Navigate to="/dashboard" replace={true} />} />
+                        <Route path="/" element={<Navigate to="/dashboard" replace={true}/>}/>
                         {appRoutes.map(({path, elt}, key) => (
-                            <Route path={path} element={elt()} key={key} />
+                            <Route path={path} element={elt()} key={key}/>
                         ))}
                     </Routes>
                 </Main>

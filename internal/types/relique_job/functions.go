@@ -6,8 +6,6 @@ import (
 
 	"github.com/macarrie/relique/internal/types/job_type"
 
-	"github.com/macarrie/relique/internal/types/custom_errors"
-
 	"github.com/macarrie/relique/internal/types/backup_type"
 
 	sq "github.com/Masterminds/squirrel"
@@ -42,13 +40,14 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		"status",
 		"backup_type",
 		"job_type",
-		"module_id",
-		"client_id",
 		"done",
 		"start_time",
 		"end_time",
 		"restore_job_uuid",
 		"restore_destination",
+		"storage_root",
+		"module_type",
+		"client_name",
 	).From("jobs").Where("uuid = ?", uuid)
 	query, args, err := request.ToSql()
 	if err != nil {
@@ -64,41 +63,31 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		&job.Status.Status,
 		&job.BackupType.Type,
 		&job.JobType.Type,
-		&job.ModuleID,
-		&job.ClientID,
 		&job.Done,
 		&job.StartTime,
 		&job.EndTime,
 		&job.RestoreJobUuid,
 		&job.RestoreDestination,
+		&job.StorageRoot,
+		&job.ModuleType,
+		&job.ClientName,
 	); err == sql.ErrNoRows {
 		return ReliqueJob{}, nil
 	} else if err != nil {
 		return ReliqueJob{}, errors.Wrap(err, "cannot retrieve job from db")
 	}
 
-	if job.ModuleID == 0 {
-		return ReliqueJob{}, fmt.Errorf("db inconsistency: no module associated for this job in db")
-	}
-	if job.ClientID == 0 {
-		return ReliqueJob{}, fmt.Errorf("db inconsistency: no client associated for this job in db")
-	}
-
-	mod, err := module.GetByID(job.ModuleID)
-	if custom_errors.IsDBNotFoundError(err) {
-		return ReliqueJob{}, errors.Wrap(err, "job linked module not found in db")
-	}
-	if err != nil || mod.ID == 0 {
-		return ReliqueJob{}, errors.Wrap(err, "cannot load job linked module")
+	modFilePath := fmt.Sprintf("%s/module.toml", job.GetJobFolderPath())
+	mod, err := module.LoadFromFile(modFilePath)
+	if err != nil {
+		return ReliqueJob{}, errors.Wrap(err, "job linked module cannot be loaded from file")
 	}
 	job.Module = mod
 
-	cl, err := clientObject.GetByID(job.ClientID)
-	if custom_errors.IsDBNotFoundError(err) {
-		return ReliqueJob{}, errors.Wrap(err, "job linked client not found in db")
-	}
-	if err != nil || cl.ID == 0 {
-		return ReliqueJob{}, errors.Wrap(err, "cannot load job linked client")
+	clFilePath := fmt.Sprintf("%s/client.toml", job.GetJobFolderPath())
+	cl, err := clientObject.LoadFromFile(clFilePath)
+	if err != nil {
+		return ReliqueJob{}, errors.Wrap(err, "job linked client cannot be loaded from file")
 	}
 	job.Client = &cl
 
@@ -114,18 +103,14 @@ func PreviousJob(job ReliqueJob, backupType backup_type.BackupType) (ReliqueJob,
 		"uuid",
 	).From(
 		"jobs",
-	).Join(
-		"clients ON jobs.client_id = clients.id",
-	).Join(
-		"modules ON jobs.module_id = modules.id",
-	).Where(
-		"modules.module_type = ?", job.Module.ModuleType,
 	).Where(
 		"jobs.backup_type = ?", backupType.Type,
 	).Where(
 		"jobs.done = ?", true,
 	).Where(
-		"clients.name = ?", job.Client.Name,
+		"jobs.client_name = ?", job.Client.Name,
+	).Where(
+		"jobs.module_type = ?", job.Module.ModuleType,
 	).OrderBy(
 		"jobs.id DESC",
 	)
@@ -160,6 +145,7 @@ func PreviousJob(job ReliqueJob, backupType backup_type.BackupType) (ReliqueJob,
 		return ReliqueJob{}, fmt.Errorf("no job found with specified criteria")
 	}
 
+	// TODO: Filter on module. If not, diff has no use and will not work
 	// Get first job since previous jobs are listed by id DESC
 	jobUuid := uuids[0]
 	jobFromDB, err := GetByUuid(jobUuid)
@@ -250,10 +236,6 @@ func Search(params JobSearchParams) ([]ReliqueJob, error) {
 		"uuid",
 	).From(
 		"jobs",
-	).Join(
-		"clients ON jobs.client_id = clients.id",
-	).Join(
-		"modules ON jobs.module_id = modules.id",
 	)
 	if params.BackupType != "" {
 		bType := backup_type.FromString(params.BackupType)
@@ -267,14 +249,14 @@ func Search(params JobSearchParams) ([]ReliqueJob, error) {
 		status := job_status.FromString(params.Status)
 		request = request.Where("jobs.status = ?", status.Status)
 	}
+	if params.Module != "" {
+		request = request.Where("jobs.module_type = ?", params.Module)
+	}
 	if params.Uuid != "" {
 		request = request.Where("jobs.uuid = ?", params.Uuid)
 	}
-	if params.Module != "" {
-		request = request.Where("modules.name = ?", params.Module)
-	}
 	if params.Client != "" {
-		request = request.Where("clients.name = ?", params.Client)
+		request = request.Where("jobs.client_name = ?", params.Client)
 	}
 	request = request.OrderBy("jobs.id DESC")
 	if params.Limit > 0 {
@@ -318,13 +300,13 @@ func Search(params JobSearchParams) ([]ReliqueJob, error) {
 			log.WithFields(log.Fields{
 				"err":  err,
 				"uuid": jobUuid,
-			}).Error("Cannot get job with Uuid from db")
+			}).Error("Cannot get job with uuid from db")
 			continue
 		}
 		if jobFromDB.ID == 0 {
 			log.WithFields(log.Fields{
 				"uuid": jobUuid,
-			}).Error("No job with this Uuid found in db")
+			}).Error("No job with this uuid found in db")
 			continue
 		}
 

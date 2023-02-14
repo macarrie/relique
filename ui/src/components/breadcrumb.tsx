@@ -34,9 +34,9 @@ function useCrumbs() {
         .map((item :any) => {
         let toReplace = item.path;
         // @ts-ignore
-        Object.entries(urlMatch.params).forEach(([param, value], index) => {
+        Object.entries(urlMatch.params).forEach(([param, value], _) => {
             if (value !== undefined) {
-                toReplace = toReplace.replace(":" +param, value.toString())
+                toReplace = toReplace.replace(":" + param, value.toString())
             }
         });
         item.path = toReplace;
@@ -51,7 +51,8 @@ function Breadcrumb() {
         if (nav.path === "/") {
             return (
                 <li className="inline-flex items-center" key={nav.path}>
-                    <Link to={nav.path} className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-700">
+                    <Link to={nav.path}
+                          className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-slate-900">
                         <div className="text-xl mr-1">
                             <i className="ri-home-2-line"></i>
                         </div>
@@ -65,7 +66,8 @@ function Breadcrumb() {
             <li aria-current="page" key={nav.path}>
                 <div className="flex items-center">
                     <i className="text-2xl text-gray-400 ri-arrow-right-s-line"></i>
-                    <Link to={nav.path} className="ml-1 text-sm font-medium text-gray-400 md:ml-2">{nav.name}</Link>
+                    <Link to={nav.path}
+                          className="ml-1 text-sm font-medium text-gray-400 hover:text-slate-700 md:ml-2">{nav.name}</Link>
                 </div>
             </li>
         )

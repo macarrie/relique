@@ -123,6 +123,7 @@ func postJobStart(c *gin.Context) {
 	job := relique_job.New(&targetClient, targetModule, jType)
 	job.RestoreJobUuid = params.RestoreJobUuid
 	job.RestoreDestination = params.RestoreDestination
+	job.StorageRoot = serverConfig.Config.BackupStoragePath
 	scheduler.AddJob(job)
 
 	c.JSON(http.StatusOK, job)

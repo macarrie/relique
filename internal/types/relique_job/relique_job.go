@@ -48,7 +48,6 @@ const (
 type ReliqueJob struct {
 	// Database IDs
 	ID       int64
-	ModuleID int64
 	ClientID int64
 
 	Uuid               string                 `json:"uuid"`
@@ -63,6 +62,9 @@ type ReliqueJob struct {
 	RestoreDestination string                 `json:"restore_destination"`
 	StartTime          time.Time              `json:"start_time"`
 	EndTime            time.Time              `json:"end_time"`
+	StorageRoot        string                 `json:"storage_root"`
+	ModuleType         string
+	ClientName         string
 }
 
 func (j *ReliqueJob) GetLog() *log.Entry {
@@ -75,7 +77,40 @@ func (j *ReliqueJob) GetLog() *log.Entry {
 		"restore_job_uuid": j.RestoreJobUuid,
 		"status":           j.Status.String(),
 		"done":             j.Done,
+		"storage_root":     j.StorageRoot,
 	})
+}
+
+func (j *ReliqueJob) GetJobFolderPath() string {
+	return filepath.Clean(fmt.Sprintf("%s/%s/", j.StorageRoot, j.Uuid))
+}
+
+func (j *ReliqueJob) CreateJobFolder() error {
+	if j.StorageRoot == "" {
+		return fmt.Errorf("cannot create storage destination folder because job storage is empty")
+	}
+
+	root := j.GetJobFolderPath()
+
+	j.GetLog().WithFields(log.Fields{
+		"path": root,
+	}).Debug("Creating job storage folder")
+
+	return os.MkdirAll(root, 0755)
+}
+
+func (j *ReliqueJob) CreateJobDataFolder() error {
+	if j.StorageRoot == "" {
+		return fmt.Errorf("cannot create storage destination folder because job storage is empty")
+	}
+
+	root := j.GetJobFolderPath()
+	folder := os.MkdirAll(fmt.Sprintf("%s/_data", root), 0755)
+	j.GetLog().WithFields(log.Fields{
+		"path": root,
+	}).Debug("Creating job data storage subfolder")
+
+	return folder
 }
 
 func createLogFolder(j *ReliqueJob) error {
@@ -147,28 +182,19 @@ func (j *ReliqueJob) Save() (int64, error) {
 
 	j.GetLog().Debug("Saving job into database")
 
-	moduleId, err := j.Module.Save(tx)
-	if err != nil || moduleId == 0 {
-		return 0, errors.Wrap(err, "cannot save job inner module")
-	}
-
-	clientId, err := j.Client.Save(tx)
-	if err != nil || clientId == 0 {
-		return 0, errors.Wrap(err, "cannot save job inner client")
-	}
-
 	request := sq.Insert("jobs").SetMap(sq.Eq{
 		"uuid":                db.GetNullString(j.Uuid),
 		"status":              j.Status.Status,
 		"backup_type":         j.BackupType.Type,
 		"job_type":            j.JobType.Type,
 		"done":                j.Done,
-		"module_id":           db.GetNullInt32(uint32(moduleId)),
-		"client_id":           db.GetNullInt32(uint32(clientId)),
 		"start_time":          j.StartTime,
 		"end_time":            j.EndTime,
 		"restore_job_uuid":    j.RestoreJobUuid,
 		"restore_destination": j.RestoreDestination,
+		"storage_root":        j.StorageRoot,
+		"module_type":         j.Module.ModuleType,
+		"client_name":         j.Client.Name,
 	})
 	query, args, err := request.ToSql()
 	if err != nil {
@@ -196,29 +222,18 @@ func (j *ReliqueJob) Save() (int64, error) {
 func (j *ReliqueJob) Update(tx *sql.Tx) (int64, error) {
 	j.GetLog().Debug("Updating job details into database")
 
-	var moduleId int64
-	var clientId int64
-
-	moduleId, err := j.Module.Save(tx)
-	if err != nil || moduleId == 0 {
-		return 0, errors.Wrap(err, "cannot save job inner module")
-	}
-	clientId, err = j.Client.Save(tx)
-	if err != nil || clientId == 0 {
-		return 0, errors.Wrap(err, "cannot save job inner client")
-	}
-
 	request := sq.Update("jobs").SetMap(sq.Eq{
 		"status":              j.Status.Status,
 		"backup_type":         j.BackupType.Type,
 		"job_type":            j.JobType.Type,
-		"module_id":           db.GetNullInt32(uint32(moduleId)),
-		"client_id":           db.GetNullInt32(uint32(clientId)),
 		"done":                j.Done,
 		"start_time":          j.StartTime,
 		"end_time":            j.EndTime,
 		"restore_job_uuid":    j.RestoreJobUuid,
 		"restore_destination": j.RestoreDestination,
+		"storage_root":        j.StorageRoot,
+		"module_type":         j.ModuleType,
+		"client_name":         j.ClientName,
 	}).Where(
 		"uuid = ?",
 		j.Uuid,

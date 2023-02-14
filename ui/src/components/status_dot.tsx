@@ -2,26 +2,26 @@ import React, {useEffect, useState} from "react";
 
 import Const from "../types/const";
 
-function DotStatus(props :any) {
+function StatusDot(props: any) {
     let [st, changeStatus] = useState(props.status);
 
-    function getDotColor() :string {
-        let color :string;
+    function getDotColor(): string {
+        let color: string;
         switch (st) {
             case Const.OK:
-                color = "bg-green-500";
+                color = "bg-emerald-400";
                 break;
             case Const.WARNING:
-                color = "bg-orange-500";
+                color = "bg-orange-400";
                 break;
             case Const.CRITICAL:
-                color = "bg-red-500";
+                color = "bg-red-400";
                 break;
             case Const.INFO:
-                color = "bg-blue-500";
+                color = "bg-blue-400";
                 break;
             default:
-                color = "bg-slate-500";
+                color = "bg-slate-400";
         }
 
         return color;
@@ -36,4 +36,4 @@ function DotStatus(props :any) {
     );
 }
 
-export default DotStatus;
+export default StatusDot;

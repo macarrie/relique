@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/macarrie/relique/internal/types/custom_errors"
-
 	"github.com/macarrie/relique/internal/db"
 	"github.com/macarrie/relique/internal/logging"
 
@@ -16,131 +14,12 @@ import (
 
 func SetupTest(t *testing.T) {
 	logging.Setup(true, logging.TEST_LOG_PATH)
+	logging.IsTest = true
 	if err := db.InitTestDB(); err != nil {
 		t.Errorf("cannot open db: '%s'", err)
 	}
-}
 
-func TestGetByID(t *testing.T) {
-	SetupTest(t)
-
-	testModule := Module{
-		ModuleType:        "test",
-		Name:              "test",
-		BackupType:        backup_type.BackupType{Type: backup_type.Full},
-		Schedules:         nil,
-		BackupPaths:       []string{"path1", "path2"},
-		PreBackupScript:   "",
-		PostBackupScript:  "",
-		PreRestoreScript:  "",
-		PostRestoreScript: "",
-	}
-	if _, err := testModule.Save(nil); err != nil {
-		t.Errorf("cannot save module: '%s'", err)
-	}
-
-	type args struct {
-		id int64
-	}
-	tests := []struct {
-		name         string
-		args         args
-		wantName     string
-		wantErr      bool
-		wantNotFound bool
-	}{
-		{
-			name:         "get existing module",
-			args:         args{id: testModule.ID},
-			wantName:     "test",
-			wantErr:      false,
-			wantNotFound: false,
-		},
-		{
-			name:         "get unknown module",
-			args:         args{id: 1234},
-			wantName:     "",
-			wantErr:      true,
-			wantNotFound: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetByID(tt.args.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetByID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantNotFound && !custom_errors.IsDBNotFoundError(err) {
-				t.Errorf("GetByID() error = %v, wantNotFound %v", err, tt.wantNotFound)
-				return
-			}
-			if got.Name != tt.wantName {
-				t.Errorf("GetByID() got = %v, want %v", got.Name, tt.wantName)
-			}
-		})
-	}
-}
-
-func TestGetID(t *testing.T) {
-	SetupTest(t)
-
-	testModule := Module{
-		ModuleType:        "test",
-		Name:              "test",
-		BackupType:        backup_type.BackupType{Type: backup_type.Full},
-		Schedules:         nil,
-		BackupPaths:       []string{"path1", "path2"},
-		PreBackupScript:   "",
-		PostBackupScript:  "",
-		PreRestoreScript:  "",
-		PostRestoreScript: "",
-	}
-	if _, err := testModule.Save(nil); err != nil {
-		t.Errorf("cannot save module: '%s'", err)
-	}
-
-	type args struct {
-		name string
-	}
-	tests := []struct {
-		name         string
-		args         args
-		want         int64
-		wantErr      bool
-		wantNotFound bool
-	}{
-		{
-			name:         "normal",
-			args:         args{name: "test"},
-			want:         testModule.ID,
-			wantErr:      false,
-			wantNotFound: false,
-		},
-		{
-			name:         "not_found",
-			args:         args{name: "not found"},
-			want:         0,
-			wantErr:      true,
-			wantNotFound: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetID(tt.args.name, nil)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantNotFound && !custom_errors.IsDBNotFoundError(err) {
-				t.Errorf("GetID() error = %v, wantNotFound %v", err, tt.wantNotFound)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("GetID() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	IsTest = true
 }
 
 func TestLoadFromFile(t *testing.T) {
@@ -159,7 +38,6 @@ func TestLoadFromFile(t *testing.T) {
 			name: "example",
 			args: args{file: "../../../test/config/modules/example.toml"},
 			want: Module{
-				ID:         0,
 				ModuleType: "example",
 				Name:       "example_module",
 				BackupType: backup_type.BackupType{
@@ -246,7 +124,6 @@ func TestModule_GetLog(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Module{
-				ID:                tt.fields.ID,
 				ModuleType:        tt.fields.ModuleType,
 				Name:              tt.fields.Name,
 				BackupType:        tt.fields.BackupType,
@@ -402,77 +279,6 @@ func TestModule_LoadDefaultConfiguration(t *testing.T) {
 	}
 }
 
-func TestModule_Save(t *testing.T) {
-	SetupTest(t)
-
-	savedModule := Module{
-		ID:                0,
-		ModuleType:        "test",
-		Name:              "testModule",
-		BackupType:        backup_type.BackupType{Type: backup_type.Full},
-		Schedules:         nil,
-		BackupPaths:       []string{"path1", "path2"},
-		PreBackupScript:   "",
-		PostBackupScript:  "",
-		PreRestoreScript:  "",
-		PostRestoreScript: "",
-	}
-	_, err := savedModule.Save(nil)
-	if err != nil {
-		t.Errorf("Cannot save module for save test: '%s'", err)
-	}
-
-	tests := []struct {
-		name    string
-		mod     Module
-		wantID  bool
-		wantErr bool
-	}{
-		{
-			name: "save_new_module",
-			mod: Module{
-				ModuleType:        "new_module_type",
-				Name:              "new_module_to_save",
-				BackupType:        backup_type.BackupType{Type: backup_type.Full},
-				Schedules:         nil,
-				BackupPaths:       []string{"path1", "path2"},
-				PreBackupScript:   "not_empty",
-				PostBackupScript:  "not_empty",
-				PreRestoreScript:  "not_empty",
-				PostRestoreScript: "not_empty",
-			},
-			wantID:  true,
-			wantErr: false,
-		},
-		{
-			name:    "existing_item",
-			mod:     savedModule,
-			wantID:  true,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.mod.Save(nil)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantID && (got == 0) {
-				t.Errorf("Save() got = %v, wanted not null ID", got)
-			}
-
-			modFromDB, err := GetByID(got)
-			if err != nil {
-				t.Errorf("Save() cannot get module from DB, err = '%s'", err)
-			}
-			if !reflect.DeepEqual(modFromDB, tt.mod) {
-				t.Errorf("Save() mod = %+v, from_db = %+v", tt.mod, modFromDB)
-			}
-		})
-	}
-}
-
 func TestModule_String(t *testing.T) {
 	SetupTest(t)
 
@@ -484,78 +290,18 @@ func TestModule_String(t *testing.T) {
 		{
 			name: "module",
 			mod:  Module{Name: "test"},
-			want: "test",
+			want: "test/default",
+		},
+		{
+			name: "module variant",
+			mod:  Module{Name: "test", Variant: "variant1"},
+			want: "test/variant1",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.mod.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestModule_Update(t *testing.T) {
-	SetupTest(t)
-
-	savedModule := Module{
-		ID:                0,
-		ModuleType:        "test",
-		Name:              "testModule",
-		BackupType:        backup_type.BackupType{Type: backup_type.Full},
-		Schedules:         nil,
-		BackupPaths:       nil,
-		PreBackupScript:   "",
-		PostBackupScript:  "",
-		PreRestoreScript:  "",
-		PostRestoreScript: "",
-	}
-	savedId, err := savedModule.Save(nil)
-	if err != nil {
-		t.Errorf("Cannot save module for update test: '%s'", err)
-	}
-
-	tests := []struct {
-		name    string
-		fields  Module
-		want    int64
-		wantErr bool
-	}{
-		{
-			name:    "not_saved_module",
-			fields:  Module{},
-			want:    0,
-			wantErr: true,
-		},
-		{
-			name:    "savedModule",
-			fields:  savedModule,
-			want:    savedId,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &Module{
-				ID:                tt.fields.ID,
-				ModuleType:        tt.fields.ModuleType,
-				Name:              tt.fields.Name,
-				BackupType:        tt.fields.BackupType,
-				Schedules:         tt.fields.Schedules,
-				BackupPaths:       tt.fields.BackupPaths,
-				PreBackupScript:   tt.fields.PreBackupScript,
-				PostBackupScript:  tt.fields.PostBackupScript,
-				PreRestoreScript:  tt.fields.PreRestoreScript,
-				PostRestoreScript: tt.fields.PostRestoreScript,
-			}
-			got, err := m.Update(nil)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Update() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

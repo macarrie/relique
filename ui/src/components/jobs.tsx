@@ -1,18 +1,19 @@
 import React from "react";
 
 import JobList from "../components/job_list"
+import Card from "../components/card"
 
 class Jobs extends React.Component<any, any> {
     render() {
         return (
-            <div className="grid grid-cols-4 gap-4">
-                <div className="col-span-4 bg-white shadow rounded">
+            <Card>
+                <div className="col-span-4">
                     <div className="flex flex-row px-4 py-3 items-center">
-                        <span className="flex-grow text-xl">Backup/restore jobs</span>
+                        <span className="flex-grow text-xl font-bold">Backup/restore jobs</span>
                     </div>
-                    <JobList />
+                    <JobList/>
                 </div>
-            </div>
+            </Card>
         );
     }
 }

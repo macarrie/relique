@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Bitter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,9 +8,95 @@
 
 @layer base {
     a {
-        @apply text-blue-600;
+        @apply text-blue-900;
     }
-        a:hover {
-            @apply text-blue-900;
-        }
+
+    a:hover {
+        @apply text-blue-500;
+    }
+}
+
+@layer components {
+    .table thead {
+        @apply bg-slate-100;
+        @apply uppercase;
+        @apply text-slate-500;
+        @apply text-left;
+    }
+
+    .table thead tr {
+        @apply border;
+        @apply border-slate-100;
+    }
+
+    .table tbody tr:hover {
+        @apply bg-slate-100;
+    }
+
+    .button {
+        @apply text-blue-100;
+        @apply bg-blue-500;
+        @apply focus:ring-2;
+        @apply focus:ring-blue-300;
+        @apply font-medium;
+        @apply rounded;
+        @apply text-sm;
+        @apply px-5;
+        @apply py-2;
+    }
+
+    .button:hover {
+        @apply text-blue-50;
+        @apply bg-blue-700;
+    }
+
+    .button:focus {
+        @apply ring-2;
+        @apply ring-blue-300;
+    }
+
+    .button.button-small {
+        @apply text-xs;
+        @apply px-2;
+        @apply py-1;
+    }
+
+    .button.button-text {
+        @apply bg-transparent;
+        @apply text-slate-700;
+    }
+
+    .button.button-text:hover {
+        @apply text-slate-900;
+    }
+
+    .details-table tr {
+        @apply h-10;
+    }
+
+    .details-table tr td:first-of-type {
+        @apply text-slate-400;
+        @apply font-bold;
+        @apply pr-8;
+    }
+
+    .code {
+        @apply font-mono;
+        @apply text-pink-900;
+    }
+
+    .badge {
+        @apply inline;
+        @apply bg-slate-200;
+        @apply text-slate-800;
+        @apply font-bold;
+        @apply rounded-full;
+        @apply py-1;
+        @apply px-2;
+        @apply text-xs;
+    }
+
+    .badge:hover {
+        @apply bg-slate-300;
+    }
 }

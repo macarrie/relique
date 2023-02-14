@@ -8,6 +8,7 @@ import Job from "../types/job";
 import Module from "../types/module";
 import Client from "../types/client";
 import JobUtils from "../utils/job";
+import StatusBadge from "./status_badge";
 
 function JobListRow(props :any) {
     function uuidDisplay(id :string) {
@@ -35,14 +36,19 @@ function JobListRow(props :any) {
     let job = props.job;
 
     return (
-        <tr className="hover:bg-slate-50">
-            <td className="py-2 px-3"><Link to={`/jobs/${job.uuid}`}>{uuidDisplay(job.uuid)}</Link></td>
-            <td className="py-2 px-3"><Link to={`/clients/${job.client.id}`}>{clientDisplayName(job.client)}</Link></td>
-            <td className="py-2 px-3 hidden md:table-cell">{moduleDisplayName(job.module)}</td>
+        <tr>
+            <td className="py-2 px-3 code"><Link to={`/jobs/${job.uuid}`}>{uuidDisplay(job.uuid)}</Link></td>
+            <td className="py-2 px-3"><Link to={`/clients/${job.client.name}`}>{clientDisplayName(job.client)}</Link>
+            </td>
+            <td className="py-2 px-3 hidden md:table-cell"><span
+                className="badge">{moduleDisplayName(job.module)}</span></td>
             <td className="py-2 px-3">{job.job_type}</td>
-            <td className="py-2 px-3"><span className={`${JobUtils.statusColor(job.status)} font-bold capitalize`}>{job.status}</span></td>
-            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.start_time} format={"DD/MM/YYYY HH:mm:ss"}/></td>
-            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.end_time} format={"DD/MM/YYYY HH:mm:ss"}/></td>
+            <td className="py-2 px-3"><StatusBadge label={job.status} status={JobUtils.jobStateToCode(job.status)}/>
+            </td>
+            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.start_time}
+                                                                   format={"DD/MM/YYYY HH:mm:ss"}/></td>
+            <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.end_time} format={"DD/MM/YYYY HH:mm:ss"}/>
+            </td>
         </tr>
     );
 }
@@ -91,17 +97,17 @@ function JobList(props :any) {
     }
 
     return (
-        <table className="table-auto w-full">
-            <thead className="bg-slate-50 uppercase text-slate-500 text-left">
-                <tr className="border border-l-0 border-r-0 border-slate-100">
-                    <th className="py-2 px-3 text-center">ID</th>
-                    <th className="py-2 px-3">Client</th>
-                    <th className="py-2 px-3 hidden md:table-cell">Module</th>
-                    <th className="py-2 px-3">Type</th>
-                    <th className="py-2 px-3">Status</th>
-                    <th className="py-2 px-3 hidden md:table-cell">Start</th>
-                    <th className="py-2 px-3 hidden md:table-cell">End</th>
-                </tr>
+        <table className="table table-auto w-full">
+            <thead>
+            <tr>
+                <th className="py-2 px-3 text-center">ID</th>
+                <th className="py-2 px-3">Client</th>
+                <th className="py-2 px-3 hidden md:table-cell">Module</th>
+                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 hidden md:table-cell">Start</th>
+                <th className="py-2 px-3 hidden md:table-cell">End</th>
+            </tr>
             </thead>
             {renderJobList()}
         </table>

@@ -40,7 +40,7 @@ function Tabs(props :any) {
     return <>
         <div className="flex flex-row items-center px-4">
             {props.title && (
-                <div className={"flex-grow uppercase font-bold text-slate-500 mr-3"}>{props.title}</div>
+                <div className={"flex-grow font-bold text-slate-500 mr-3"}>{props.title}</div>
             )}
             {renderTabLine()}
         </div>

@@ -28,8 +28,6 @@ func Run(args cliApi.Args) {
 		}).Fatal("Cannot init database")
 	}
 
-	config.SaveConfigObjectsInDb()
-
 	if err := scheduler.LoadRetention(config.Config.RetentionPath); err != nil {
 		log.WithFields(log.Fields{
 			"path": config.Config.RetentionPath,

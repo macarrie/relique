@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"os/user"
 	"sync"
 	"time"
 
 	consts "github.com/macarrie/relique/internal/types"
+	"github.com/pelletier/go-toml"
 
 	"github.com/macarrie/relique/internal/lib/rsync"
 	log "github.com/macarrie/relique/internal/logging"
@@ -154,6 +156,35 @@ func RegisterJob(j *relique_job.ReliqueJob) error {
 
 	j.StartTime = time.Now()
 
+	if err := j.CreateJobFolder(); err != nil {
+		return errors.Wrap(err, "cannot create job folder")
+	}
+
+	if j.JobType.Type == job_type.Backup {
+		if err := j.CreateJobDataFolder(); err != nil {
+			return errors.Wrap(err, "cannot create job data subfolder")
+		}
+	}
+
+	jobStorageRoot := j.GetJobFolderPath()
+	// Save module used to file in job folder path. Modules configuration files can change so we need to keep trace of the exact module used for backup
+	moduleExportFile, moduleExportErr := toml.Marshal(j.Module)
+	if moduleExportErr != nil {
+		return errors.Wrap(moduleExportErr, "cannot serialize job module info to toml data")
+	}
+	if err := os.WriteFile(fmt.Sprintf("%s/module.toml", jobStorageRoot), moduleExportFile, 0644); err != nil {
+		return errors.Wrap(err, "cannot export job module info to file")
+	}
+
+	// Save client to file in job folder path. Client configuration files can change so we need to keep trace of the exact client used for backup for later reference
+	clientExportFile, clientExportErr := toml.Marshal(j.Client)
+	if clientExportErr != nil {
+		return errors.Wrap(moduleExportErr, "cannot serialize job client info to toml data")
+	}
+	if err := os.WriteFile(fmt.Sprintf("%s/client.toml", jobStorageRoot), clientExportFile, 0644); err != nil {
+		return errors.Wrap(err, "cannot export job client info to file")
+	}
+
 	if _, err := j.Save(); err != nil {
 		return errors.Wrap(err, "cannot save job during register")
 	}
@@ -278,7 +309,8 @@ func startModuleScript(job *relique_job.ReliqueJob, scriptType int) error {
 func SyncFiles(job *relique_job.ReliqueJob) error {
 	job.GetLog().Info("Starting file sync")
 	var wg sync.WaitGroup
-	syncHasSuccess := false
+	syncHasIncomplete := false
+	syncHasError := false
 
 	// TODO: Parse stats from output and save them in job
 	for _, path := range job.Module.BackupPaths {
@@ -320,31 +352,29 @@ func SyncFiles(job *relique_job.ReliqueJob) error {
 				rsyncTask.Cmd.Stderr = rsyncLogFile
 			}
 
-			//rsyncErrorLogFile, err := job.CreateRsyncErrorLogFile(task.Path)
-			//defer func() {
-			//	if err := rsyncErrorLogFile.Close(); err != nil {
-			//		job.GetLog().WithFields(log.Fields{
-			//			"err": err,
-			//		}).Error("Cannot close stderr rsync log file")
-			//	}
-			//}()
-			//if err != nil {
-			//	job.GetLog().WithFields(log.Fields{
-			//		"err":  err,
-			//		"path": task.Path,
-			//	}).Error("Cannot create error log file for rsync task")
-			//} else {
-			//	rsyncTask.Cmd.Stderr = rsyncErrorLogFile
-			//}
+			job.GetLog().WithFields(log.Fields{
+				"command": task.Cmd.String(),
+				"path":    task.Path,
+			}).Debug("Starting backup path rsync")
 
 			if err := rsyncTask.Run(); err != nil {
 				job.GetLog().WithFields(log.Fields{
 					"err":  err,
 					"path": task.Path,
 				}).Error("Error during path sync")
-				job.Status.Status = job_status.Incomplete
-			} else {
-				syncHasSuccess = true
+
+				// Rsync exit codes 23,24,25 mean that some files still may have been transferred even if exit code is != 0.
+				// Treating those exit codes as partial success/error
+				// 23 - Partial transfer due to error
+				// 24 - Partial transfer due to vanished source files
+				// 25 - The --max-delete limit stopped deletions
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					if exitErr.ExitCode() >= 23 || exitErr.ExitCode() <= 25 {
+						syncHasIncomplete = true
+					} else {
+						syncHasError = true
+					}
+				}
 			}
 
 			logPath := job.GetRsyncLogFilePath(task.Path)
@@ -375,8 +405,14 @@ func SyncFiles(job *relique_job.ReliqueJob) error {
 		job.GetLog().Warning("Cannot print job sync tasks progress")
 	}
 
-	if !syncHasSuccess {
-		job.Status.Status = job_status.Error
+	if syncHasIncomplete || syncHasError {
+		if syncHasIncomplete {
+			job.Status.Status = job_status.Incomplete
+		} else {
+			job.Status.Status = job_status.Error
+		}
+	} else {
+		job.Status.Status = job_status.Success
 	}
 
 	return nil

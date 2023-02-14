@@ -10,10 +10,11 @@ function ModuleListRow(props :any) {
 
     console.log(mod);
     return (
-        <tr className="hover:bg-slate-50">
+        <tr>
             <td className="py-2 px-3"><Link to={`/modules/${mod.name}`}>{mod.name}</Link></td>
             <td className="py-2 px-3">{mod.module_type}</td>
-            <td className="py-2 px-3">{mod.available_variants.join(", ")}</td>
+            <td className="py-2 px-3 space-x-1">{mod.available_variants.map((v: any) => (
+                <span className="badge">{v}</span>))}</td>
         </tr>
     );
 }
@@ -62,13 +63,13 @@ function ModuleList(props :any) {
     }
 
     return (
-        <table className="table-auto w-full">
-            <thead className="bg-slate-50 uppercase text-slate-500 text-left">
-                <tr className="border border-l-0 border-r-0 border-slate-100">
-                    <th className="py-2 px-3">Name</th>
-                    <th className="py-2 px-3">Type</th>
-                    <th className="py-2 px-3">Variants</th>
-                </tr>
+        <table className="table table-auto w-full">
+            <thead>
+            <tr>
+                <th className="py-2 px-3">Name</th>
+                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3">Variants</th>
+            </tr>
             </thead>
             {renderModuleList()}
         </table>
