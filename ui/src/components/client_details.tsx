@@ -71,10 +71,10 @@ function ClientDetails() {
                 <span className="flex-grow text-xl font-bold">Client details</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 m-4">
+            <div className="grid md:grid-cols-2 gap-4 m-4">
                 <Card className="bg-white bg-opacity-60">
                     <div className="p-4 flex flex-row items-center mb-2">
-                        <div className="font-bold text-slate-500">General info</div>
+                        <div className="font-bold text-slate-500 dark:text-slate-200">General info</div>
                     </div>
                     <table className="details-table ml-4">
                         <tr>
@@ -94,7 +94,7 @@ function ClientDetails() {
 
                 <Card className="bg-white bg-opacity-60">
                     <div className="p-4 flex flex-row items-center mb-2">
-                        <div className="flex-grow font-bold text-slate-500">Health</div>
+                        <div className="flex-grow font-bold text-slate-500 dark:text-slate-200">Health</div>
                         <div className={"flex flex-row items-center"}>
                             <div className={"mr-2"}>
                                 <StatusDot status={ClientUtils.alive(client)}/>
@@ -133,7 +133,7 @@ function ClientDetails() {
                                 </div>
                                 {(client.ssh_alive !== Const.OK && client.ssh_alive_message) && (
                                     <div
-                                        className="rounded border-l-2 border-red-200 bg-red-100 m-1 ml-5 py-1 px-2 mt-1 text-xs font-mono text-pink-900">
+                                        className="rounded border-l-2 border-red-200 bg-red-100 dark:border-red-900 dark:bg-red-900/50 dark:text-red-200 m-1 ml-5 py-1 px-2 mt-1 text-xs font-mono text-pink-900">
                                         {client.ssh_alive_message}
                                     </div>
                                 )}
@@ -143,8 +143,8 @@ function ClientDetails() {
                 </Card>
             </div>
 
-            <div className="flex flex-col px-4 pt-8 pb-4 bg-slate-50">
-                <div className={"font-bold text-slate-500 mb-8"}>Modules</div>
+            <div className="flex flex-col px-4 pt-8 pb-4">
+                <div className={"font-bold text-slate-500 dark:text-slate-200 mb-8"}>Modules</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {displayModules(client.modules)}
                 </div>

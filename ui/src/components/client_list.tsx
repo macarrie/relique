@@ -18,7 +18,7 @@ function ClientListRow(props :any) {
             <td className="py-2 px-3"><StatusDot status={ClientUtils.alive(client)}/></td>
             <td className="py-2 px-3"><Link to={`/clients/${client.name}`}>{client.name}</Link></td>
             <td className="py-2 px-3 code">{client.address}</td>
-            <td className="py-2 px-3 space-x-1">{module_names.map((mod: any) => (
+            <td className="py-2 px-3 space-x-1 hidden md:table-cell">{module_names.map((mod: any) => (
                 <span className="badge">{mod}</span>))}</td>
         </tr>
     );
@@ -73,7 +73,7 @@ function ClientList(props :any) {
                 <th className="py-2 px-3 max-w-min text-center">Health</th>
                 <th className="py-2 px-3">Name</th>
                 <th className="py-2 px-3">Address</th>
-                <th className="py-2 px-3">Modules</th>
+                <th className="py-2 px-3 hidden md:table-cell">Modules</th>
             </tr>
             </thead>
             {renderClientList()}

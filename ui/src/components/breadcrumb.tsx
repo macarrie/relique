@@ -52,7 +52,7 @@ function Breadcrumb() {
             return (
                 <li className="inline-flex items-center" key={nav.path}>
                     <Link to={nav.path}
-                          className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-slate-900">
+                          className="inline-flex items-center text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100">
                         <div className="text-xl mr-1">
                             <i className="ri-home-2-line"></i>
                         </div>
@@ -65,9 +65,9 @@ function Breadcrumb() {
         return (
             <li aria-current="page" key={nav.path}>
                 <div className="flex items-center">
-                    <i className="text-2xl text-gray-400 ri-arrow-right-s-line"></i>
+                    <i className="text-2xl text-gray-400 dark:text-gray-600 ri-arrow-right-s-line"></i>
                     <Link to={nav.path}
-                          className="ml-1 text-sm font-medium text-gray-400 hover:text-slate-700 md:ml-2">{nav.name}</Link>
+                          className="ml-1 text-sm font-medium text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 md:ml-2">{nav.name}</Link>
                 </div>
             </li>
         )

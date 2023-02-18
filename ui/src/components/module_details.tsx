@@ -45,12 +45,12 @@ function ModuleDetails() {
     }
 
     return (
-        <Card>
+        <Card className="pb-2">
             <div className="flex flex-row px-4 py-3 items-center">
                 <span className="flex-grow text-xl font-bold">Module details</span>
             </div>
 
-            <ModuleCard className="bg-transparent" module={m} full/>
+            <ModuleCard className="mx-4" module={m} full/>
         </Card>
     );
 }

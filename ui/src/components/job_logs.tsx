@@ -43,7 +43,8 @@ function JobLogs(props :any) {
                 Load logs
             </button>
             {err && (
-                <div className="mt-4 bg-red-100 px-5 py-3 text-red-900">{err}</div>
+                <div
+                    className="mt-4 bg-red-100 px-5 py-3 rounded text-red-900 dark:bg-red-900/50 dark:text-slate-200">{err}</div>
             )}
         </div>);
     }
@@ -54,8 +55,9 @@ function JobLogs(props :any) {
         lineCountBlock += (i + 1) + "\n";
     }
     return (<>
-        <div className="flex flow-row bg-slate-100">
-            <div className="whitespace-pre font-mono text-pink-500 text-right mr-2 pr-2 border-r-2 border-slate-200">
+        <div className="flex flow-row">
+            <div
+                className="whitespace-pre font-mono text-pink-500 text-right mr-2 pr-2 border-r-2 border-slate-200 dark:border-slate-600">
                 {lineCountBlock}
             </div>
 

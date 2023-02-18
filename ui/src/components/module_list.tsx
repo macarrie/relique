@@ -12,7 +12,7 @@ function ModuleListRow(props :any) {
     return (
         <tr>
             <td className="py-2 px-3"><Link to={`/modules/${mod.name}`}>{mod.name}</Link></td>
-            <td className="py-2 px-3">{mod.module_type}</td>
+            <td className="py-2 px-3 hidden md:table-cell">{mod.module_type}</td>
             <td className="py-2 px-3 space-x-1">{mod.available_variants.map((v: any) => (
                 <span className="badge">{v}</span>))}</td>
         </tr>
@@ -67,7 +67,7 @@ function ModuleList(props :any) {
             <thead>
             <tr>
                 <th className="py-2 px-3">Name</th>
-                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3 hidden md:table-cell">Type</th>
                 <th className="py-2 px-3">Variants</th>
             </tr>
             </thead>

@@ -7,13 +7,6 @@
 @tailwind utilities;
 
 @layer base {
-    a {
-        @apply text-blue-900;
-    }
-
-    a:hover {
-        @apply text-blue-500;
-    }
 }
 
 @layer components {
@@ -24,14 +17,19 @@
         @apply text-left;
     }
 
-    .table thead tr {
-        @apply border;
-        @apply border-slate-100;
+    .dark .table thead {
+        @apply bg-slate-700/50;
+        @apply text-slate-300;
     }
 
     .table tbody tr:hover {
         @apply bg-slate-100;
     }
+
+    .dark .table tbody tr:hover {
+        @apply bg-slate-800;
+    }
+
 
     .button {
         @apply text-blue-100;
@@ -44,17 +42,14 @@
         @apply px-5;
         @apply py-2;
     }
-
     .button:hover {
         @apply text-blue-50;
         @apply bg-blue-700;
     }
-
     .button:focus {
         @apply ring-2;
         @apply ring-blue-300;
     }
-
     .button.button-small {
         @apply text-xs;
         @apply px-2;
@@ -69,6 +64,16 @@
     .button.button-text:hover {
         @apply text-slate-900;
     }
+
+    .dark .button.button-text {
+        @apply bg-transparent;
+        @apply text-slate-300;
+    }
+
+    .dark .button.button-text:hover {
+        @apply text-slate-100;
+    }
+
 
     .details-table tr {
         @apply h-10;
@@ -85,6 +90,10 @@
         @apply text-pink-900;
     }
 
+    .dark .code {
+        @apply text-pink-300;
+    }
+
     .badge {
         @apply inline;
         @apply bg-slate-200;
@@ -98,5 +107,14 @@
 
     .badge:hover {
         @apply bg-slate-300;
+    }
+
+    .dark .badge {
+        @apply bg-slate-700;
+        @apply text-slate-100;
+    }
+
+    .dark .badge:hover {
+        @apply bg-slate-600;
     }
 }
