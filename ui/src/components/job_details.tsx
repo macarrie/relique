@@ -46,10 +46,10 @@ function JobDetails() {
                     <span className="text-l ml-4 code">{j.uuid}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 m-4">
-                    <Card className="bg-white">
+                <div className="grid md:grid-cols-2 gap-4 m-4">
+                    <Card className="bg-white bg-opacity-60">
                         <div className="p-4 flex flex-row items-center mb-2">
-                            <div className="font-bold text-slate-500">General info</div>
+                            <div className="font-bold text-slate-500 dark:text-slate-200">General info</div>
                         </div>
                         <table className="details-table ml-4">
                             <tr>
@@ -96,9 +96,9 @@ function JobDetails() {
                             </tr>
                         </table>
                     </Card>
-                    <Card className="bg-white">
+                    <Card className="bg-white bg-opacity-60">
                         <div className="p-4 flex flex-row items-center mb-2">
-                            <div className={"flex-grow font-bold text-slate-500"}>Client</div>
+                            <div className={"flex-grow font-bold text-slate-500 dark:text-slate-200"}>Client</div>
                             <Link className="button button-small button-text" to={`/clients/${j.client.name}`}>
                                 Details
                             </Link>
@@ -121,7 +121,7 @@ function JobDetails() {
                 </div>
 
                 <div className="flex flex-col px-4 py-3 pb-4 space-y-3">
-                    <div className={"font-bold text-slate-500 mb-2"}>Module</div>
+                    <div className={"font-bold text-slate-500 dark:text-slate-200 mb-2"}>Module</div>
                     <ModuleCard module={j.module} full/>
                 </div>
             </Card>
