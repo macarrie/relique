@@ -1,6 +1,7 @@
-FROM node:18-bullseye as builder
+FROM golang:1.20-bullseye as builder
+#FROM node:18-bullseye as builder
 
-RUN apt-get update && apt-get install -y bash gcc g++ make golang
+RUN apt-get update && apt-get install -y bash gcc g++ make npm nodejs
 COPY . /src
 
 WORKDIR /src

@@ -1,4 +1,4 @@
-FROM golang:1.18-bullseye as builder
+FROM golang:1.20-bullseye as builder
 
 #RUN apt-get install -y bash gcc g++ make git && git clone https://github.com/macarrie/relique --branch ${version} /src
 RUN apt-get install -y bash gcc g++ make
