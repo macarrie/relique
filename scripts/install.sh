@@ -343,6 +343,17 @@ function install_default_modules() {
     done
 }
 
+# Create empty default directories
+function create_default_empty_dirs() {
+    log "Creating empty logs and storage default directories"
+
+    mkdir -p "${PREFIX}/var/log/relique"
+
+    if [ "X${INSTALL_SERVER}X" == "X1X" ]; then
+		mkdir -p "${PREFIX}/var/lib/relique/storage"
+    fi
+}
+
 function main() {
     trap log_exit EXIT
     cmdline "${@}"
@@ -355,6 +366,7 @@ function main() {
     copy_default_configuration
     copy_certs
     copy_webui_files
+	create_default_empty_dirs
 
     if [ "X${SYSTEMD}X" == "X1X" ]; then
         install_systemd_service
