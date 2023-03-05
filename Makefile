@@ -64,14 +64,14 @@ tar: $(BUILD_OUTPUT_DIR) ## Package sources to tar for rpm build
 ~/rpmbuild:
 	rpmdev-setuptree
 
-build_single_rpm:
+build_single_rpm: clean ~/rpmbuild tar
+	cp $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz ~/rpmbuild/SOURCES/
 	sed "s/__VERSION__/$(VERSION)/" build/package/rpm/$(rpm).spec.tpl > ~/rpmbuild/SPECS/$(rpm).spec
 	rpmlint ~/rpmbuild/SPECS/$(rpm).spec
 	rpmbuild -ba ~/rpmbuild/SPECS/$(rpm).spec
 
 
-rpm: clean ~/rpmbuild tar ## Build rpm packages
-	cp $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz ~/rpmbuild/SOURCES/
+rpm: ## Build rpm packages
 	$(MAKE) build_single_rpm rpm=relique-client
 	$(MAKE) build_single_rpm rpm=relique-server
 

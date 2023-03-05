@@ -190,6 +190,17 @@ function make_certs() {
     rm "${OUTPUT_DIR}/tmp.certs"
 }
 
+# Create empty default directories
+function create_default_empty_dirs() {
+    log "Creating empty logs and storage default directories"
+
+    mkdir -p "${OUTPUT_DIR}/var/log/relique"
+
+    if [ "X${BUILD_SERVER}X" == "X1X" ]; then
+		mkdir -p "${OUTPUT_DIR}/var/lib/relique/storage"
+    fi
+}
+
 function main() {
     trap log_exit EXIT
     cmdline "${@}"
