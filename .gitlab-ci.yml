@@ -1,0 +1,69 @@
+variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+    GIT_SUBMODULE_STRATEGY: recursive
+    NODEJS_VERSION: 16
+
+default:
+    image: rockylinux:8
+    cache: &global_cache
+        key: $CI_COMMIT_REF_SLUG
+        paths:
+            - .go/pkg/mod/
+
+    before_script: &before_script
+        - dnf module install -y nodejs:$NODEJS_VERSION
+        - dnf install -y bash git make openssl golang nodejs npm rpmdevtools rpmlint
+
+stages:
+    - build
+    #- test
+    - packages
+    - release
+        
+build:
+    stage: build
+    script:
+        - make build
+
+#test:
+    #stage: test
+    #script:
+        #- go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
+        #- make test
+
+rpm-rocky-8:
+    stage: packages
+    image: rockylinux:8
+    script:
+        - make rpm
+    artifacts:
+        paths:
+        - output/rpms/relique-*.rpm
+
+rpm-rocky-9:
+    variables:
+        NODEJS_VERSION: 18
+    stage: packages
+    image: rockylinux:9
+    script:
+        - make rpm
+    artifacts:
+        paths:
+        - output/rpms/relique-*.rpm
+
+#docker:
+    #stage: packages
+    #script:
+        #- make docker
+
+create_gitlab_release:
+    stage: release
+    image: registry.gitlab.com/gitlab-org/release-cli:latest
+    only:
+        - tags
+        - master
+    script:
+        - echo "Creating release $CI_COMMIT_TAG"
+    release:
+        tag_name: '$CI_COMMIT_TAG'
+        description: '$CI_COMMIT_TAG'
