@@ -5,23 +5,39 @@ import API from "../utils/api";
 
 import Module from "../types/module";
 
+function ModuleListRowPlaceholder() {
+    return (
+        <tr className="animate-pulse">
+            <td className="py-2 px-3"><div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div></td>
+            <td className="py-2 px-3"><div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div></td>
+            <td className="py-2 px-3 hidden md:table-cell">
+                <div className="flex flex-row space-x-1">
+                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
+                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
+                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
+                </div>
+            </td>
+        </tr>
+    );
+}
+
 function ModuleListRow(props :any) {
     let mod = props.module;
 
-    console.log(mod);
     return (
         <tr>
             <td className="py-2 px-3"><Link to={`/modules/${mod.name}`}>{mod.name}</Link></td>
             <td className="py-2 px-3 hidden md:table-cell">{mod.module_type}</td>
             <td className="py-2 px-3 space-x-1">{mod.available_variants.map((v: any) => (
-                <span className="badge">{v}</span>))}</td>
+                <span className="badge" key={v}>{v}</span>))}</td>
         </tr>
     );
 }
 
 function ModuleList(props :any) {
     let [limit, setLimit] = useState(props.limit || 0);
-    let [modules, setModuleList] = useState([]);
+    let [modules, setModuleList] = useState([] as Module[]);
+    let [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setLimit(props.limit);
@@ -33,8 +49,10 @@ function ModuleList(props :any) {
                 limit: limit,
             }).then((response :any) => {
                 setModuleList(response.data);
+                setLoading(false)
             }).catch(error => {
                 console.log("Cannot get module list", error);
+                setLoading(false)
             });
         }
 
@@ -43,11 +61,25 @@ function ModuleList(props :any) {
 
 
     function renderModuleList() {
-        if (!modules) {
+        if (loading) {
             return (
-                <>
-                Loading
-                </>
+                <tbody>
+                    <ModuleListRowPlaceholder />
+                    <ModuleListRowPlaceholder />
+                    <ModuleListRowPlaceholder />
+                </tbody>
+            )
+        }
+
+        if (!modules || modules.length === 0) {
+            return (
+                <tbody>
+                    <tr>
+                        <td colSpan={3} className={"px-3 py-8 text-center text-3xl italic text-gray-300 dark:text-gray-600"}>
+                            No modules
+                        </td>
+                    </tr>
+                </tbody>
             )
         }
 

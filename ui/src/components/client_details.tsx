@@ -10,6 +10,38 @@ import ClientUtils from "../utils/client";
 import Const from "../types/const";
 import Card from "./card";
 
+function ClientDetailsPlaceholder() {
+    return (
+        <Card>
+            <div className="flex flex-row px-4 py-3 items-center">
+                <span className="flex-grow text-xl font-bold">Client details</span>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 m-4">
+                <Card className="bg-white bg-opacity-60 animate-pulse">
+                    <div className="p-4 flex flex-row items-center mb-2">
+                        <div className="rounded-full h-3 w-2/5 bg-slate-300 dark:bg-slate-600"></div>
+                    </div>
+                    <table className="details-table ml-4">
+                        <tr>
+                            <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                            <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                            <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                            <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                        </tr>
+                    </table>
+                </Card>
+
+            </div>
+        </Card>
+    );
+}
 function ClientDetails() {
     const {client_name} = useParams();
     let [client, setClient] = useState<Client | null>(null);
@@ -58,11 +90,11 @@ function ClientDetails() {
     if (client === null) {
         if (err) {
             if (notFound) {
-                return <div>Client not found</div>
+                return <div className={"text-4xl text-center italic py-8 text-slate-400 dark:text-slate-600"}>Client not found</div>
             }
-            return <div>Cannot load client</div>
+            return <div className={"text-4xl text-center italic py-8 text-slate-400 dark:text-slate-600"}>Cannot load client</div>
         }
-        return <div>Loading</div>
+        return <ClientDetailsPlaceholder />
     }
 
     return (
