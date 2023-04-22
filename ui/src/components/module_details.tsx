@@ -6,6 +6,37 @@ import Module from "../types/module";
 import Card from "./card";
 import ModuleCard from "./module_card";
 
+function ModuleDetailsPlaceholder() {
+    return (
+        <Card className="pb-2">
+            <div className="flex flex-row px-4 py-3 items-center">
+                <span className="flex-grow text-xl font-bold">Module details</span>
+            </div>
+
+            <Card className={`bg-white bg-opacity-60 mx-4`}>
+                <div className="p-4 flex flex-row items-center mb-2">
+                    <div className="flex-grow font-bold text-slate-500 dark:text-slate-200">
+                        <div className="rounded-full h-3 w-2/5 bg-slate-300 dark:bg-slate-600"></div>
+                    </div>
+                </div>
+                <table className="details-table ml-4 mb-2">
+                    <tr>
+                        <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                        <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                    </tr>
+                    <tr>
+                        <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                        <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                    </tr>
+                    <tr>
+                        <td><div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div></td>
+                        <td><div className="rounded-full h-2 w-24 bg-slate-300 dark:bg-slate-600"></div></td>
+                    </tr>
+                </table>
+            </Card>
+        </Card>
+    );
+}
 function ModuleDetails() {
     let urlParams = useParams();
     let [m, setModule] = useState<Module | null>(null);
@@ -37,11 +68,11 @@ function ModuleDetails() {
     if (m === null) {
         if (err) {
             if (notFound) {
-                return <div>Client not found</div>
+                return <div className={"text-4xl text-center italic py-8 text-slate-400 dark:text-slate-600"}>Module not found</div>
             }
-            return <div>Cannot load client</div>
+            return <div className={"text-4xl text-center italic py-8 text-slate-400 dark:text-slate-600"}>Cannot load module</div>
         }
-        return <div>Loading</div>
+        return <ModuleDetailsPlaceholder />
     }
 
     return (

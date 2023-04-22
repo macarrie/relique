@@ -10,6 +10,34 @@ import Client from "../types/client";
 import JobUtils from "../utils/job";
 import StatusBadge from "./status_badge";
 
+function JobListRowPlaceholder(props :any) {
+    return (
+        <tr>
+            <td className="py-2 px-3 code">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3 hidden md:table-cell">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3 hidden md:table-cell">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+            <td className="py-2 px-3 hidden md:table-cell">
+                <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
+            </td>
+        </tr>
+    );
+}
+
 function JobListRow(props :any) {
     function uuidDisplay(id :string) {
         return id.split("-")[0]
@@ -55,7 +83,8 @@ function JobListRow(props :any) {
 
 function JobList(props :any) {
     let [limit, setLimit] = useState(props.limit || 0);
-    let [jobs, setJobList] = useState([]);
+    let [jobs, setJobList] = useState([] as Job[]);
+    let [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setLimit(props.limit);
@@ -67,8 +96,10 @@ function JobList(props :any) {
                 limit: limit,
             }).then((response :any) => {
                 setJobList(response.data);
+                setLoading(false);
             }).catch(error => {
                 console.log("Cannot get job list", error);
+                setLoading(false);
             });
         }
 
@@ -77,11 +108,25 @@ function JobList(props :any) {
 
 
     function renderJobList() {
-        if (!jobs) {
+        if (loading) {
             return (
-                <>
-                Loading
-                </>
+                <tbody>
+                    <JobListRowPlaceholder />
+                    <JobListRowPlaceholder />
+                    <JobListRowPlaceholder />
+                </tbody>
+            )
+        }
+
+        if (!jobs || jobs.length === 0) {
+            return (
+                <tbody>
+                    <tr>
+                        <td colSpan={8} className={"px-3 py-8 text-center text-3xl italic text-gray-300 dark:text-gray-600"}>
+                            No jobs
+                        </td>
+                    </tr>
+                </tbody>
             )
         }
 
