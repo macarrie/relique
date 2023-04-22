@@ -59,9 +59,12 @@ rpm-rocky-9:
 create_gitlab_release:
     stage: release
     image: registry.gitlab.com/gitlab-org/release-cli:latest
+    before_script: # Override defaults
+        - ""
     only:
         - tags
-        - master
+    except:
+        - branches
     script:
         - echo "Creating release $CI_COMMIT_TAG"
     release:
