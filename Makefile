@@ -68,9 +68,8 @@ build_single_rpm: clean ~/rpmbuild tar
 	cp $(BUILD_OUTPUT_DIR)/relique-$(VERSION).src.tar.gz ~/rpmbuild/SOURCES/
 	sed "s/__VERSION__/$(VERSION)/" build/package/rpm/$(rpm).spec.tpl > ~/rpmbuild/SPECS/$(rpm).spec
 	rpmlint ~/rpmbuild/SPECS/$(rpm).spec
-	rpmbuild -ba ~/rpmbuild/SPECS/$(rpm).spec
+	rpmbuild -bb ~/rpmbuild/SPECS/$(rpm).spec
 	mkdir -p $(BUILD_OUTPUT_DIR)/rpms/
-	cp ~/rpmbuild/SRPMS/relique-*-$(VERSION)-*.src.rpm $(BUILD_OUTPUT_DIR)/rpms
 	cp ~/rpmbuild/RPMS/**/relique-*-$(VERSION)-*.rpm $(BUILD_OUTPUT_DIR)/rpms
 
 

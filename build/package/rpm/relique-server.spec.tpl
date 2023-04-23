@@ -24,8 +24,8 @@ rm -rf $RPM_BUILD_ROOT
 make install INSTALL_ROOT=$RPM_BUILD_ROOT INSTALL_SRC=%{_builddir}/output INSTALL_ARGS="--server --systemd --skip-user-creation"
 
 %pre
-getent group relique > /dev/null || groupadd -r relique -gid 8400
-getent passwd relique > /dev/null || useradd -r -g "relique" -uid 8400 -d "/var/lib/relique" -s /sbin/nologin -c "Relique service account" "relique"
+getent group relique > /dev/null || groupadd -r relique --gid 8400
+getent passwd relique > /dev/null || useradd -r -g "relique" --uid 8400 -d "/var/lib/relique" -s /sbin/nologin -c "Relique service account" "relique"
 exit 0
 
 %post
