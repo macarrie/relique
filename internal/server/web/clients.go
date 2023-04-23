@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/macarrie/relique/internal/logging"
@@ -27,9 +26,7 @@ func getClient(c *gin.Context) {
 
 	// Get client from config to get modules details
 	found := false
-	fmt.Printf("CL name: %+v\n", clName)
 	for _, configClient := range serverConfig.Config.Clients {
-		fmt.Printf("Current client: %+v\n", configClient)
 		if configClient.Name == clName {
 			found = true
 			cl = configClient
@@ -39,7 +36,6 @@ func getClient(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	fmt.Printf("CL: %+v\n", cl)
 
 	if err := serverApi.PingSSHClient(&cl); err != nil {
 		cl.GetLog().WithFields(log.Fields{
