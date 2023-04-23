@@ -36,6 +36,7 @@ rpm-rocky-8:
     image: rockylinux:8
     script:
         - make rpm
+        - du -chs output/rpms/*
     artifacts:
         paths:
         - output/rpms/relique-*.rpm
@@ -47,6 +48,7 @@ rpm-rocky-9:
     image: rockylinux:9
     script:
         - make rpm
+        - du -chs output/rpms/*
     artifacts:
         paths:
         - output/rpms/relique-*.rpm
