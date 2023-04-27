@@ -42,6 +42,39 @@ function ClientDetailsPlaceholder() {
         </Card>
     );
 }
+
+function ClientHealthStatusBlock(props :any) {
+    let [isOpen, setOpen] = useState<Boolean>(false);
+    let status = props.status;
+    let label = props.label;
+    let error = props.error;
+
+    let openIcon :string = "ri-arrow-down-s-line";
+    let closedIcon :string = "ri-arrow-up-s-line";
+
+    return (
+        <>
+            <div className={"flex flex-row items-center"}>
+                <div className={"mr-2"}>
+                    <StatusDot status={status}/>
+                </div>
+                <div>
+                    {label}
+                </div>
+                <button type="button" onClick={() => setOpen(!isOpen)} className="dark:text-slate-300 ml-2">
+                    <i className={isOpen ? closedIcon : openIcon}></i>
+                </button>
+            </div>
+            {(isOpen && status !== Const.OK && error) && (
+                <div
+                    className="rounded border-l-2 border-red-200 bg-red-100 dark:border-red-900 dark:bg-red-900/50 dark:text-red-200 m-1 ml-5 py-1 px-2 mt-1 text-xs font-mono text-pink-900">
+                    {error}
+                </div>
+            )}
+        </>
+    )
+}
+
 function ClientDetails() {
     const {client_name} = useParams();
     let [client, setClient] = useState<Client | null>(null);
@@ -140,35 +173,13 @@ function ClientDetails() {
                         <tr>
                             <td>API Status</td>
                             <td>
-                                <div className={"flex flex-row items-center"}>
-                                    <div className={"mr-2"}>
-                                        <StatusDot status={client.api_alive}/>
-                                    </div>
-                                    <div>
-                                        {ClientUtils.APIAliveLabel(client)}
-                                    </div>
-                                </div>
+                                <ClientHealthStatusBlock status={client.api_alive} label={ClientUtils.APIAliveLabel(client)} error={client.api_alive_message} />
                             </td>
                         </tr>
                         <tr>
                             <td>SSH availability</td>
                             <td>
-                                <div className={"flex flex-row items-center"}>
-                                    <div className={"mr-2"}>
-                                        <StatusDot status={client.ssh_alive}/>
-                                    </div>
-                                    <div>
-                                        <div>
-                                            {ClientUtils.SSHAliveLabel(client)}
-                                        </div>
-                                    </div>
-                                </div>
-                                {(client.ssh_alive !== Const.OK && client.ssh_alive_message) && (
-                                    <div
-                                        className="rounded border-l-2 border-red-200 bg-red-100 dark:border-red-900 dark:bg-red-900/50 dark:text-red-200 m-1 ml-5 py-1 px-2 mt-1 text-xs font-mono text-pink-900">
-                                        {client.ssh_alive_message}
-                                    </div>
-                                )}
+                                <ClientHealthStatusBlock status={client.ssh_alive} label={ClientUtils.SSHAliveLabel(client)} error={client.ssh_alive_message} />
                             </td>
                         </tr>
                     </table>

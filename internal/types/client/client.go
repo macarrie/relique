@@ -28,6 +28,7 @@ type Client struct {
 	ServerAddress   string          `json:"server_address" toml:"server_address"`
 	ServerPort      uint32          `json:"server_port" toml:"server_port"`
 	APIAlive        uint8           `json:"api_alive"`
+	APIAliveMessage string          `json:"api_alive_message"`
 	SSHAlive        uint8           `json:"ssh_alive"`
 	SSHAliveMessage string          `json:"ssh_alive_message"`
 }

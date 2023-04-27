@@ -10,6 +10,7 @@ type Client = {
     server_address :string,
     server_port :number,
     api_alive :number,
+    api_alive_message :string,
     ssh_alive :number,
     ssh_alive_message :string,
 };

@@ -25,12 +25,14 @@ func GetConfigVersion(cl *client.Client) (string, error) {
 	response, err := utils.PerformRequest(config.Config, cl.Address, cl.Port, "GET", "/api/v1/config/version", nil)
 	if err != nil {
 		cl.APIAlive = consts.CRITICAL
+		cl.APIAliveMessage = err.Error()
 		return "", errors.Wrap(err, "error when performing api request")
 	}
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		cl.APIAlive = consts.CRITICAL
+		cl.APIAliveMessage = err.Error()
 		return "", errors.Wrap(err, "cannot read response body from api requets")
 	}
 	defer response.Body.Close()
@@ -41,6 +43,7 @@ func GetConfigVersion(cl *client.Client) (string, error) {
 		}
 		if err := json.Unmarshal(body, &configVersion); err != nil {
 			cl.APIAlive = consts.UNKNOWN
+			cl.APIAliveMessage = err.Error()
 			return "", errors.Wrap(err, "cannot parse config version returned from client")
 		}
 
@@ -49,6 +52,7 @@ func GetConfigVersion(cl *client.Client) (string, error) {
 	}
 
 	cl.APIAlive = consts.CRITICAL
+	cl.APIAliveMessage = err.Error()
 	return "", fmt.Errorf("cannot get client version, status code '%d'", response.StatusCode)
 }
 
@@ -77,6 +81,7 @@ func SendConfiguration(cl *client.Client) error {
 		cl)
 	if err != nil {
 		cl.APIAlive = consts.CRITICAL
+		cl.APIAliveMessage = err.Error()
 		return errors.Wrap(err, "error when performing api request")
 	}
 	defer response.Body.Close()
