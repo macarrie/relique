@@ -78,7 +78,7 @@ func setDefaultValues() {
 	viper.SetDefault("schedules_cfg_path", "schedules")
 	viper.SetDefault("backup_storage_path", "/var/lib/relique/storage")
 	viper.SetDefault("module_install_path", "/var/lib/relique/modules")
-	viper.SetDefault("retention_path", "/var/lib/relique/retention.dat")
+	viper.SetDefault("retention_path", "/var/lib/relique/db/retention.dat")
 	viper.SetDefault("db_path", "/var/lib/relique/db/server.db")
 	viper.SetDefault("ui_path", "/var/lib/relique/ui")
 }

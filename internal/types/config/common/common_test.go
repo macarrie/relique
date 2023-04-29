@@ -45,7 +45,7 @@ func TestLoad(t *testing.T) {
 				ClientCfgPath:             "clients",
 				SchedulesCfgPath:          "schedules",
 				BackupStoragePath:         "/opt/relique",
-				RetentionPath:             "/var/lib/relique/retention.dat",
+				RetentionPath:             "/var/lib/relique/db/retention.dat",
 				ModuleInstallPath:         "/var/lib/relique/modules",
 			},
 			wantErr: false,
