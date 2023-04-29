@@ -16,10 +16,10 @@ function JobListRowPlaceholder(props :any) {
             <td className="py-2 px-3 code">
                 <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
             </td>
-            <td className="py-2 px-3">
+            <td className="py-2 px-3 hidden md:table-cell">
                 <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
             </td>
-            <td className="py-2 px-3 hidden md:table-cell">
+            <td className="py-2 px-3">
                 <div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div>
             </td>
             <td className="py-2 px-3">
@@ -68,9 +68,9 @@ function JobListRow(props :any) {
             <td className="py-2 px-3 code"><Link to={`/jobs/${job.uuid}`}>{uuidDisplay(job.uuid)}</Link></td>
             <td className="py-2 px-3"><Link to={`/clients/${job.client.name}`}>{clientDisplayName(job.client)}</Link>
             </td>
-            <td className="py-2 px-3 hidden md:table-cell"><span
+            <td className="py-2 px-3"><span
                 className="badge">{moduleDisplayName(job.module)}</span></td>
-            <td className="py-2 px-3">{job.job_type}</td>
+            <td className="py-2 px-3 hidden md:table-cell">{job.job_type}</td>
             <td className="py-2 px-3"><StatusBadge label={job.status} status={JobUtils.jobStateToCode(job.status)}/>
             </td>
             <td className="py-2 px-3 hidden md:table-cell"><Moment date={job.start_time}
@@ -147,8 +147,8 @@ function JobList(props :any) {
             <tr>
                 <th className="py-2 px-3 text-center">ID</th>
                 <th className="py-2 px-3">Client</th>
-                <th className="py-2 px-3 hidden md:table-cell">Module</th>
-                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3">Module</th>
+                <th className="py-2 px-3 hidden md:table-cell">Type</th>
                 <th className="py-2 px-3">Status</th>
                 <th className="py-2 px-3 hidden md:table-cell">Start</th>
                 <th className="py-2 px-3 hidden md:table-cell">End</th>
