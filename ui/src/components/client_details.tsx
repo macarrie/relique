@@ -61,9 +61,11 @@ function ClientHealthStatusBlock(props :any) {
                 <div>
                     {label}
                 </div>
-                <button type="button" onClick={() => setOpen(!isOpen)} className="dark:text-slate-300 ml-2">
-                    <i className={isOpen ? closedIcon : openIcon}></i>
-                </button>
+                {status !== Const.OK && (
+                    <button type="button" onClick={() => setOpen(!isOpen)} className="dark:text-slate-300 ml-2">
+                        <i className={isOpen ? closedIcon : openIcon}></i>
+                    </button>
+                )}
             </div>
             {(isOpen && status !== Const.OK && error) && (
                 <div
