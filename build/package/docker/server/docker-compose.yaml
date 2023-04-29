@@ -2,16 +2,21 @@ version: "3"
 services:
   relique-server:
     image: macarrie/relique-server
+    container_name: "relique_server"
     ports:
       - "8433:8433"
     volumes:
-      - "/etc/relique:/etc/relique"
+      - "relique_config:/etc/relique"
       - "relique_storage:/var/lib/relique/storage"
       - "relique_db:/var/lib/relique/db"
+      - "relique_logs:/var/log/relique"
       - "relique_modules:/var/lib/relique/modules"
-    network_mode: host
+      - "relique_ssh:/var/lib/relique/.ssh"
 
 volumes:
-  relique_storage:
-  relique_db:
-  relique_modules:
+  relique_config: # Store relique configuration files
+  relique_storage: # Backup storage volume. Can be mounted as bind mount to point to additional disk
+  relique_db: # Relique database
+  relique_logs: # Daemons and job logs
+  relique_modules: # Installed modules
+  relique_ssh: # SSH keys
