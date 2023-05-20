@@ -1,4 +1,6 @@
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
+import {Link} from "react-router-dom";
+import {Column} from "react-table";
 
 import API from "../utils/api";
 import ClientUtils from "../utils/client";
@@ -7,34 +9,92 @@ import Client from "../types/client";
 import Module from "../types/module";
 
 import StatusDot from "./status_dot";
-import {Link} from "react-router-dom";
+import Table from "./table";
+import TableUtils from "../utils/table";
+import Dropdown from "./dropdown";
+import Const from "../types/const";
+import Loader from "./loader";
 
-function ClientListRowPlaceholder() {
-    return (
-        <tr className="animate-pulse">
-            <td className="py-2 px-3"><div className="rounded-full h-3 w-3 m-auto bg-slate-300 dark:bg-slate-600"></div></td>
-            <td className="py-2 px-3"><div className="rounded-full h-2 w-1/2 bg-slate-300 dark:bg-slate-600"></div></td>
-            <td className="py-2 px-3 code"><div className="rounded-full h-2 w-4/5 bg-slate-300 dark:bg-slate-600"></div></td>
-            <td className="py-2 px-3 hidden md:table-cell">
-                <div className="flex flex-row space-x-1">
-                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
-                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
-                    <div className="rounded-full h-2 w-12 bg-slate-300 dark:bg-slate-600"></div>
-                </div>
-            </td>
-        </tr>
-    );
-}
+function ClientList(props :any) {
+    let [limit, setLimit] = useState(props.limit || 0);
+    let [clients, setClients] = useState([] as Client[]);
+    let [loading, setLoading] = useState(true);
 
-function ClientListRow(props :any) {
-    let client = props.client;
+    const getClients = useCallback(() => {
+        API.clients.list({
+            limit: limit,
+        }).then((response :any) => {
+            let clientList = response.data || []
+            // Update clients status to unknown at load
+            clientList.map((c :Client) => {
+                c.api_alive = Const.UNKNOWN
+                c.ssh_alive = Const.UNKNOWN
+                return c
+            })
+            setClients(clientList);
+            setLoading(false);
+        }).catch(error => {
+            setLoading(false);
+        });
+    }, [limit])
 
-    function renderModules() {
-        if (!client.modules) {
+    function setClientStateLoading(name :string, state :boolean) {
+        setClients(clients => clients.map((c :Client) => {
+            if (c.name === name) {
+                return {
+                    ...c,
+                    state_is_loading: state,
+                }
+            } else {
+                return c
+            }
+        }))
+    }
+
+    const pingClient = useCallback((name :string) => {
+        setClientStateLoading(name, true)
+        API.clients.get(name).then((response :any) => {
+            // Wait 500ms before removing loading spinner to avoid blinking
+            setTimeout(
+                () => setClients(clients => clients.map((c :Client) => {
+                        if (c.name === name) {
+                            return {
+                                ...c,
+                                state_is_loading: false,
+                                ssh_alive: response.data.ssh_alive,
+                                ssh_alive_message: response.data.ssh_alive_message,
+                                api_alive: response.data.api_alive,
+                                api_alive_message: response.data.api_alive_message,
+                            }
+                        } else {
+                            return c
+                        }
+                    })),
+                500
+            )
+        }).catch(error => {
+            console.log("Cannot get client details", error);
+        });
+    }, [])
+
+    function pingAllClients() {
+        clients.map((c :Client) => pingClient(c.name))
+    }
+
+    useEffect(() => {
+        setLimit(props.limit);
+    }, [props.limit])
+
+    useEffect(() => {
+        getClients();
+    }, [getClients]);
+
+    function renderModules(mods :string) {
+        if (!mods) {
             return <span className="italic text-slate-400 dark:text-slate-600">None</span>;
         }
 
-        let module_names :string[] = client.modules.map((mod :Module) => mod.name)
+        let module_names :string[] = mods.split(",")
         return (
             <>
                 {module_names.map((mod: any) => (
@@ -44,85 +104,68 @@ function ClientListRow(props :any) {
         )
     }
 
-    return (
-        <tr>
-            <td className="py-2 px-3"><StatusDot status={ClientUtils.alive(client)}/></td>
-            <td className="py-2 px-3"><Link to={`/clients/${client.name}`}>{client.name}</Link></td>
-            <td className="py-2 px-3 code">{client.address}</td>
-            <td className="py-2 px-3 space-x-1 hidden md:table-cell">{renderModules()}</td>
-        </tr>
-    );
-}
-
-function ClientList(props :any) {
-    let [limit, setLimit] = useState(props.limit || 0);
-    let [clients, setClients] = useState([] as Client[]);
-    let [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        setLimit(props.limit);
-    }, [props.limit])
-
-    useEffect(() => {
-        function getClients() {
-            API.clients.list({
-                limit: limit,
-            }).then((response :any) => {
-                setClients(response.data);
-                setLoading(false);
-            }).catch(error => {
-                setLoading(false);
-                console.log("Cannot get client list", error);
-            });
-        }
-
-        getClients();
-    }, [limit]);
-
-    function renderClientList() {
-        if (loading) {
-            return (
-                <tbody>
-                    <ClientListRowPlaceholder />
-                    <ClientListRowPlaceholder />
-                    <ClientListRowPlaceholder />
-                </tbody>
-            )
-        }
-
-        if (!clients || clients.length === 0) {
-            return (
-                <tr>
-                    <td colSpan={4} className={"px-3 py-8 text-center text-3xl italic text-gray-300 dark:text-gray-600"}>
-                        No clients
-                    </td>
-                </tr>
-            )
-        }
-
-        const clientList = clients.map((client :Client) =>
-            <ClientListRow key={client.id} client={client}/>
-        );
-
+    function getActions() {
         return (
-            <tbody>
-            {clientList}
-            </tbody>
+            <Dropdown>
+                <div onClick={() => pingAllClients()}>Ping all clients</div>
+            </Dropdown>
         )
     }
 
+    const columns :Array<Column<Client>> = React.useMemo(() => [
+        {
+            Header: () => (<div className="py-2 px-3 w-full text-center">Health</div>),
+            accessor: (client) => {return client},
+            id: 'health',
+            Cell: ({value} :any) => (<div className="py-2 px-3 text-center">{value.state_is_loading ? (<Loader label="" />) : (<StatusDot status={ClientUtils.alive(value)}/>)}</div>),
+        },
+        {
+            Header: () => (<div className="py-2 px-3">Name</div>),
+            accessor: 'name',
+            id: 'name',
+            Cell: ({value} :any) => (<div className="py-2 px-3"><Link to={`/clients/${value}`}>{value}</Link></div>),
+        },
+        {
+            Header: () => (<div className="py-2 px-3">Address</div>),
+            accessor: 'address',
+            id: 'address',
+            Cell: ({value} :any) => (<div className="py-2 px-3 code">{value}</div>),
+        },
+        {
+            Header: () => (<div className="py-2 px-3 hidden md:block">Modules</div>),
+            accessor: (client) => (client.modules || []).map((mod :Module) => mod.name).join(", "),
+            id: 'modules',
+            Cell: ({value} :any) => (<div className="py-2 px-3 space-x-1 hidden md:block">{renderModules(value)}</div>),
+        },
+        {
+            Header: '',
+            accessor: (client) => {return client},
+            id: 'actions',
+            Cell: ({value} :any) => (<Dropdown>
+                <div onClick={() => pingClient(value.name)}>Ping client</div>
+            </Dropdown>),
+        },
+    ], [pingClient]);
+
+    if (loading) {
+        return (
+            <Table title={props.title}
+                   filtered={false}
+                   sorted={false}
+                   refreshFunc={getClients}
+                   columns={TableUtils.GetPlaceholderColumns(columns)}
+                   data={[{}, {}, {}]} />
+        );
+    }
+
     return (
-        <table className="table table-auto w-full">
-            <thead>
-            <tr>
-                <th className="py-2 px-3 max-w-min text-center">Health</th>
-                <th className="py-2 px-3">Name</th>
-                <th className="py-2 px-3">Address</th>
-                <th className="py-2 px-3 hidden md:table-cell">Modules</th>
-            </tr>
-            </thead>
-            {renderClientList()}
-        </table>
+        <Table title={props.title}
+               filtered={props.filtered}
+               sorted={props.sorted}
+               refreshFunc={getClients}
+               columns={columns}
+               actions={getActions()}
+               data={clients} />
     );
 }
 

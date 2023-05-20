@@ -13,6 +13,7 @@ type Client = {
     api_alive_message :string,
     ssh_alive :number,
     ssh_alive_message :string,
+    state_is_loading: boolean,
 };
 
 export default Client;

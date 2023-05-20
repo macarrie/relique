@@ -13,9 +13,6 @@ import (
 
 func getClients(c *gin.Context) {
 	clients := serverConfig.Config.Clients
-	for index := range clients {
-		_ = serverApi.PingSSHClient(&clients[index])
-	}
 
 	c.JSON(http.StatusOK, clients)
 }
