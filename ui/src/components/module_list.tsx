@@ -1,36 +1,41 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 
 import API from "../utils/api";
 
 import Module from "../types/module";
-import {Column} from "react-table";
 import Table from "./table";
-import TableUtils from "../utils/table";
+import Const from "../types/const";
+import {createColumnHelper} from "@tanstack/react-table";
+import {useQuery} from "react-query";
+import {Link} from "react-router-dom";
 
 function ModuleList(props :any) {
-    let [limit, setLimit] = useState(props.limit || 0);
-    let [modules, setModuleList] = useState([] as Module[]);
+    let [modules, setModules] = useState([] as Module[]);
     let [loading, setLoading] = useState(true);
 
-    const getModules = useCallback(() => {
-        API.modules.list({
-            limit: limit,
-        }).then((response :any) => {
-            setModuleList(response.data || []);
-            setLoading(false)
-        }).catch(error => {
-            console.log("Cannot get module list", error);
-            setLoading(false)
-        });
-    }, [limit])
+    const defaultData = useMemo(() => [], [])
+    const fetchDataOptions = {
+        limit: 1000,
+        offset: 0,
+    }
+    const dataQuery = useQuery(
+        ['modules', fetchDataOptions],
+        () => API.modules.list(fetchDataOptions),
+        { keepPreviousData: true }
+    )
 
     useEffect(() => {
-        setLimit(props.limit);
-    }, [props.limit])
+        setLoading(dataQuery.isLoading || dataQuery.isFetching)
+    }, [dataQuery.isLoading, dataQuery.isFetching])
+
+    const getModules = useCallback(function() {
+        let moduleList = dataQuery.data?.data.data || defaultData;
+        setModules(moduleList);
+    }, [dataQuery, defaultData])
 
     useEffect(() => {
         getModules();
-    }, [getModules])
+    }, [getModules]);
 
     function renderVariants(vars :string) {
         return (
@@ -42,44 +47,36 @@ function ModuleList(props :any) {
         )
     }
 
-    const columns :Array<Column<Module>> = React.useMemo(() => [
-        {
-            Header: () => (<div className="py-2 px-3">Name</div>),
-            accessor: 'name',
+    const columnHelper = createColumnHelper<Module>()
+    const columns = [
+        columnHelper.accessor('name', {
+            header: () => (<div className="py-2 px-3">Name</div>),
             id: 'name',
-            Cell: ({value} :any) => (<div className="py-2 px-3">{value}</div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">Type</div>),
-            accessor: 'module_type',
+            cell: (cell :any) => (<div className="py-2 px-3"><Link to={`/modules/${cell.getValue()}`}>{cell.getValue()}</Link></div>),
+        }),
+        columnHelper.accessor('module_type', {
+            header: () => (<div className="py-2 px-3 hidden md:block">Type</div>),
             id: 'type',
-            Cell: ({value} :any) => (<div className="py-2 px-3 hidden md:block">{value}</div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">Variants</div>),
-            accessor: (mod) => (mod.available_variants || []).join(", "),
+            cell: (cell :any) => (<div className="py-2 px-3 hidden md:block">{cell.getValue()}</div>),
+        }),
+        columnHelper.accessor( (mod) => (mod.available_variants || []).join(", "), {
+            header: () => (<div className="py-2 px-3 hidden md:block">Variants</div>),
             id: 'variants',
-            Cell: ({value} :any) => (<div className="py-2 px-3 space-x-1">{renderVariants(value)}</div>),
-        },
-    ], []);
-
-    if (loading) {
-        return (
-            <Table title={props.title}
-                   filtered={false}
-                   sorted={false}
-                   columns={TableUtils.GetPlaceholderColumns(columns)}
-                   data={[{}, {}, {}]} />
-        );
-    }
+            cell: (cell :any) => (<div className="py-2 px-3 space-x-1">{renderVariants(cell.getValue())}</div>),
+        }),
+    ]
 
     return (
         <Table title={props.title}
                filtered={props.filtered}
                sorted={props.sorted}
-               refreshFunc={getModules}
+               paginated={props.paginated}
                columns={columns}
-               data={modules} />
+               defaultPageSize={props.limit || Const.DEFAULT_PAGE_SIZE}
+               refreshFunc={getModules}
+               data={modules}
+               loading={loading}
+        />
     );
 }
 

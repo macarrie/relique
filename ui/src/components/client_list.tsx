@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useState} from "react";
 import {Link} from "react-router-dom";
-import {Column} from "react-table";
 
 import API from "../utils/api";
 import ClientUtils from "../utils/client";
@@ -10,21 +9,20 @@ import Module from "../types/module";
 
 import StatusDot from "./status_dot";
 import Table from "./table";
-import TableUtils from "../utils/table";
 import Dropdown from "./dropdown";
 import Const from "../types/const";
 import Loader from "./loader";
+import {createColumnHelper} from "@tanstack/react-table";
 
 function ClientList(props :any) {
-    let [limit, setLimit] = useState(props.limit || 0);
     let [clients, setClients] = useState([] as Client[]);
     let [loading, setLoading] = useState(true);
 
     const getClients = useCallback(() => {
         API.clients.list({
-            limit: limit,
+            limit: 1000,
         }).then((response :any) => {
-            let clientList = response.data || []
+            let clientList = response.data.data || []
             // Update clients status to unknown at load
             clientList.map((c :Client) => {
                 c.api_alive = Const.UNKNOWN
@@ -36,7 +34,7 @@ function ClientList(props :any) {
         }).catch(error => {
             setLoading(false);
         });
-    }, [limit])
+    }, [])
 
     function setClientStateLoading(name :string, state :boolean) {
         setClients(clients => clients.map((c :Client) => {
@@ -82,10 +80,6 @@ function ClientList(props :any) {
     }
 
     useEffect(() => {
-        setLimit(props.limit);
-    }, [props.limit])
-
-    useEffect(() => {
         getClients();
     }, [getClients]);
 
@@ -112,60 +106,49 @@ function ClientList(props :any) {
         )
     }
 
-    const columns :Array<Column<Client>> = React.useMemo(() => [
-        {
-            Header: () => (<div className="py-2 px-3 w-full text-center">Health</div>),
-            accessor: (client) => {return client},
+    const columnHelper = createColumnHelper<Client>()
+    const columns = [
+        columnHelper.accessor((client) => {return client}, {
+            header: () => (<div className="py-2 px-3 w-full text-center">Health</div>),
             id: 'health',
-            Cell: ({value} :any) => (<div className="py-2 px-3 text-center">{value.state_is_loading ? (<Loader label="" />) : (<StatusDot status={ClientUtils.alive(value)}/>)}</div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3">Name</div>),
-            accessor: 'name',
+            cell: (cell :any) => (<div className="py-2 px-3 text-center">{cell.getValue().state_is_loading ? (<Loader label="" />) : (<StatusDot status={ClientUtils.alive(cell.getValue())}/>)}</div>),
+        }),
+        columnHelper.accessor('name', {
+            header: () => (<div className="py-2 px-3">Name</div>),
             id: 'name',
-            Cell: ({value} :any) => (<div className="py-2 px-3"><Link to={`/clients/${value}`}>{value}</Link></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3">Address</div>),
-            accessor: 'address',
+            cell: (cell :any) => (<div className="py-2 px-3"><Link to={`/clients/${cell.getValue()}`}>{cell.getValue()}</Link></div>),
+        }),
+        columnHelper.accessor('address', {
+            header: () => (<div className="py-2 px-3">Address</div>),
             id: 'address',
-            Cell: ({value} :any) => (<div className="py-2 px-3 code">{value}</div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">Modules</div>),
-            accessor: (client) => (client.modules || []).map((mod :Module) => mod.name).join(", "),
+            cell: (cell :any) => (<div className="py-2 px-3 code">{cell.getValue()}</div>),
+        }),
+        columnHelper.accessor((client) => (client.modules || []).map((mod :Module) => mod.name).join(", "), {
+            header: () => (<div className="py-2 px-3 hidden md:block">Modules</div>),
             id: 'modules',
-            Cell: ({value} :any) => (<div className="py-2 px-3 space-x-1 hidden md:block">{renderModules(value)}</div>),
-        },
-        {
-            Header: '',
-            accessor: (client) => {return client},
+            cell: (cell :any) => (<div className="py-2 px-3 space-x-1 hidden md:block">{renderModules(cell.getValue())}</div>),
+        }),
+        columnHelper.accessor((client) => {return client}, {
+            header: '',
             id: 'actions',
-            Cell: ({value} :any) => (<Dropdown>
-                <div onClick={() => pingClient(value.name)}>Ping client</div>
+            cell: (cell :any) => (<Dropdown>
+                <div onClick={() => pingClient(cell.getValue().name)}>Ping client</div>
             </Dropdown>),
-        },
-    ], [pingClient]);
-
-    if (loading) {
-        return (
-            <Table title={props.title}
-                   filtered={false}
-                   sorted={false}
-                   refreshFunc={getClients}
-                   columns={TableUtils.GetPlaceholderColumns(columns)}
-                   data={[{}, {}, {}]} />
-        );
-    }
+        }),
+    ]
 
     return (
         <Table title={props.title}
                filtered={props.filtered}
                sorted={props.sorted}
-               refreshFunc={getClients}
+               paginated={props.paginated}
                columns={columns}
+               defaultPageSize={props.limit || Const.DEFAULT_PAGE_SIZE}
+               refreshFunc={getClients}
+               data={clients}
+               loading={loading}
                actions={getActions()}
-               data={clients} />
+        />
     );
 }
 

@@ -3,6 +3,7 @@ package relique_job
 import (
 	"database/sql"
 	"fmt"
+	"github.com/macarrie/relique/internal/types/pagination"
 
 	"github.com/macarrie/relique/internal/types/job_type"
 
@@ -30,6 +31,7 @@ func New(client *clientObject.Client, module module.Module, jobType job_type.Job
 }
 
 func GetByUuid(uuid string) (ReliqueJob, error) {
+	// TODO: Look in job file also and merge results: get client and module info from file and other info from db
 	log.WithFields(log.Fields{
 		"uuid": uuid,
 	}).Trace("Looking for job in database")
@@ -72,7 +74,7 @@ func GetByUuid(uuid string) (ReliqueJob, error) {
 		&job.ModuleType,
 		&job.ClientName,
 	); err == sql.ErrNoRows {
-		return ReliqueJob{}, nil
+		return ReliqueJob{}, errors.Wrap(err, fmt.Sprintf("no job with UUID '%s' found in db", uuid))
 	} else if err != nil {
 		return ReliqueJob{}, errors.Wrap(err, "cannot retrieve job from db")
 	}
@@ -226,17 +228,7 @@ func GetActiveJobs() ([]ReliqueJob, error) {
 	return jobs, nil
 }
 
-func Search(params JobSearchParams) ([]ReliqueJob, error) {
-	params.GetLog().Trace("Searching for jobs in db")
-	var jobs []ReliqueJob
-
-	// TODO: Prepare request and clean data to avoid SQL injections
-	// TODO: handle status and backup type
-	request := sq.Select(
-		"uuid",
-	).From(
-		"jobs",
-	)
+func getRequestFromJobSearchParams(request sq.SelectBuilder, params JobSearchParams) sq.SelectBuilder {
 	if params.BackupType != "" {
 		bType := backup_type.FromString(params.BackupType)
 		request = request.Where("jobs.backup_type = ?", bType.Type)
@@ -258,10 +250,61 @@ func Search(params JobSearchParams) ([]ReliqueJob, error) {
 	if params.Client != "" {
 		request = request.Where("jobs.client_name = ?", params.Client)
 	}
+
+	return request
+}
+
+func Count(params JobSearchParams) (uint64, error) {
+	params.GetLog().Trace("Counting jobs in db")
+	var count uint64
+
+	// TODO: Prepare request and clean data to avoid SQL injections
+	// TODO: handle status and backup type
+	request := sq.Select(
+		"COUNT(*)",
+	).From(
+		"jobs",
+	)
+
+	request = getRequestFromJobSearchParams(request, params)
 	request = request.OrderBy("jobs.id DESC")
-	if params.Limit > 0 {
-		request = request.Limit(uint64(params.Limit))
+
+	query, args, err := request.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot build sql query")
 	}
+
+	queryErr := db.Read().QueryRow(query, args...).Scan(&count)
+	defer db.RUnlock()
+	if queryErr == sql.ErrNoRows {
+		return 0, nil
+	} else if queryErr != nil {
+		return 0, errors.Wrap(err, "cannot count jobs from db")
+	}
+
+	return count, nil
+}
+
+func Search(params JobSearchParams, p pagination.Pagination) ([]ReliqueJob, error) {
+	params.GetLog().Trace("Searching for jobs in db")
+	var jobs []ReliqueJob
+
+	// TODO: Prepare request and clean data to avoid SQL injections
+	// TODO: handle status and backup type
+	request := sq.Select(
+		"uuid",
+	).From(
+		"jobs",
+	)
+	if p.Limit > 0 {
+		request = request.Limit(p.Limit)
+	}
+	if p.Offset > 0 {
+		request = request.Offset(p.Offset)
+	}
+
+	request = getRequestFromJobSearchParams(request, params)
+	request = request.OrderBy("jobs.id DESC")
 
 	query, args, err := request.ToSql()
 	if err != nil {

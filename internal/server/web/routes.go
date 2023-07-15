@@ -54,7 +54,7 @@ func getRoutes() *gin.Engine {
 	{
 		v1.GET("/ping", ping)
 
-		v1.POST("/jobs/", searchJob)
+		v1.GET("/jobs", searchJob)
 		v1.POST("/jobs/start", postJobStart)
 		v1.GET("/jobs/:uuid", getJob)
 		v1.GET("/jobs/:uuid/logs", getJobLogs)

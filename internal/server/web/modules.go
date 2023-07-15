@@ -18,7 +18,9 @@ func getModules(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, installedModules)
+	c.JSON(http.StatusOK, gin.H{
+		"data": installedModules,
+	})
 }
 
 func getModule(c *gin.Context) {

@@ -7,7 +7,7 @@ class Modules extends React.Component<any, any> {
     render() {
         return (
             <Card>
-                <ModuleList title="Installed modules" filtered sorted/>
+                <ModuleList title="Installed modules" filtered sorted paginated />
             </Card>
         );
     }

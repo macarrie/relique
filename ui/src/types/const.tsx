@@ -4,4 +4,6 @@ export default class Const {
     static CRITICAL = 2;
     static UNKNOWN = 3;
     static INFO = 4;
+
+    static DEFAULT_PAGE_SIZE = 25;
 }

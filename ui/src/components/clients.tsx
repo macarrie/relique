@@ -7,7 +7,7 @@ class Clients extends React.Component<any, any> {
     render() {
         return (
             <Card>
-                <ClientList title="Clients" filtered sorted/>
+                <ClientList title="Clients" filtered sorted paginated />
             </Card>
         );
     }

@@ -7,6 +7,13 @@
 @tailwind utilities;
 
 @layer base {
+    a {
+        @apply text-blue-300;
+    }
+    a:hover {
+        @apply text-blue-500;
+    }
+
 }
 
 @layer components {
@@ -54,6 +61,9 @@
         @apply text-xs;
         @apply px-2;
         @apply py-1;
+    }
+    .button:disabled {
+        @apply text-slate-700 !important;
     }
 
     .button.button-text {

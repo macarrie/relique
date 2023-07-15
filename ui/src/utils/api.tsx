@@ -11,8 +11,8 @@ export default class API {
     };
 
     static jobs = {
-        list: function (p = {}) {
-            return API.handler().post('/jobs', p);
+        list: async function (p = {}) {
+            return API.handler().get('/jobs', {params: p});
         },
         get: function (uuid :string) {
             return API.handler().get('/jobs/' +uuid);
@@ -25,7 +25,7 @@ export default class API {
     };
 
     static clients = {
-        list: function (p = {}) {
+        list: async function (p = {}) {
             return API.handler().get('/clients', p);
         },
         get: function (name: string) {
@@ -34,7 +34,7 @@ export default class API {
     };
 
     static modules = {
-        list: function (p = {}) {
+        list: async function (p = {}) {
             return API.handler().get('/modules', p);
         },
         get: function (name :string) {

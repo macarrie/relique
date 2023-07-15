@@ -14,7 +14,9 @@ import (
 func getClients(c *gin.Context) {
 	clients := serverConfig.Config.Clients
 
-	c.JSON(http.StatusOK, clients)
+	c.JSON(http.StatusOK, gin.H{
+		"data": clients,
+	})
 }
 
 func getClient(c *gin.Context) {

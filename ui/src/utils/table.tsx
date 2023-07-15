@@ -6,11 +6,9 @@ export default class TableUtils {
     static GetPlaceholderColumns = function<T extends Object>(columns :Array<Column<T>>) :Array<Column<T>> {
         let copy = _.cloneDeep(columns);
         return copy.map((col :Column<T>) => {
-            col.accessor = function placeholder() {
-                return <div className="rounded-full h-2 w-3/4 bg-slate-300 dark:bg-slate-600"></div>;
-            }
+            col.accessor = () => "";
             //@ts-ignore
-            col.Cell = ({value} :any) => <div className="px-2 py-3">{value}</div>;
+            col.cell = (cell :any) => <div className="px-2 py-3"><div className="animate-pulse rounded-full h-2 w-3/4 bg-slate-300 dark:bg-slate-600"></div></div>;
             return col;
         });
     };

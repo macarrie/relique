@@ -1,7 +1,7 @@
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Link} from "react-router-dom";
 import Moment from "react-moment";
-import {Column} from "react-table";
+import {createColumnHelper} from "@tanstack/react-table";
 
 import API from "../utils/api";
 
@@ -9,109 +9,103 @@ import Job from "../types/job";
 import JobUtils from "../utils/job";
 import StatusBadge from "./status_badge";
 import Table from "./table";
-import TableUtils from "../utils/table";
+import Const from "../types/const";
+import {useQuery} from "react-query";
 
 type JobListProps = {
     limit? :number,
     title? :string,
     filtered? :boolean,
     sorted? :boolean,
+    paginated? :boolean,
 }
 
 function JobList(props :JobListProps) {
-    let [limit, setLimit] = useState(props.limit || 0);
-    let [jobs, setJobList] = useState([] as Job[]);
+    let [jobs, setJobs] = useState([] as Job[]);
     let [loading, setLoading] = useState(true);
 
-    function uuidDisplay(id :string) {
-        return id.split("-")[0]
+    const defaultData = useMemo(() => [], [])
+    const fetchDataOptions = {
+        limit: 1000,
+        offset: 0,
     }
-
-    const getJobs = useCallback(() => {
-        setLoading(true);
-
-        API.jobs.list({
-            limit: limit,
-        }).then((response :any) => {
-            setJobList(response.data || []);
-            setLoading(false);
-        }).catch(error => {
-            console.log("Cannot get job list", error);
-            setLoading(false);
-        });
-    }, [limit])
+    const dataQuery = useQuery(
+        ['jobs', fetchDataOptions],
+        () => API.jobs.list(fetchDataOptions),
+        { keepPreviousData: true }
+    )
 
     useEffect(() => {
-        setLimit(props.limit || 0);
-    }, [props.limit])
+        setLoading(dataQuery.isLoading || dataQuery.isFetching)
+    }, [dataQuery.isLoading, dataQuery.isFetching])
+
+    const getJobs = useCallback(function() {
+        let jobList = dataQuery.data?.data.data || defaultData
+        setJobs(jobList);
+    }, [dataQuery, defaultData])
 
     useEffect(() => {
         getJobs();
-    }, [limit, getJobs])
+    }, [getJobs]);
 
-    const columns :Array<Column<Job>> = React.useMemo(() => [
-        {
-            Header: () => (<div className="py-2 px-3 w-full text-center">ID</div>),
-            accessor: (job) => uuidDisplay(job.uuid),
-            id: 'id',
-            Cell: ({value} :any) => (<div className="py-2 px-3 code"><Link to={`/jobs/${value}`}>{value}</Link></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3">Client</div>),
-            id: 'client_name',
-            accessor: (job) => job.client.name,
-            Cell: ({value} :any) => (<div className="py-2 px-3"><Link to={`/clients/${value}`}>{value}</Link></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3">Module</div>),
-            id: 'module_name',
-            accessor: (job) => job.module.name,
-            Cell: ({value} :any) => (<div className="py-2 px-3"><span className="badge">{value}</span></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">Type</div>),
-            id: 'job_type',
-            accessor: 'job_type',
-            Cell: ({value} :any) => (<div className="py-2 px-3 hidden md:block">{value}</div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3">Status</div>),
-            id: 'status',
-            accessor: (job) => job.status,
-            Cell: ({value} :any) => (<div className="py-2 px-3"><StatusBadge label={value} status={JobUtils.jobStateToCode(value)}/></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">Start</div>),
-            id: 'start_time',
-            accessor: 'start_time',
-            Cell: ({value} :any) => (<div className="py-2 px-3 hidden md:block"><Moment date={value} format={"DD/MM/YYYY HH:mm:ss"}/></div>),
-        },
-        {
-            Header: () => (<div className="py-2 px-3 hidden md:block">End</div>),
-            id: 'end_time',
-            accessor: 'end_time',
-            Cell: ({value} :any) => (<div className="py-2 px-3 hidden md:block"><Moment date={value} format={"DD/MM/YYYY HH:mm:ss"}/></div>),
-        },
-    ], []);
+    function uuidDisplay(id :string) {
+        if (!id) {
+            return "unknown"
+        }
 
-    if (loading) {
-        return (
-            <Table title={props.title}
-                   filtered={false}
-                   sorted={false}
-                   refreshFunc={getJobs}
-                   columns={TableUtils.GetPlaceholderColumns(columns)}
-                   data={[{}, {}, {}]} />
-        );
+        return id.split("-")[0]
     }
+
+    const columnHelper = createColumnHelper<Job>()
+    const columns = [
+        columnHelper.accessor((job :Job) => job.uuid, {
+            header: () => (<div className="py-2 px-3 w-full text-center">ID</div>),
+            id: 'id',
+            cell: (cell :any) => (<div className="py-2 px-3 code"><Link to={`/jobs/${cell.getValue()}`}>{uuidDisplay(cell.getValue())}</Link></div>),
+        }),
+        columnHelper.accessor((job :Job) => job.client.name, {
+            header: () => (<div className="py-2 px-3">Client</div>),
+            id: 'client_name',
+            cell: (cell :any) => (<div className="py-2 px-3"><Link to={`/clients/${cell.getValue()}`}>{cell.getValue()}</Link></div>)
+        }),
+        columnHelper.accessor( (job :Job) => job.module?.name, {
+            header: () => (<div className="py-2 px-3">Module</div>),
+            id: 'module_name',
+            cell: (cell :any) => (<div className="py-2 px-3"><span className="badge">{cell.getValue()}</span></div>),
+        }),
+        columnHelper.accessor('job_type', {
+            header: () => (<div className="py-2 px-3 hidden md:block">Type</div>),
+            id: 'job_type',
+            cell: (cell :any) => (<div className="py-2 px-3 hidden md:block">{cell.getValue()}</div>),
+        }),
+        columnHelper.accessor((job :Job) => job.status, {
+            header: () => (<div className="py-2 px-3">Status</div>),
+            id: 'status',
+            cell: (cell :any) => (<div className="py-2 px-3"><StatusBadge label={cell.getValue()} status={JobUtils.jobStateToCode(cell.getValue())}/></div>),
+        }),
+        columnHelper.accessor('start_time', {
+            header: () => (<div className="py-2 px-3 hidden md:block">Start</div>),
+            id: 'start_time',
+            cell: (cell :any) => (<div className="py-2 px-3 hidden md:block"><Moment date={cell.getValue()} format={"DD/MM/YYYY HH:mm:ss"}/></div>),
+        }),
+        columnHelper.accessor('end_time', {
+            header: () => (<div className="py-2 px-3 hidden md:block">End</div>),
+            id: 'end_time',
+            cell: (cell :any) => (<div className="py-2 px-3 hidden md:block"><Moment date={cell.getValue()} format={"DD/MM/YYYY HH:mm:ss"}/></div>),
+        }),
+    ];
 
     return (
         <Table title={props.title}
                filtered={props.filtered}
                sorted={props.sorted}
-               refreshFunc={getJobs}
+               paginated={props.paginated}
                columns={columns}
-               data={jobs} />
+               defaultPageSize={props.limit || Const.DEFAULT_PAGE_SIZE}
+               refreshFunc={getJobs}
+               data={jobs}
+               loading={loading}
+        />
     );
 }
 

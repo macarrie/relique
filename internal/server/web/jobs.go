@@ -20,6 +20,10 @@ import (
 	"github.com/macarrie/relique/internal/types/relique_job"
 )
 
+func getJobSearchParams(c *gin.Context) relique_job.JobSearchParams {
+	return relique_job.JobSearchParams{}
+}
+
 func getJob(c *gin.Context) {
 	uuid := c.Param("uuid")
 	job, getJobErr := relique_job.GetByUuid(uuid)
@@ -35,13 +39,10 @@ func getJob(c *gin.Context) {
 }
 
 func searchJob(c *gin.Context) {
-	var params relique_job.JobSearchParams
-	if err := c.BindJSON(&params); err != nil {
-		log.Error("Cannot bind received job search parameters")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	jobs, err := relique_job.Search(params)
+	page := getPagination(c)
+	params := getJobSearchParams(c)
+
+	jobs, err := relique_job.Search(params, page)
 	if err != nil {
 		params.GetLog().WithFields(log.Fields{
 			"err": err,
@@ -49,7 +50,20 @@ func searchJob(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusOK, jobs)
+	count, err := relique_job.Count(params)
+	if err != nil {
+		params.GetLog().WithFields(log.Fields{
+			"err": err,
+		}).Error("Cannot perform job count for pagination metadata")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	page.Count = count
+
+	c.JSON(http.StatusOK, gin.H{
+		"meta": page,
+		"data": jobs,
+	})
 }
 
 func postJobStart(c *gin.Context) {

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	pagination2 "github.com/macarrie/relique/internal/types/pagination"
 	"os"
 
 	"github.com/macarrie/relique/internal/types/config/server_daemon_config"
@@ -26,6 +27,7 @@ var rootCmd *cobra.Command
 var config common.Configuration
 
 var jobSearchParams relique_job.JobSearchParams
+var pagination pagination2.Pagination
 var manualJobParams relique_job.JobSearchParams
 
 var configShowClientName string
@@ -73,7 +75,7 @@ func Init() {
 		Use:   "list",
 		Short: "List jobs on relique server",
 		Run: func(cmd *cobra.Command, args []string) {
-			jobs, err := relique_job.Search(jobSearchParams)
+			jobs, err := relique_job.Search(jobSearchParams, pagination)
 			if err != nil {
 				jobSearchParams.GetLog().WithFields(log.Fields{
 					"err": err,
@@ -300,7 +302,7 @@ func Init() {
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Status, "status", "s", "", "Job status")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.BackupType, "backup-type", "t", "", "Backup type (diff, cumulative_diff, full)")
 	jobListCmd.Flags().StringVarP(&jobSearchParams.Uuid, "uuid", "u", "", "Job with UUID")
-	jobListCmd.Flags().IntVarP(&jobSearchParams.Limit, "limit", "l", 0, "Limit job search to LIMIT items (0 corresponds to no limit)")
+	jobListCmd.Flags().Uint64VarP(&pagination.Limit, "limit", "l", 0, "Limit job search to LIMIT items (0 corresponds to no limit)")
 
 	// PING_SERVER CMD
 	rootCmd.AddCommand(pingClientCmd)

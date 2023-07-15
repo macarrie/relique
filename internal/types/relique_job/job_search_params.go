@@ -12,7 +12,7 @@ type JobSearchParams struct {
 	JobType            string `json:"job_type,omitempty" mapstructure:"job_type"`
 	RestoreJobUuid     string `json:"restore_job_uuid,omitempty" mapstructure:"restore_job_uuid"`
 	RestoreDestination string `json:"restore_destination,omitempty" mapstructure:"restore_destination"`
-	Limit              int    `json:"limit" mapstructure:"limit"`
+	Count              string `json:"count,omitempty" mapstructure:"count"`
 }
 
 func (p *JobSearchParams) GetLog() *log.Entry {
