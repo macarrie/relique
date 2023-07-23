@@ -6,23 +6,28 @@ import {
     getSortedRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
+    PaginationState,
     useReactTable,
 } from "@tanstack/react-table";
 import * as _ from "lodash";
 import TableUtils from "../utils/table";
 import {range} from "lodash";
 import PaginationButton from "./pagination_button";
+import {useQuery} from "react-query";
+import Const from "../types/const";
 
 function Table({
                    title,
-                   filtered,
-                   sorted,
-                   paginated,
+                   filtered = false,
+                   sorted = false,
+                   paginated = false,
                    columns,
                    data,
-                   loading,
-                   defaultPageSize,
+                   loading = true,
+                   defaultPageSize = Const.DEFAULT_PAGE_SIZE,
                    refreshFunc,
+                   fetchDataFunc,
+                   manualPagination = false,
                    actions,
 } :any) {
     const placeholderColumns = TableUtils.GetPlaceholderColumns(columns)
@@ -32,25 +37,101 @@ function Table({
     // For table filtering (updated with debounce)
     let [globalFilter, setGlobalFilter] = useState("");
     let [sorting, setSorting] = React.useState<SortingState>([])
+    let [isLoading, setLoading] = useState<Boolean>(loading);
+    const [{ pageIndex, pageSize }, changePage] = useState<PaginationState>({
+            pageIndex: 0,
+            pageSize: defaultPageSize,
+        })
+    const pagination = React.useMemo(
+        () => ({
+            pageIndex,
+            pageSize,
+        }),
+        [pageIndex, pageSize]
+    )
+
+    let fetchData = (typeof fetchDataFunc === "function") ? fetchDataFunc : (async (params :any) => {})
+    const fetchDataOptions = manualPagination ? {
+        limit: pageSize,
+        offset: pageIndex * pageSize,
+        filter: globalFilter,
+    } : {}
+    const dataQuery = useQuery(
+        [title, fetchDataOptions],
+        () => fetchData(fetchDataOptions),
+        {
+            keepPreviousData: true,
+            enabled: manualPagination
+        }
+    )
+    console.log(dataQuery)
+
+    let tableState = manualPagination ? {
+            globalFilter,
+            sorting,
+            pagination,
+        } : {
+        globalFilter,
+        sorting,
+    }
+    let paginationTableOptions = manualPagination ? {
+        manualPagination: true,
+        onPaginationChange: changePage,
+    } : {
+        manualPagination: false,
+        getPaginationRowModel: getPaginationRowModel(),
+    }
+
+    function getData() {
+        if (manualPagination) {
+            return dataQuery.data?.data.data
+        }
+        return data
+    }
+
+    function refreshData() {
+        if (typeof refreshFunc === "function") {
+            refreshFunc()
+        } else {
+            if (manualPagination) {
+                dataQuery.refetch()
+            }
+        }
+    }
+
+    function getPageCount() {
+        if (manualPagination && (typeof fetchDataFunc === "function")) {
+            return Math.ceil(dataQuery.data?.data.meta.count / pageSize)
+        }
+
+        return data.length / pageSize
+    }
 
     const table = useReactTable(
         {
-            columns: loading ? placeholderColumns : columns,
-            data: loading ? [{}, {}, {}] : data,
-            state: {
-                globalFilter,
-                sorting,
-            },
+            columns: isLoading ? placeholderColumns : columns,
+            data: isLoading ? [{}, {}, {}] : getData(),
+            pageCount: getPageCount(),
+            state: tableState,
             onGlobalFilterChange: updateFilter,
             onSortingChange: setSorting,
             getCoreRowModel: getCoreRowModel(),
             getSortedRowModel: getSortedRowModel(),
             getFilteredRowModel: getFilteredRowModel(),
-            getPaginationRowModel: getPaginationRowModel(),
             enableGlobalFilter: filtered,
             enableSorting: sorted,
+            debugTable: true,
+            ...paginationTableOptions,
         },
     );
+
+    useEffect(() => {
+        if (manualPagination) {
+            setLoading(dataQuery.isLoading || dataQuery.isFetching)
+        } else {
+            setLoading(loading)
+        }
+    }, [manualPagination, loading, dataQuery.isLoading, dataQuery.isFetching])
 
     useEffect(() => {
         table.setPageSize(defaultPageSize)
@@ -78,7 +159,7 @@ function Table({
                     </div>
                 )}
                 <button type={"button"} className="button button-small button-text ml-2"
-                        onClick={() => refreshFunc()}>
+                        onClick={() => refreshData()}>
                     <div className="hover:animate-spin">
                         <i className="text-lg ri-refresh-line"></i>
                     </div>
@@ -157,7 +238,7 @@ function Table({
                 </tfoot>
             </table>
 
-            {(paginated && !loading) && (
+            {(paginated && !isLoading) && (
                 <div className="flex flex-row px-4 pt-2">
                 <span className="flex items-center gap-2">
                     <b>

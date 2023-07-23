@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React from "react";
 import {Link} from "react-router-dom";
 import Moment from "react-moment";
 import {createColumnHelper} from "@tanstack/react-table";
@@ -10,7 +10,6 @@ import JobUtils from "../utils/job";
 import StatusBadge from "./status_badge";
 import Table from "./table";
 import Const from "../types/const";
-import {useQuery} from "react-query";
 
 type JobListProps = {
     limit? :number,
@@ -21,33 +20,6 @@ type JobListProps = {
 }
 
 function JobList(props :JobListProps) {
-    let [jobs, setJobs] = useState([] as Job[]);
-    let [loading, setLoading] = useState(true);
-
-    const defaultData = useMemo(() => [], [])
-    const fetchDataOptions = {
-        limit: 1000,
-        offset: 0,
-    }
-    const dataQuery = useQuery(
-        ['jobs', fetchDataOptions],
-        () => API.jobs.list(fetchDataOptions),
-        { keepPreviousData: true }
-    )
-
-    useEffect(() => {
-        setLoading(dataQuery.isLoading || dataQuery.isFetching)
-    }, [dataQuery.isLoading, dataQuery.isFetching])
-
-    const getJobs = useCallback(function() {
-        let jobList = dataQuery.data?.data.data || defaultData
-        setJobs(jobList);
-    }, [dataQuery, defaultData])
-
-    useEffect(() => {
-        getJobs();
-    }, [getJobs]);
-
     function uuidDisplay(id :string) {
         if (!id) {
             return "unknown"
@@ -102,9 +74,8 @@ function JobList(props :JobListProps) {
                paginated={props.paginated}
                columns={columns}
                defaultPageSize={props.limit || Const.DEFAULT_PAGE_SIZE}
-               refreshFunc={getJobs}
-               data={jobs}
-               loading={loading}
+               manualPagination={true}
+               fetchDataFunc={API.jobs.list}
         />
     );
 }
