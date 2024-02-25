@@ -37,7 +37,6 @@ function JobDetails() {
         return <div>Loading</div>
     }
 
-    console.log(j)
     return (<>
             <Card>
                 <div className="flex flex-row px-4 py-3 items-center">

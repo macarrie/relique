@@ -12,4 +12,38 @@ export default class TableUtils {
             return col;
         });
     };
+
+    static getPaginationItems = function(
+        currentPage: number,
+        pageCount: number,
+        maxLength: number
+    ) {
+        let res: Array<number> = [];
+
+        if (pageCount <= maxLength) {
+            return _.range(0, pageCount)
+        } else {
+            if (currentPage < 3) {
+                res = _.range(3)
+                res.push(NaN)
+
+                res.push(..._.range(pageCount - 3, pageCount))
+            } else if (currentPage >= pageCount - 3){
+                res.push(0)
+                res.push(NaN)
+
+                res.push(..._.range(pageCount - 3, pageCount))
+            } else {
+                res.push(0)
+                res.push(NaN)
+
+                res.push(..._.range(currentPage - 1, currentPage + 2))
+                res.push(NaN)
+
+                res.push(pageCount - 1)
+            }
+
+            return res
+        }
+    }
 }

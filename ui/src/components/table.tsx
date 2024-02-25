@@ -11,7 +11,6 @@ import {
 } from "@tanstack/react-table";
 import * as _ from "lodash";
 import TableUtils from "../utils/table";
-import {range} from "lodash";
 import PaginationButton from "./pagination_button";
 import {useQuery} from "react-query";
 import Const from "../types/const";
@@ -26,8 +25,7 @@ function Table({
                    loading = true,
                    defaultPageSize = Const.DEFAULT_PAGE_SIZE,
                    refreshFunc,
-                   fetchDataFunc,
-                   manualPagination = false,
+                   fetchDataFunc, manualPagination = false,
                    actions,
 } :any) {
     const placeholderColumns = TableUtils.GetPlaceholderColumns(columns)
@@ -64,7 +62,6 @@ function Table({
             enabled: manualPagination
         }
     )
-    console.log(dataQuery)
 
     let tableState = manualPagination ? {
             globalFilter,
@@ -258,12 +255,13 @@ function Table({
                                     onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
                                 <i className="ri-arrow-left-s-line"></i>
                             </PaginationButton>
-                            {range(0, table.getPageCount()).map((page: number) => (
+                            {TableUtils.getPaginationItems(table.getState().pagination.pageIndex, table.getPageCount(), 6).map((page: number) => (
                                 <PaginationButton
                                     key={page}
+                                    disabled={isNaN(page)}
                                     active={table.getState().pagination.pageIndex === page}
                                     onClick={() => table.setPageIndex(page)}>
-                                    {page + 1}
+                                    {isNaN(page) ? '...' : page + 1}
                                 </PaginationButton>
                             ))}
                             <PaginationButton
