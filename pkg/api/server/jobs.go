@@ -405,6 +405,13 @@ func SyncFiles(job *relique_job.ReliqueJob) error {
 		job.GetLog().Warning("Cannot print job sync tasks progress")
 	}
 
+	// Gather job sync stats
+	stats, err := GatherSyncStats(job)
+	if err != nil {
+		job.GetLog().Warning("Cannot get job sync tasks statistics")
+	}
+	fmt.Printf("STATS: %+v\n", stats)
+
 	if syncHasIncomplete || syncHasError {
 		if syncHasIncomplete {
 			job.Status.Status = job_status.Incomplete
@@ -446,6 +453,29 @@ func PrintSyncProgress(job *relique_job.ReliqueJob) error {
 	}
 
 	return nil
+}
+
+func GatherSyncStats(job *relique_job.ReliqueJob) (map[string]rsync.Stats, error) {
+	stats := make(map[string]rsync.Stats)
+
+	tasks, ok := server_daemon_config.SyncTasks[job.Uuid]
+	if !ok {
+		return nil, fmt.Errorf("no sync tasks found for job")
+	}
+
+	for _, task := range tasks {
+		if err := task.Stats.GetFromRsyncLog(job.GetRsyncLogFilePath(task.Path)); err != nil {
+			job.GetLog().WithFields(log.Fields{
+				"err":  err,
+				"path": task.Path,
+			}).Error("Cannot get stats from rsync task")
+			continue
+		}
+
+		stats[task.Path] = task.Stats
+	}
+
+	return stats, nil
 }
 
 func MarkAsDone(job *relique_job.ReliqueJob) error {
