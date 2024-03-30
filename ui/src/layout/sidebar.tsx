@@ -7,18 +7,18 @@ function Sidebar(props: any) {
     if (props.mobile) {
         return (
             <aside className={`h-full flex flex-col overflow-y-auto`}>
-                <SidebarMenu/>
+                <SidebarMenu sidebarOpen={props.sidebarOpen} setSidebarOpen={props.setSidebarOpen}/>
             </aside>
         );
     }
 
     return (
         <aside className={`md:w-64 w-12 hidden md:flex flex-col overflow-y-auto`}>
-            <div className="flex flex-row items-center text-center py-4 mx-auto mb-4">
+            <div className="flex flex-row items-center text-center py-4 mx-auto">
                 <Logo/>
             </div>
 
-            <SidebarMenu/>
+            <SidebarMenu sidebarOpen={props.sidebarOpen} setSidebarOpen={props.setSidebarOpen}/>
         </aside>
     );
 }

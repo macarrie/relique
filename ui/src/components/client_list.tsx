@@ -90,11 +90,13 @@ function ClientList(props :any) {
 
         let module_names :string[] = mods.split(",")
         return (
-            <>
+            <div className="flex flex-wrap gap-y-2 gap-x-1">
                 {module_names.map((mod: any) => (
-                    <span className="badge" key={mod}>{mod}</span>
+                    <div key={mod}>
+                        <span className="badge">{mod}</span>
+                    </div>
                 ))}
-            </>
+            </div>
         )
     }
 

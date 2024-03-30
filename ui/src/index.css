@@ -8,9 +8,16 @@
 
 @layer base {
     a {
-        @apply text-blue-300;
+        @apply text-blue-700;
     }
     a:hover {
+        @apply text-blue-500;
+    }
+
+    .dark a {
+        @apply text-blue-300;
+    }
+    .dark a:hover {
         @apply text-blue-500;
     }
 

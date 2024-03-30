@@ -9,6 +9,7 @@ function SidebarMenuItem(props :any) {
     return (
         <li>
             <NavLink to={props.link}
+                     onClick={() => props.setSidebarOpen(false)}
                      className={({isActive}) => isActive ? activeClass : inactiveClass}>
                 <div className="h-12 flex flex-row items-center">
                     <div className="w-12 block text-center text-xl">

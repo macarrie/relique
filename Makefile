@@ -95,6 +95,11 @@ release: clean ## Create relique release $TAG
 	@git diff --exit-code --quiet || (echo "Please commit pending changes before creating release commit"; exit 1)
 	@echo "Writing current version file"
 	echo "$(TAG)" > .current_version
+	cat >> EOF
+	export default class Version {
+		static Tag = "$(TAG)";
+	};
+	EOF
 	$(MAKE) prepare_release VERSION=$(TAG)
 	git commit -am "Release v$(TAG)"
 	$(MAKE) tag TAG=$(TAG)

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
     BrowserRouter,
     Routes,
@@ -16,13 +16,15 @@ import {QueryClient, QueryClientProvider} from "react-query";
 const queryClient = new QueryClient()
 
 function App() {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     return (
         <QueryClientProvider client={queryClient}>
             <BrowserRouter basename="/ui">
                 <div className="flex flex-row min-h-screen bg-blue-50 text-slate-700 dark:bg-slate-900 dark:text-slate-100">
-                    <Sidebar/>
+                    <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-                    <Main>
+                    <Main sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} >
                         <Routes>
                             <Route path="/" element={<Navigate to="/dashboard" replace={true}/>}/>
                             {appRoutes.map(({path, elt}, key) => (

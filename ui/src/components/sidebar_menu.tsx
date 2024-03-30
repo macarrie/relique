@@ -3,26 +3,34 @@ import React from "react";
 import SidebarMenuItem from "./sidebar_menu_item"
 import DarkModeSwitcher from "./dark_mode_switcher";
 
-function SidebarMenu() {
+function SidebarMenu(props :any) {
     return (
         <>
             <ul className="grow space-y-1">
                 <SidebarMenuItem
+                    sidebarOpen={props.sidebarOpen}
+                    setSidebarOpen={props.setSidebarOpen}
                     label="Overview"
                     icon="ri-home-2-line"
                     link="/dashboard"
                 />
                 <SidebarMenuItem
+                    sidebarOpen={props.sidebarOpen}
+                    setSidebarOpen={props.setSidebarOpen}
                     label="Jobs"
                     icon="ri-task-line"
                     link="/jobs"
                 />
                 <SidebarMenuItem
+                    sidebarOpen={props.sidebarOpen}
+                    setSidebarOpen={props.setSidebarOpen}
                     label="Clients"
                     icon="ri-device-line"
                     link="/clients"
                 />
                 <SidebarMenuItem
+                    sidebarOpen={props.sidebarOpen}
+                    setSidebarOpen={props.setSidebarOpen}
                     label="Modules"
                     icon="ri-apps-line"
                     link="/modules"
