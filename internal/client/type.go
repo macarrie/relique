@@ -17,6 +17,8 @@ import (
 type Client struct {
 	Name    string          `json:"name" toml:"name"`
 	Address string          `json:"address" toml:"address"`
+	SSHUser string          `json:"ssh_user" toml:"ssh_user"`
+	SSHPort int             `json:"ssh_port" toml:"ssh_port"`
 	Modules []module.Module `json:"modules" toml:"modules"`
 }
 

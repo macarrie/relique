@@ -10,6 +10,9 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+var DEFAULT_SSH_USER string = "relique"
+var DEFAULT_SSH_PORT int = 22
+
 func New(name string, address string) Client {
 	return Client{
 		Name:    name,

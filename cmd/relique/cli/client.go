@@ -72,6 +72,27 @@ func init() {
 		},
 	}
 
+	clientPingCmd := &cobra.Command{
+		Use:   "ping CLIENT_NAME",
+		Short: "Ping client via SSH",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			cl, pingErr := api.ClientGet(args[0])
+			if pingErr != nil {
+				slog.With(
+					slog.String("client", args[0]),
+					slog.Any("error", pingErr),
+				).Error("Cannot get client details")
+				os.Exit(1)
+			}
+
+			if err := api.ClientSSHPing(cl); err != nil {
+				slog.Error("Cannot ping client", slog.Any("error", err))
+				os.Exit(1)
+			}
+		},
+	}
+
 	clientCreateCmd := &cobra.Command{
 		Use:   "create CLIENT_NAME",
 		Short: "Create a new backup client",
@@ -93,6 +114,7 @@ func init() {
 	rootCmd.AddCommand(clientCmd)
 	clientCmd.AddCommand(clientListCmd)
 	clientCmd.AddCommand(clientShowCmd)
+	clientCmd.AddCommand(clientPingCmd)
 	clientCmd.AddCommand(clientCreateCmd)
 	clientCmd.AddCommand(clientModifyCmd)
 }
