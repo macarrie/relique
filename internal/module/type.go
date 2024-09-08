@@ -12,6 +12,8 @@ import (
 	"github.com/macarrie/relique/internal/backup_type"
 )
 
+var MODULES_INSTALL_PATH string
+
 type Module struct {
 	ModuleType        string                 `json:"module_type" toml:"module_type"`
 	Name              string                 `json:"name" toml:"name"`
@@ -19,7 +21,7 @@ type Module struct {
 	Variant           string                 `json:"variant" toml:"variant"`
 	AvailableVariants []string               `json:"available_variants" toml:"available_variants"`
 	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
-	Params            map[string]interface{} `json:"params" toml:"params"`
+	BackupFiles       []string               `json:"backup_files" toml:"backup_files"`
 }
 
 func (m *Module) String() string {
@@ -37,7 +39,7 @@ func (m *Module) GetVariant() string {
 func (m *Module) GetLog() *slog.Logger {
 	return slog.With(
 		slog.String("name", m.Name),
-		slog.String("type", m.ModuleType),
+		slog.String("module_type", m.ModuleType),
 		slog.String("backup_type", m.BackupType.String()),
 		slog.String("variant", m.GetVariant()),
 	)
@@ -51,7 +53,6 @@ func (m *Module) Valid() error {
 	if m.Name == "" {
 		objErrors = multierror.Append(objErrors, fmt.Errorf("empty module name"))
 	}
-	// TODO: Use struct
 	if m.BackupType.Type == backup_type.Unknown {
 		objErrors = multierror.Append(objErrors, fmt.Errorf("unknown backup type"))
 	}
@@ -60,6 +61,10 @@ func (m *Module) Valid() error {
 }
 
 func (m *Module) GetAvailableVariants() error {
+	if MODULES_INSTALL_PATH == "" {
+		return fmt.Errorf("empty modules install path")
+	}
+
 	var availableVariants []string
 	itemPath := fmt.Sprintf("%s/%s", MODULES_INSTALL_PATH, m.Name)
 	files, err := os.ReadDir(itemPath)
@@ -78,6 +83,10 @@ func (m *Module) GetAvailableVariants() error {
 }
 
 func (m *Module) LoadDefaultConfiguration() error {
+	if MODULES_INSTALL_PATH == "" {
+		return fmt.Errorf("empty modules install path")
+	}
+
 	// Load module configuration from file with specified variant
 	defaults, err := LoadFromFile(filepath.Clean(fmt.Sprintf("%s/%s/%s.toml", MODULES_INSTALL_PATH, m.ModuleType, m.GetVariant())))
 	if err != nil {
@@ -88,15 +97,8 @@ func (m *Module) LoadDefaultConfiguration() error {
 		m.BackupPaths = defaults.BackupPaths
 	}
 
-	if m.Params == nil {
-		m.Params = make(map[string]interface{})
-	}
-
-	for key := range defaults.Params {
-		_, ok := m.Params[key]
-		if !ok {
-			m.Params[key] = defaults.Params[key]
-		}
+	if len(m.BackupFiles) == 0 {
+		m.BackupFiles = defaults.BackupFiles
 	}
 
 	return nil

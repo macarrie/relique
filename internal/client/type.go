@@ -47,7 +47,7 @@ func (c *Client) Write(rootPath string) error {
 }
 
 func (c *Client) String() string {
-	return fmt.Sprintf("%s (%s)", c.Name, c.Address)
+	return c.Name
 }
 
 func (c *Client) GetLog() *slog.Logger {

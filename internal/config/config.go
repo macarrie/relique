@@ -23,6 +23,7 @@ var Loaded bool
 var CLIENTS_DEFAULT_FOLDER string = "clients"
 var REPOS_DEFAULT_FOLDER string = "repositories"
 var MODULES_DEFAULT_FOLDER string = "/var/lib/relique/modules"
+var DB_DEFAULT_FOLDER string = "db"
 
 type Configuration struct {
 	Clients      []client.Client   `json:"clients" toml:"clients"`
@@ -32,6 +33,7 @@ type Configuration struct {
 	ClientCfgPath     string `mapstructure:"client_cfg_path" json:"client_cfg_path" toml:"client_cfg_path"`
 	RepoCfgPath       string `mapstructure:"repo_cfg_path" json:"repo_cfg_path" toml:"repo_cfg_path"`
 	ModuleInstallPath string `mapstructure:"module_install_path" json:"module_install_path" toml:"module_install_path"`
+	DBPath            string `mapstructure:"db_path" json:"db_path" toml:"db_path"`
 }
 
 func New() {
@@ -57,12 +59,13 @@ func Load(fileName string) error {
 		return err
 	}
 
-	setDefaultValues()
-
 	var cfg Configuration
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return err
 	}
+
+	setDefaultValues()
+	module.MODULES_INSTALL_PATH = cfg.ModuleInstallPath
 
 	clients, err := client.LoadFromPath(getAbsoluteCfgPath(cfg.ClientCfgPath))
 	if err != nil {
@@ -75,8 +78,6 @@ func Load(fileName string) error {
 		return fmt.Errorf("cannot load repositories configuration: %w", err)
 	}
 	cfg.Repositories = repos
-
-	module.MODULES_INSTALL_PATH = cfg.ModuleInstallPath
 
 	Current = cfg
 	Loaded = true
@@ -108,6 +109,10 @@ func setDefaultValues() {
 	}
 	if Current.ModuleInstallPath == "" {
 		Current.ModuleInstallPath = MODULES_DEFAULT_FOLDER
+		module.MODULES_INSTALL_PATH = MODULES_DEFAULT_FOLDER
+	}
+	if Current.DBPath == "" {
+		Current.DBPath = DB_DEFAULT_FOLDER
 	}
 }
 
@@ -134,6 +139,10 @@ func GetClientsCfgPath() string {
 
 func GetReposCfgPath() string {
 	return getAbsCfgDir(Current.RepoCfgPath, REPOS_DEFAULT_FOLDER)
+}
+
+func GetDBPath() string {
+	return getAbsCfgDir(Current.DBPath, DB_DEFAULT_FOLDER)
 }
 
 func UseFile(filePath string) {

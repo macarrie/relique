@@ -6,3 +6,6 @@ build: clean
 
 clean:
 	rm -f ./relique
+
+reset:
+	rm -rf ~/.config/relique/db/relique.sqlite ~/.config/relique/storage/*

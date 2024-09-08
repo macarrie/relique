@@ -25,7 +25,6 @@ func ClientList() []client.Client {
 
 func ClientGet(name string) (client.Client, error) {
 	clientList := ClientList()
-
 	for _, cl := range clientList {
 		if cl.Name == name {
 			return cl, nil

@@ -5,7 +5,6 @@ const (
 	Diff
 	Full
 	Restore // For display purposes
-	CumulativeDiff
 )
 
 type BackupType struct {
@@ -20,8 +19,6 @@ func (t *BackupType) String() string {
 		return "full"
 	case Restore:
 		return "restore"
-	case CumulativeDiff:
-		return "cumulative_diff"
 	default:
 		return "unknown"
 	}
@@ -37,8 +34,6 @@ func FromString(val string) BackupType {
 		t.Type = Full
 	case "restore":
 		t.Type = Restore
-	case "cumulative_diff":
-		t.Type = CumulativeDiff
 	default:
 		t.Type = Unknown
 	}
@@ -48,7 +43,6 @@ func FromString(val string) BackupType {
 
 func (t *BackupType) UnmarshalText(b []byte) error {
 	tmp := FromString(string(b))
-
 	*t = tmp
 
 	return nil

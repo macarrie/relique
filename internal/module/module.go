@@ -9,8 +9,6 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-var MODULES_INSTALL_PATH = "/var/lib/relique/modules"
-
 func LoadFromFile(file string) (m Module, err error) {
 	slog.With(
 		slog.String("path", file),
@@ -38,4 +36,13 @@ func LoadFromFile(file string) (m Module, err error) {
 	}
 
 	return module, nil
+}
+
+func GetByName(list []Module, name string) (Module, error) {
+	for _, mod := range list {
+		if mod.Name == name {
+			return mod, nil
+		}
+	}
+	return Module{}, fmt.Errorf("cannot find module named '%s'", name)
 }

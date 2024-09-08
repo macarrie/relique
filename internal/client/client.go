@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml"
+
+	"github.com/macarrie/relique/internal/module"
 )
 
 var DEFAULT_SSH_USER string = "relique"
@@ -40,6 +42,27 @@ func LoadFromFile(file string) (cl Client, err error) {
 		return Client{}, fmt.Errorf("cannot parse toml file: %w", err)
 	}
 
+	modules := client.Modules
+	var filteredModulesList []module.Module
+	for i := range modules {
+		if err := modules[i].LoadDefaultConfiguration(); err != nil {
+			modules[i].GetLog().With(
+				slog.Any("error", err),
+				slog.String("module_type", modules[i].ModuleType),
+			).Error("Cannot find default configuration parameters for module. Make sure that this module is correctly installed")
+			continue
+		}
+		if err := modules[i].Valid(); err == nil {
+			filteredModulesList = append(filteredModulesList, modules[i])
+		} else {
+			modules[i].GetLog().With(
+				slog.Any("error", err),
+			).Error("Module has invalid configuration. This module will not be loaded into configuration")
+		}
+
+	}
+	client.Modules = filteredModulesList
+
 	return client, nil
 }
 
@@ -56,7 +79,7 @@ func LoadFromPath(p string) ([]Client, error) {
 			slog.With(
 				slog.Any("error", err),
 				slog.String("path", path),
-			).Error("Cannot load client configuration from file")
+			).Error("Cannot browse client configuration")
 			return err
 		}
 

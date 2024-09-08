@@ -17,12 +17,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-func GetLocallyInstalled() ([]Module, error) {
+func GetLocallyInstalled(modulesInstallPath string) ([]Module, error) {
 	slog.With(
-		slog.String("path", MODULES_INSTALL_PATH),
+		slog.String("path", modulesInstallPath),
 	).Debug("Using modules install folder")
 
-	items, err := os.ReadDir(MODULES_INSTALL_PATH)
+	items, err := os.ReadDir(modulesInstallPath)
 	if err != nil {
 		return []Module{}, fmt.Errorf("cannot list installed modules from filesystem: %w", err)
 	}
@@ -56,8 +56,8 @@ func GetLocallyInstalled() ([]Module, error) {
 	return modulesList, errorList.ErrorOrNil()
 }
 
-func IsInstalled(moduleName string) (bool, error) {
-	installedModules, err := GetLocallyInstalled()
+func IsInstalled(modulesInstallPath string, moduleName string) (bool, error) {
+	installedModules, err := GetLocallyInstalled(modulesInstallPath)
 	if err != nil {
 		return false, fmt.Errorf("cannot get locally installed modules: %w", err)
 	}
@@ -200,15 +200,15 @@ func installModuleFiles(source string, dest string, skipChown bool) error {
 	return nil
 }
 
-func Install(path string, local bool, archive bool, force bool, skipChown bool) error {
+func Install(modulesInstallPath string, path string, local bool, archive bool, force bool, skipChown bool) error {
 	slog.With(
-		slog.String("install_path", MODULES_INSTALL_PATH),
+		slog.String("install_path", modulesInstallPath),
 		slog.Bool("local", local),
 		slog.Bool("archive", archive),
 		slog.String("source_path", path),
 	).Info("Installing relique module")
 
-	if _, err := os.Lstat(MODULES_INSTALL_PATH); os.IsNotExist(err) {
+	if _, err := os.Lstat(modulesInstallPath); os.IsNotExist(err) {
 		return fmt.Errorf("module install path does not exist. Please check that relique is correctly installed and that provided module install path is correct")
 	}
 
@@ -251,7 +251,7 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 		return fmt.Errorf("cannot read default.toml for module, please make sure the module to install contains a correctly formatted default.toml file: %w", err)
 	}
 
-	installPath := filepath.Clean(fmt.Sprintf("%s/%s", MODULES_INSTALL_PATH, strings.ToLower(parsedModule.Name)))
+	installPath := filepath.Clean(fmt.Sprintf("%s/%s", modulesInstallPath, strings.ToLower(parsedModule.Name)))
 
 	if _, err := os.Lstat(installPath); !os.IsNotExist(err) && !force {
 		return fmt.Errorf("module install path already exists but -f/--force not used, skipping module install")
@@ -259,7 +259,7 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 
 	// Module already exists, removing before reinstall
 	if _, err := os.Lstat(installPath); err == nil {
-		if err := Remove(parsedModule.Name); err != nil {
+		if err := Remove(modulesInstallPath, parsedModule.Name); err != nil {
 			return fmt.Errorf("cannot remove existing module version before install: %w", err)
 		}
 	}
@@ -271,19 +271,19 @@ func Install(path string, local bool, archive bool, force bool, skipChown bool) 
 	return nil
 }
 
-func Remove(moduleName string) error {
+func Remove(modulesInstallPath string, moduleName string) error {
 	slog.With(
-		slog.String("install_path", MODULES_INSTALL_PATH),
+		slog.String("install_path", modulesInstallPath),
 		slog.String("name", moduleName),
 	).Info("Uninstalling relique module")
 
 	// Control path to remove to avoid making huge mistakes
-	if MODULES_INSTALL_PATH == "/" {
+	if modulesInstallPath == "/" {
 		return fmt.Errorf("modules install path has been set to /. Refusing to remove module to avoid accidental disastrous file deletions")
 	}
 
 	// Do not trust moduleName directly. Search for installed modules matching with provided name and remove it
-	installedModules, err := GetLocallyInstalled()
+	installedModules, err := GetLocallyInstalled(modulesInstallPath)
 	if err != nil {
 		return fmt.Errorf("cannot get locally modules: %w", err)
 	}
@@ -302,7 +302,7 @@ func Remove(moduleName string) error {
 	}
 
 	// Add a / in front of path to make sure we have an absolute path
-	fullPath := filepath.Clean(fmt.Sprintf("/%s/%s", MODULES_INSTALL_PATH, foundModule.Name))
+	fullPath := filepath.Clean(fmt.Sprintf("/%s/%s", modulesInstallPath, foundModule.Name))
 	if fullPath == "/" {
 		return fmt.Errorf("modules installed path to remove has been computed to /. Refusing to remove module to avoid accidental disastrous file deletions")
 	}

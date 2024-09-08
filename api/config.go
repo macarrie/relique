@@ -60,7 +60,16 @@ func ConfigInit(cfgPath string, modPath string, repoPath string) error {
 		slog.String("path", configPath),
 	).Info("Created default relique configuration folder")
 
-	// Create config folder
+	// Create db folder
+	dbPath := fmt.Sprintf("%s/%s", configPath, config.DB_DEFAULT_FOLDER)
+	if err := os.MkdirAll(dbPath, 0755); err != nil {
+		return fmt.Errorf("cannot create folder '%s': %w", dbPath, err)
+	}
+	slog.With(
+		slog.String("path", dbPath),
+	).Info("Created default relique database folder")
+
+	// Create module config folder
 	if err := os.MkdirAll(moduleInstallPath, 0755); err != nil {
 		return fmt.Errorf("cannot create folder '%s': %w", moduleInstallPath, err)
 	}
@@ -88,7 +97,7 @@ func ConfigInit(cfgPath string, modPath string, repoPath string) error {
 	).Debug("Created modules install folder")
 
 	// Install default modules
-	if err := ModuleInstall("https://github.com/macarrie/relique-module-generic", false, false, false); err != nil {
+	if err := ModuleInstall(moduleInstallPath, "https://github.com/macarrie/relique-module-generic", false, false, false); err != nil {
 		return fmt.Errorf("cannot install default generic module: %w", err)
 	}
 	slog.Debug("Installed default generic module")
