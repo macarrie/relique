@@ -1,15 +1,17 @@
 CREATE TABLE jobs (
-	id 			INTEGER PRIMARY KEY,
-	uuid 		TEXT NOT NULL UNIQUE,
-	status 		INTEGER NOT NULL,
-	backup_type INTEGER NOT NULL,
-	job_type 	INTEGER NOT NULL,
-	done 		INTEGER NOT NULL,
-	start_time 	TIMESTAMP,
-	end_time 	TIMESTAMP,
-    module_type TEXT,
-    client_name TEXT,
-    repo_name 	TEXT
+	id 					INTEGER PRIMARY KEY,
+	uuid 				TEXT NOT NULL UNIQUE,
+	status 				INTEGER NOT NULL,
+	backup_type 		INTEGER NOT NULL,
+	job_type 			INTEGER NOT NULL,
+	done 				INTEGER NOT NULL,
+	start_time 			TIMESTAMP,
+	end_time 			TIMESTAMP,
+    module_type 		TEXT,
+    client_name 		TEXT,
+    repo_name 			TEXT,
+    previous_job_uuid 	TEXT,
+    restore_image_uuid 	TEXT
 );
 
 CREATE TABLE images (

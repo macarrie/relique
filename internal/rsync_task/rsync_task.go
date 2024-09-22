@@ -26,18 +26,38 @@ func newBackup(source string, destination string, logsRootFolder string, backupP
 	}
 }
 
+func NewRestore(source string, destination string, logsRootFolder string, backupPath string) RsyncTask {
+	rsyncOptions := rsync_lib.RsyncOptions{
+		Archive:      true,
+		DelayUpdates: true,
+		Mkpath:       true,
+		NumericIDs:   true,
+		Perms:        true,
+		Progress:     true,
+		Quiet:        false,
+		Recursive:    true,
+		Relative:     false,
+		Rsh:          "ssh",
+		Stats:        true,
+		Verbose:      true,
+	}
+
+	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)
+}
+
 func NewFullBackup(source string, destination string, logsRootFolder string, backupPath string) RsyncTask {
 	rsyncOptions := rsync_lib.RsyncOptions{
-		Verbose:      true,
-		Quiet:        false,
 		Archive:      true,
-		Recursive:    true,
-		Perms:        true,
-		Rsh:          "ssh",
 		DelayUpdates: true,
 		NumericIDs:   true,
-		Stats:        true,
+		Perms:        true,
 		Progress:     true,
+		Quiet:        false,
+		Recursive:    true,
+		Relative:     true,
+		Rsh:          "ssh",
+		Stats:        true,
+		Verbose:      true,
 	}
 
 	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)
@@ -45,17 +65,18 @@ func NewFullBackup(source string, destination string, logsRootFolder string, bac
 
 func NewDiffBackup(source string, destination string, referencePath string, logsRootFolder string, backupPath string) RsyncTask {
 	rsyncOptions := rsync_lib.RsyncOptions{
-		Verbose:      true,
-		Quiet:        false,
 		Archive:      true,
-		Recursive:    true,
-		Perms:        true,
-		Rsh:          "ssh",
 		DelayUpdates: true,
-		NumericIDs:   true,
-		Stats:        true,
-		Progress:     true,
 		LinkDest:     referencePath,
+		NumericIDs:   true,
+		Perms:        true,
+		Progress:     true,
+		Quiet:        false,
+		Recursive:    true,
+		Relative:     true,
+		Rsh:          "ssh",
+		Stats:        true,
+		Verbose:      true,
 	}
 
 	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)

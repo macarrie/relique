@@ -21,7 +21,6 @@ type Module struct {
 	Variant           string                 `json:"variant" toml:"variant"`
 	AvailableVariants []string               `json:"available_variants" toml:"available_variants"`
 	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
-	BackupFiles       []string               `json:"backup_files" toml:"backup_files"`
 }
 
 func (m *Module) String() string {
@@ -95,10 +94,6 @@ func (m *Module) LoadDefaultConfiguration() error {
 
 	if len(m.BackupPaths) == 0 {
 		m.BackupPaths = defaults.BackupPaths
-	}
-
-	if len(m.BackupFiles) == 0 {
-		m.BackupFiles = defaults.BackupFiles
 	}
 
 	return nil

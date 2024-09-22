@@ -12,7 +12,6 @@ import (
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
 	"github.com/macarrie/relique/internal/utils"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +79,7 @@ func init() {
 		Short: "Show image details",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cl, err := api.ImageGet(args[0])
+			img, err := api.ImageGet(args[0])
 			if err != nil {
 				slog.With(
 					slog.String("image", args[0]),
@@ -89,12 +88,50 @@ func init() {
 				os.Exit(1)
 			}
 
-			out, err := toml.Marshal(cl)
+			imageDetailsTemplate := `# Image details
+-----
+## Global
+			
+Created on {{ datetime .CreatedAt }}
+
+UUID: {{ .Uuid }}
+
+This image has been generated from the job with the same UUID
+
+Client: 		{{ .Client.Name }}
+
+Repository: 		{{ .Repository.Name }}
+
+Repository type: 	{{ .Repository.Type }}
+
+
+## Module
+
+| Parameter | Value |
+| --------- | ----- |
+| Name | {{ .Module.Name }} |
+| Module type | {{ .Module.ModuleType }} |
+| Backup paths | {{ join .Module.BackupPaths ", " }} |
+
+## Statistics
+
+Size on disk: {{ file_size .SizeOnDisk}}
+
+Number of elements: {{ .NumberOfElements}}
+
+Files: {{ .NumberOfFiles}}
+
+Directories: {{ .NumberOfFolders}}
+`
+
+			render, err := utils.RenderTemplateToMarkdown("image_details", imageDetailsTemplate, img)
 			if err != nil {
-				slog.Error("Cannot display image details", slog.Any("error", err))
+				slog.With(
+					slog.Any("error", err),
+				).Error("Cannot display image details")
 				os.Exit(1)
 			}
-			fmt.Printf("\n%v\n", string(out))
+			fmt.Print(render)
 		},
 	}
 

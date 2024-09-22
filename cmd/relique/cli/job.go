@@ -10,6 +10,7 @@ import (
 	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
+	"github.com/macarrie/relique/internal/job_type"
 	"github.com/macarrie/relique/internal/utils"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
@@ -55,19 +56,28 @@ func init() {
 			tab.Col("client", "Client", 10)
 			tab.Col("module", "Module", 15)
 			tab.Col("status", "Status", 10)
-			tab.Col("backup_type", "Backup type", 15)
+			tab.Col("type", "Type", 15)
 			tab.Col("start_time", "Start time", 20)
 			tab.Col("duration", "Duration", 10)
 
-			format := tab.Print("uuid", "client", "module", "status", "backup_type", "start_time", "duration")
+			format := tab.Print("uuid", "client", "module", "status", "type", "start_time", "duration")
 			for _, j := range jobList.Data {
+				var jobType string
+				if j.JobType.Type == job_type.Backup {
+					jobType = fmt.Sprintf("backup/%s", j.BackupType.String())
+				} else if j.JobType.Type == job_type.Restore {
+					jobType = "restore"
+				} else {
+					jobType = j.JobType.String()
+				}
+
 				fmt.Printf(
 					format,
 					j.Uuid,
 					j.Client.String(),
 					j.Module.String(),
 					j.Status.String(),
-					j.BackupType.String(),
+					jobType,
 					utils.FormatDatetime(j.StartTime),
 					utils.FormatDuration(j.Duration()),
 				)
@@ -83,18 +93,18 @@ func init() {
 		Short: "Show job details",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cl, err := api.ClientGet(args[0])
+			j, err := api.JobGet(args[0])
 			if err != nil {
 				slog.With(
-					slog.String("client", args[0]),
+					slog.String("job", args[0]),
 					slog.Any("error", err),
-				).Error("Cannot get client details")
+				).Error("Cannot get job details")
 				os.Exit(1)
 			}
 
-			out, err := toml.Marshal(cl)
+			out, err := toml.Marshal(j)
 			if err != nil {
-				slog.Error("Cannot display client details", slog.Any("error", err))
+				slog.Error("Cannot display job details", slog.Any("error", err))
 				os.Exit(1)
 			}
 			fmt.Printf("\n%v\n", string(out))

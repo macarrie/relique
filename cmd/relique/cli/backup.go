@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/macarrie/relique/api"
+	"github.com/macarrie/relique/internal/backup_type"
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
 	"github.com/macarrie/relique/internal/module"
@@ -20,6 +21,7 @@ func init() {
 	backupCmd := &cobra.Command{
 		Use:   "backup",
 		Short: "Backup related commands",
+		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			_, err := api.ConfigGet()
 			if err != nil {
@@ -45,13 +47,28 @@ func init() {
 				os.Exit(1)
 			}
 
-			mod, err := module.GetByName(c.Modules, backupModule)
-			if err != nil {
-				slog.With(
-					slog.Any("error", err),
-					slog.String("module", backupModule),
-				).Error("Cannot find module on client")
-				os.Exit(1)
+			var mod module.Module
+			if backupModule == "" {
+				if len(args) == 0 {
+					slog.Error("Path arguments are needed if no module specified. Use --module or add arguments to command to announce paths to backup")
+					os.Exit(1)
+				} else {
+					mod = module.Module{
+						Name:        "on-demand",
+						BackupType:  backup_type.BackupType{Type: backup_type.Diff},
+						ModuleType:  "generic",
+						BackupPaths: args,
+					}
+				}
+			} else {
+				mod, err = module.GetByName(c.Modules, backupModule)
+				if err != nil {
+					slog.With(
+						slog.Any("error", err),
+						slog.String("module", backupModule),
+					).Error("Cannot find module on client")
+					os.Exit(1)
+				}
 			}
 
 			var r repo.Repository
@@ -75,7 +92,6 @@ func init() {
 				}
 			}
 
-			// TODO: Get backup type from cli param or module
 			if err := api.BackupStart(c, mod, r); err != nil {
 				slog.With(
 					slog.Any("error", err),

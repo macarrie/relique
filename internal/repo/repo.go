@@ -62,7 +62,7 @@ func LoadFromPath(p string) ([]Repository, error) {
 			slog.With(
 				slog.Any("error", err),
 				slog.String("path", path),
-			).Error("Cannot load repository configuration from file")
+			).Error("Cannot walk repositories configuration folder")
 			return err
 		}
 

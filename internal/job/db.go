@@ -13,6 +13,7 @@ import (
 	"github.com/macarrie/relique/internal/db"
 	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/repo"
+	rsync_lib "github.com/macarrie/relique/internal/rsync_task/lib"
 )
 
 func (j *Job) Save() (int64, error) {
@@ -47,16 +48,18 @@ func (j *Job) Save() (int64, error) {
 	j.GetLog().Debug("Saving job into database")
 
 	request := sq.Insert("jobs").SetMap(sq.Eq{
-		"uuid":        j.Uuid,
-		"status":      j.Status.Status,
-		"backup_type": j.BackupType.Type,
-		"job_type":    j.JobType.Type,
-		"done":        j.Done,
-		"start_time":  j.StartTime,
-		"end_time":    j.EndTime,
-		"module_type": j.Module.ModuleType,
-		"client_name": j.Client.Name,
-		"repo_name":   j.Repository.GetName(),
+		"uuid":               j.Uuid,
+		"status":             j.Status.Status,
+		"backup_type":        j.BackupType.Type,
+		"job_type":           j.JobType.Type,
+		"done":               j.Done,
+		"start_time":         j.StartTime,
+		"end_time":           j.EndTime,
+		"module_type":        j.Module.ModuleType,
+		"client_name":        j.Client.Name,
+		"repo_name":          j.Repository.GetName(),
+		"previous_job_uuid":  j.PreviousJobUuid,
+		"restore_image_uuid": j.RestoreImageUuid,
 	})
 	query, args, err := request.ToSql()
 	if err != nil {
@@ -85,15 +88,17 @@ func (j *Job) Update(tx *sql.Tx) (int64, error) {
 	j.GetLog().Debug("Updating job details into database")
 
 	request := sq.Update("jobs").SetMap(sq.Eq{
-		"status":      j.Status.Status,
-		"backup_type": j.BackupType.Type,
-		"job_type":    j.JobType.Type,
-		"done":        j.Done,
-		"start_time":  j.StartTime,
-		"end_time":    j.EndTime,
-		"module_type": j.Module.ModuleType,
-		"client_name": j.Client.Name,
-		"repo_name":   j.Repository.GetName(),
+		"status":             j.Status.Status,
+		"backup_type":        j.BackupType.Type,
+		"job_type":           j.JobType.Type,
+		"done":               j.Done,
+		"start_time":         j.StartTime,
+		"end_time":           j.EndTime,
+		"module_type":        j.Module.ModuleType,
+		"client_name":        j.Client.Name,
+		"repo_name":          j.Repository.GetName(),
+		"previous_job_uuid":  j.PreviousJobUuid,
+		"restore_image_uuid": j.RestoreImageUuid,
 	}).Where(
 		"uuid = ?",
 		j.Uuid,
@@ -138,6 +143,8 @@ func GetByUuid(uuid string) (Job, error) {
 		"client_name",
 		"module_type",
 		"repo_name",
+		"previous_job_uuid",
+		"restore_image_uuid",
 	).From("jobs").Where("uuid = ?", uuid)
 	query, args, err := request.ToSql()
 	if err != nil {
@@ -158,6 +165,8 @@ func GetByUuid(uuid string) (Job, error) {
 		&job.ClientName,
 		&job.ModuleType,
 		&job.RepoName,
+		&job.PreviousJobUuid,
+		&job.RestoreImageUuid,
 	); err == sql.ErrNoRows {
 		return Job{}, fmt.Errorf("no job with UUID '%s' found in db", uuid)
 	} else if err != nil {
@@ -189,6 +198,15 @@ func GetByUuid(uuid string) (Job, error) {
 		return Job{}, fmt.Errorf("linked repo cannot be loaded from file: %w", err)
 	}
 	job.Repository = r
+
+	statsFilePath := fmt.Sprintf("%s/stats.toml", jobStorageFolderPath)
+	stats, err := rsync_lib.LoadStatsFromFile(statsFilePath)
+	if err != nil {
+		slog.With(
+			slog.String("uuid", uuid),
+		).Warn("No stats could be retrieved for job. This could be normal if job is still running or stopped before writing stats file")
+	}
+	job.Stats = stats
 
 	return job, nil
 }

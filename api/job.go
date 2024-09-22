@@ -27,5 +27,10 @@ func JobList(p api_helpers.PaginationParams) (api_helpers.PaginatedResponse[job.
 }
 
 func JobGet(uuid string) (job.Job, error) {
-	return job.Job{}, fmt.Errorf("TODO JobGet")
+	j, err := job.GetByUuid(uuid)
+	if err != nil {
+		return job.Job{}, fmt.Errorf("cannot get job from db: %w", err)
+	}
+
+	return j, nil
 }

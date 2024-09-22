@@ -36,8 +36,6 @@ func RepoCreateLocal(name string, path string, isDefault bool) error {
 
 	r := repo.RepoLocalNew(name, path, isDefault)
 
-	fmt.Printf("REPO: %+v\n", r)
-
 	// Save repo to config file
 	if err := r.Write(config.GetReposCfgPath()); err != nil {
 		return fmt.Errorf("cannot write repository configuration to file: %w", err)

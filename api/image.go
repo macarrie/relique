@@ -28,5 +28,10 @@ func ImageList(p api_helpers.PaginationParams) (api_helpers.PaginatedResponse[im
 }
 
 func ImageGet(uuid string) (image.Image, error) {
-	return image.Image{}, fmt.Errorf("TODO ImageGet")
+	img, err := image.GetByUuid(uuid)
+	if err != nil {
+		return image.Image{}, fmt.Errorf("cannot get image from db: %w", err)
+	}
+
+	return img, nil
 }

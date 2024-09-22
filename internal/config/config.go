@@ -67,13 +67,13 @@ func Load(fileName string) error {
 	setDefaultValues()
 	module.MODULES_INSTALL_PATH = cfg.ModuleInstallPath
 
-	clients, err := client.LoadFromPath(getAbsoluteCfgPath(cfg.ClientCfgPath))
+	clients, err := client.LoadFromPath(getAbsCfgDir(cfg.ClientCfgPath, CLIENTS_DEFAULT_FOLDER))
 	if err != nil {
 		return fmt.Errorf("cannot load clients configuration: %w", err)
 	}
 	cfg.Clients = clients
 
-	repos, err := repo.LoadFromPath(getAbsoluteCfgPath(cfg.RepoCfgPath))
+	repos, err := repo.LoadFromPath(getAbsCfgDir(cfg.RepoCfgPath, REPOS_DEFAULT_FOLDER))
 	if err != nil {
 		return fmt.Errorf("cannot load repositories configuration: %w", err)
 	}

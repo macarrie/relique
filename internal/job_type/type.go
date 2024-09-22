@@ -10,6 +10,10 @@ type JobType struct {
 	Type uint8
 }
 
+func New(t uint8) JobType {
+	return JobType{Type: t}
+}
+
 func (t *JobType) String() string {
 	switch t.Type {
 	case Backup:

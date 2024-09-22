@@ -11,6 +11,7 @@ import (
 	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/repo"
 	"github.com/macarrie/relique/internal/rsync_task"
+	rsync_lib "github.com/macarrie/relique/internal/rsync_task/lib"
 	"github.com/macarrie/relique/internal/utils"
 )
 
@@ -22,7 +23,7 @@ const (
 )
 
 type Job struct {
-	// Database IDs
+	// Database ID
 	ID int64
 
 	Uuid       string                 `json:"uuid"`
@@ -36,13 +37,17 @@ type Job struct {
 	EndTime    time.Time              `json:"end_time"`
 	Repository repo.Repository        `json:"repository"`
 
-	Tasks []rsync_task.RsyncTask
+	Tasks              []rsync_task.RsyncTask `json:"-"`
+	PreviousJobUuid    string                 `json:"previous_job_uuid"`
+	RestoreImageUuid   string                 `json:"restore_image_uuid"`
+	PreviousJob        *Job                   `json:"previous_job"`
+	Stats              rsync_lib.Stats        `json:"stats"`
+	CustomRestorePaths map[string]string      `json:"custom_restore_paths"`
 
-	PreviousJobUuid string
-	PreviousJob     *Job
-	ClientName      string
-	ModuleType      string
-	RepoName        string
+	// For DB storage
+	ClientName string `json:"-"`
+	ModuleType string `json:"-"`
+	RepoName   string `json:"-"`
 }
 
 func (j *Job) GetLog() *slog.Logger {

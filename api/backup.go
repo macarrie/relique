@@ -14,12 +14,12 @@ func BackupStart(c client.Client, m module.Module, r repo.Repository) error {
 		return fmt.Errorf("cannot start backup on unreachable client:  %w", err)
 	}
 
-	j := job.New(c, m, r)
-	j.GetLog().Info("Starting job")
-
-	if err := j.Setup(); err != nil {
+	j := job.NewBackup(c, m, r)
+	if err := j.SetupBackup(); err != nil {
 		return fmt.Errorf("cannot setup job:  %w", err)
 	}
+
+	j.GetLog().Info("Starting job")
 	if err := j.Start(); err != nil {
 		return fmt.Errorf("error encountered during job execution: %w", err)
 	}

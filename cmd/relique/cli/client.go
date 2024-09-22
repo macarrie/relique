@@ -8,7 +8,7 @@ import (
 
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
-	"github.com/pelletier/go-toml/v2"
+	"github.com/macarrie/relique/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -63,12 +63,46 @@ func init() {
 				os.Exit(1)
 			}
 
-			out, err := toml.Marshal(cl)
+			clientDetailsTemplate := `# Client details
+-----
+## Global
+			
+Name: 	{{.Name}}
+
+Address: 	{{.Address}}
+
+-----
+## SSH connexion
+
+User: 	{{.SSHUser}}
+
+Port: 	{{.SSHPort}}
+
+
+{{ range .Modules}}
+-----
+## Module __{{.Name}}__
+
+| Parameter | Value |
+| --------- | ----- |
+| Name | {{ .Name }} |
+| Module type | {{ .ModuleType }} |
+| Backup type | {{ .BackupType }} |
+| Variant | {{ if .Variant | eq "" }} default {{ else }}{{ .Variant }}{{ end }} |
+| Available variants | {{ if .AvailableVariants | len | eq 0 }} default {{ else }}{{ .Variant }}{{ end }}{{ join .AvailableVariants ", " }} |
+| Backup paths | {{ join .BackupPaths ", " }} |
+
+{{ end }}
+`
+
+			render, err := utils.RenderTemplateToMarkdown("client_details", clientDetailsTemplate, cl)
 			if err != nil {
-				slog.Error("Cannot display client details", slog.Any("error", err))
+				slog.With(
+					slog.Any("error", err),
+				).Error("Cannot display client info")
 				os.Exit(1)
 			}
-			fmt.Printf("\n%v\n", string(out))
+			fmt.Print(render)
 		},
 	}
 

@@ -15,15 +15,18 @@ import (
 	"github.com/macarrie/relique/internal/client"
 	"github.com/macarrie/relique/internal/image"
 	"github.com/macarrie/relique/internal/job_status"
+	"github.com/macarrie/relique/internal/job_type"
 	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/repo"
 	"github.com/macarrie/relique/internal/rsync_task"
+	rsync_lib "github.com/macarrie/relique/internal/rsync_task/lib"
 	"github.com/macarrie/relique/internal/utils"
 )
 
-func New(c client.Client, m module.Module, r repo.Repository) Job {
+func NewBackup(c client.Client, m module.Module, r repo.Repository) Job {
 	return Job{
 		Uuid:       uuid.New().String(),
+		JobType:    job_type.New(job_type.Backup),
 		Client:     c,
 		Module:     m,
 		Repository: r,
@@ -32,7 +35,24 @@ func New(c client.Client, m module.Module, r repo.Repository) Job {
 	}
 }
 
-func (j *Job) Setup() error {
+func NewRestore(img image.Image, targetClient client.Client, restorePaths map[string]string) Job {
+	if len(restorePaths) != 0 {
+		img.Module.Name = "on-demand"
+	}
+
+	return Job{
+		Uuid:               uuid.New().String(),
+		JobType:            job_type.New(job_type.Restore),
+		Client:             targetClient,
+		Module:             img.Module,
+		Repository:         img.Repository,
+		Status:             job_status.New(job_status.Pending),
+		RestoreImageUuid:   img.Uuid,
+		CustomRestorePaths: restorePaths,
+	}
+}
+
+func (j *Job) SetupBackup() error {
 	j.GetLog().Debug("Starting job setup")
 
 	if j.BackupType.Type == backup_type.Diff {
@@ -82,9 +102,9 @@ func (j *Job) Setup() error {
 		case backup_type.Full:
 			tasks = append(tasks, rsync_task.NewFullBackup(
 				// Source
-				fmt.Sprintf("%s@%s:%s/", j.Client.SSHUser, j.Client.Address, backupPath),
+				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, backupPath),
 				// Destination
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", jobFolderPath, backupPath)),
+				filepath.Clean(fmt.Sprintf("%s/_data/", jobFolderPath)),
 				// Log folder
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
@@ -98,11 +118,11 @@ func (j *Job) Setup() error {
 			}
 			tasks = append(tasks, rsync_task.NewDiffBackup(
 				// Source
-				fmt.Sprintf("%s@%s:%s/", j.Client.SSHUser, j.Client.Address, backupPath),
+				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, backupPath),
 				// Destination
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", jobFolderPath, backupPath)),
+				filepath.Clean(fmt.Sprintf("%s/_data/", jobFolderPath)),
 				// Previous job folder for comparison
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", previousJobFolderPath, backupPath)),
+				filepath.Clean(fmt.Sprintf("%s/_data/", previousJobFolderPath)),
 				// Log folder
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
@@ -112,40 +132,83 @@ func (j *Job) Setup() error {
 			return fmt.Errorf("unknown backup type '%s'", j.BackupType.String())
 		}
 	}
-	for _, backupFile := range j.Module.BackupFiles {
-		parentFolder := filepath.Dir(backupFile)
-		switch j.BackupType.Type {
-		case backup_type.Full:
-			tasks = append(tasks, rsync_task.NewFullBackup(
-				// Source
-				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, backupFile),
-				// Destination
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", jobFolderPath, parentFolder)),
-				// Log folder
-				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
-				// Backup path
-				backupFile,
-			))
+	j.Tasks = tasks
 
-		case backup_type.Diff:
-			previousJobFolderPath, err := j.PreviousJob.GetStorageFolderPath()
-			if err != nil {
-				return fmt.Errorf("cannot determine job storage folder: %w", err)
-			}
-			tasks = append(tasks, rsync_task.NewDiffBackup(
+	// Save module used to file in job folder path. Modules configuration files can change so we need to keep trace of the exact module used for backup
+	if err := utils.SerializeToFile[module.Module](j.Module, fmt.Sprintf("%s/module.toml", jobFolderPath)); err != nil {
+		return fmt.Errorf("cannot export module to file: %w", err)
+	}
+
+	// Save client to file in job folder path. Client configuration files can change so we need to keep trace of the exact client used for backup for later reference
+	if err := utils.SerializeToFile[client.Client](j.Client, fmt.Sprintf("%s/client.toml", jobFolderPath)); err != nil {
+		return fmt.Errorf("cannot export client to file: %w", err)
+	}
+
+	// Save repo to file in job folder path. Repo configuration files can change so we need to keep trace of the exact repo used for backup for later reference
+	if err := utils.SerializeToFile[repo.Repository](j.Repository, fmt.Sprintf("%s/repo.toml", jobFolderPath)); err != nil {
+		return fmt.Errorf("cannot export repository to file: %w", err)
+	}
+
+	if _, err := j.Save(); err != nil {
+		return fmt.Errorf("cannot save job info to database after setup complete: %w", err)
+	}
+
+	// TODO: Add job setup event
+	return nil
+}
+
+func (j *Job) SetupRestore() error {
+	j.GetLog().Debug("Starting job setup")
+
+	if j.JobType.Type == job_type.Restore && j.RestoreImageUuid == "" {
+		return fmt.Errorf("restore job has no target image UUID to restore data from")
+	}
+
+	j.GetLog().Debug("Creating job storage folder")
+	jobFolderPath, err := j.GetStorageFolderPath()
+	if err != nil {
+		return fmt.Errorf("cannot determine job storage folder: %w", err)
+	}
+
+	if err := os.MkdirAll(fmt.Sprintf("%s/_logs", jobFolderPath), 0755); err != nil {
+		return fmt.Errorf("cannot setup job logs folder: %w", err)
+	}
+
+	restoreSourceJob, err := GetByUuid(j.RestoreImageUuid)
+	if err != nil {
+		return fmt.Errorf("cannot get restore source job from db: %w", err)
+	}
+	restoreSourceFolderPath, err := restoreSourceJob.GetStorageFolderPath()
+	if err != nil {
+		return fmt.Errorf("cannot determine job storage folder: %w", err)
+	}
+
+	var tasks []rsync_task.RsyncTask
+	if len(j.CustomRestorePaths) == 0 {
+		for _, backupPath := range j.Module.BackupPaths {
+			tasks = append(tasks, rsync_task.NewRestore(
 				// Source
-				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, backupFile),
+				fmt.Sprintf("%s/_data/%s", restoreSourceFolderPath, backupPath),
 				// Destination
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", jobFolderPath, parentFolder)),
-				// Previous job folder for comparison
-				filepath.Clean(fmt.Sprintf("%s/_data/%s", previousJobFolderPath, parentFolder)),
+				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, backupPath),
 				// Log folder
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
-				backupFile,
+				backupPath,
 			))
-		default:
-			return fmt.Errorf("unknown backup type '%s'", j.BackupType.String())
+		}
+	} else {
+		for source, dest := range j.CustomRestorePaths {
+			tasks = append(tasks, rsync_task.NewRestore(
+				// Source
+				fmt.Sprintf("%s/_data/%s", restoreSourceFolderPath, source),
+				// Destination
+				fmt.Sprintf("%s@%s:%s", j.Client.SSHUser, j.Client.Address, dest),
+				// Log folder
+				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
+				// Backup path
+				source,
+			))
 		}
 	}
 	j.Tasks = tasks
@@ -270,25 +333,29 @@ func (j *Job) Start() error {
 		return fmt.Errorf("cannot save job info to database after completion: %w", err)
 	}
 
-	if j.Status.Status == job_status.Success || j.Status.Status == job_status.Incomplete {
-		j.GetLog().Info("Generating backup image from job")
-		img := image.New(j.Client, j.Module, j.Repository)
-		img.Uuid = j.Uuid
-		rootFolder, err := j.GetStorageFolderPath()
-		if err != nil {
-			return fmt.Errorf("cannot get root storage folder path: %w", err)
-		}
+	rootFolder, err := j.GetStorageFolderPath()
+	if err != nil {
+		return fmt.Errorf("cannot get root storage folder path: %w", err)
+	}
+	jobStats := rsync_task.MergeStats(j.Tasks)
+	if err := utils.SerializeToFile[rsync_lib.Stats](jobStats, fmt.Sprintf("%s/stats.toml", rootFolder)); err != nil {
+		return fmt.Errorf("cannot export job stats to file: %w", err)
+	}
 
-		jobStats := rsync_task.MergeStats(j.Tasks)
-
-		if err := img.FillStats(jobStats, rootFolder); err != nil {
-			return fmt.Errorf("cannot get image stats: %w", err)
+	if j.JobType.Type == job_type.Backup {
+		if j.Status.Status == job_status.Success || j.Status.Status == job_status.Incomplete {
+			j.GetLog().Info("Generating backup image from job")
+			img := image.New(j.Client, j.Module, j.Repository)
+			img.Uuid = j.Uuid
+			if err := img.FillStats(jobStats, rootFolder); err != nil {
+				return fmt.Errorf("cannot get image stats: %w", err)
+			}
+			if _, err := img.Save(); err != nil {
+				slog.With(slog.Any("error", err)).Error("Cannot save generated image to database")
+			}
+		} else {
+			j.GetLog().Info("No image generated for unsuccessful job")
 		}
-		if _, err := img.Save(); err != nil {
-			slog.With(slog.Any("error", err)).Error("Cannot save generated image to database")
-		}
-	} else {
-		j.GetLog().Info("No image generated for unsuccessful job")
 	}
 
 	return nil

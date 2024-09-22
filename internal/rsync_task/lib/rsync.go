@@ -193,6 +193,8 @@ type RsyncOptions struct {
 	Filter string
 	// Chown --chown="", chown on receipt.
 	Chown string
+	// Create missing paths
+	Mkpath bool
 
 	// ipv4
 	IPv4 bool
@@ -593,6 +595,10 @@ func getArguments(options RsyncOptions) []string {
 
 	if options.OutFormat {
 		arguments = append(arguments, "--out-format=\"%n\"")
+	}
+
+	if options.Mkpath {
+		arguments = append(arguments, "--mkpath")
 	}
 
 	if len(options.Include) > 0 {
