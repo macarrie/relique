@@ -11,4 +11,5 @@ RUN make build
 RUN cp /app/output/relique /bin/relique
 RUN relique config init
 
-CMD [ "/bin/bash" ]
+RUN go vet ./...
+RUN go test -cover ./...
