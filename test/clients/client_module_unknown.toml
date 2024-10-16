@@ -1,0 +1,7 @@
+name = "unknown_module"
+address = "unknown_module"
+
+[[modules]]
+name = "not_installed"
+module_type = "not_installed"
+backup_type = "diff"

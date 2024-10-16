@@ -1,11 +1,13 @@
 package client
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/pelletier/go-toml"
 
@@ -37,12 +39,11 @@ func LoadFromFile(file string) (cl Client, err error) {
 
 	content, _ := io.ReadAll(f)
 
-	var client Client
-	if err := toml.Unmarshal(content, &client); err != nil {
+	if err := toml.Unmarshal(content, &cl); err != nil {
 		return Client{}, fmt.Errorf("cannot parse toml file: %w", err)
 	}
 
-	modules := client.Modules
+	modules := cl.Modules
 	var filteredModulesList []module.Module
 	for i := range modules {
 		if err := modules[i].LoadDefaultConfiguration(); err != nil {
@@ -57,13 +58,14 @@ func LoadFromFile(file string) (cl Client, err error) {
 		} else {
 			modules[i].GetLog().With(
 				slog.Any("error", err),
+				slog.Any("client", cl.Name),
 			).Error("Module has invalid configuration. This module will not be loaded into configuration")
 		}
 
 	}
-	client.Modules = filteredModulesList
+	cl.Modules = filteredModulesList
 
-	return client, nil
+	return cl, nil
 }
 
 func LoadFromPath(p string) ([]Client, error) {
@@ -106,6 +108,11 @@ func LoadFromPath(p string) ([]Client, error) {
 			cl.GetLog().Error("Client has invalid configuration. This client will not be loaded into configuration")
 		}
 	}
+
+	// Sort by client_name to have consistent output
+	slices.SortFunc(clients, func(a, b Client) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 
 	return clients, nil
 }

@@ -1,0 +1,6 @@
+name = "invalid_module"
+address = "invalid_module"
+
+[[modules]]
+module_type = "default_test"
+backup_type = "diff"

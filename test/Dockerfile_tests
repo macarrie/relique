@@ -1,0 +1,14 @@
+FROM golang:1.22 AS base
+
+RUN groupadd -g 8433 relique && useradd -u 8433 -g 8433 relique 
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN make build
+
+RUN cp /app/output/relique /bin/relique
+RUN relique config init
+
+CMD [ "/bin/bash" ]

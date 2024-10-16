@@ -41,8 +41,7 @@ func GetLocallyInstalled(modulesInstallPath string) ([]Module, error) {
 		if err := mod.LoadDefaultConfiguration(); err != nil {
 			slog.With(
 				slog.Any("error", err),
-			).Error("Cannot read module default configuration")
-			errorList = multierror.Append(errorList, err)
+			).Error("Cannot read module default configuration, it will be ignored")
 			continue
 		}
 		if err := mod.GetAvailableVariants(); err != nil {

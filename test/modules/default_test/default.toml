@@ -1,0 +1,7 @@
+name = "example_module"
+
+module_type = "example"
+backup_type = "full"
+backup_paths = [
+    "/tmp/example",
+]

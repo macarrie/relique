@@ -1,0 +1,4 @@
+name = "test_repo"
+type = "local"
+path = "/tmp/test_repo"
+default = false
