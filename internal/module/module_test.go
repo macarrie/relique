@@ -166,7 +166,7 @@ func TestModule_String(t *testing.T) {
 		{
 			name: "module",
 			mod:  Module{Name: "test"},
-			want: "test/default",
+			want: "test",
 		},
 		{
 			name: "module variant",

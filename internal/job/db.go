@@ -173,33 +173,30 @@ func GetByUuid(uuid string) (Job, error) {
 		return Job{}, fmt.Errorf("cannot retrieve job from db: %w", err)
 	}
 
-	jobStorageFolderPath, err := job.GetStorageFolderPath()
-	if err != nil {
-		return Job{}, fmt.Errorf("cannot get job storage folder path: %w", err)
-	}
+	jobCatalogPath := job.GetCatalogPath()
 
-	modFilePath := fmt.Sprintf("%s/module.toml", jobStorageFolderPath)
+	modFilePath := fmt.Sprintf("%s/module.toml", jobCatalogPath)
 	mod, err := module.LoadFromFile(modFilePath)
 	if err != nil {
 		return Job{}, fmt.Errorf("linked module cannot be loaded from file: %w", err)
 	}
 	job.Module = mod
 
-	clFilePath := fmt.Sprintf("%s/client.toml", jobStorageFolderPath)
+	clFilePath := fmt.Sprintf("%s/client.toml", jobCatalogPath)
 	cl, err := client.LoadFromFile(clFilePath)
 	if err != nil {
 		return Job{}, fmt.Errorf("linked client cannot be loaded from file: %w", err)
 	}
 	job.Client = cl
 
-	repoFilePath := fmt.Sprintf("%s/repo.toml", jobStorageFolderPath)
+	repoFilePath := fmt.Sprintf("%s/repo.toml", jobCatalogPath)
 	r, err := repo.LoadFromFile(repoFilePath)
 	if err != nil {
 		return Job{}, fmt.Errorf("linked repo cannot be loaded from file: %w", err)
 	}
 	job.Repository = r
 
-	statsFilePath := fmt.Sprintf("%s/stats.toml", jobStorageFolderPath)
+	statsFilePath := fmt.Sprintf("%s/stats.toml", jobCatalogPath)
 	stats, err := rsync_lib.LoadStatsFromFile(statsFilePath)
 	if err != nil {
 		slog.With(
