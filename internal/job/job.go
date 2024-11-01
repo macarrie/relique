@@ -109,6 +109,10 @@ func (j *Job) SetupBackup() error {
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
 				backupPath,
+				// Exclusions/inclusions
+				j.Module.Exclude,
+				j.Module.ExcludeCVS,
+				j.Module.Include,
 			))
 
 		case backup_type.Diff:
@@ -127,6 +131,10 @@ func (j *Job) SetupBackup() error {
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
 				backupPath,
+				// Exclusions/inclusions
+				j.Module.Exclude,
+				j.Module.ExcludeCVS,
+				j.Module.Include,
 			))
 		default:
 			return fmt.Errorf("unknown backup type '%s'", j.BackupType.String())
@@ -202,6 +210,10 @@ func (j *Job) SetupRestore() error {
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
 				backupPath,
+				// Inclusions/exclusions
+				j.Module.Exclude,
+				j.Module.ExcludeCVS,
+				j.Module.Include,
 			))
 		}
 	} else {
@@ -215,23 +227,34 @@ func (j *Job) SetupRestore() error {
 				filepath.Clean(fmt.Sprintf("%s/_logs/", jobFolderPath)),
 				// Backup path
 				source,
+				// Inclusions/exclusions
+				j.Module.Exclude,
+				j.Module.ExcludeCVS,
+				j.Module.Include,
 			))
 		}
 	}
 	j.Tasks = tasks
 
+	j.GetLog().Debug("Creating job catalog folder")
+	jobCatalogPath := j.GetCatalogPath()
+
+	if err := os.MkdirAll(jobCatalogPath, 0755); err != nil {
+		return fmt.Errorf("cannot setup job catalog folder: %w", err)
+	}
+
 	// Save module used to file in job folder path. Modules configuration files can change so we need to keep trace of the exact module used for backup
-	if err := utils.SerializeToFile[module.Module](j.Module, fmt.Sprintf("%s/module.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[module.Module](j.Module, fmt.Sprintf("%s/module.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export module to file: %w", err)
 	}
 
 	// Save client to file in job folder path. Client configuration files can change so we need to keep trace of the exact client used for backup for later reference
-	if err := utils.SerializeToFile[client.Client](j.Client, fmt.Sprintf("%s/client.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[client.Client](j.Client, fmt.Sprintf("%s/client.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export client to file: %w", err)
 	}
 
 	// Save repo to file in job folder path. Repo configuration files can change so we need to keep trace of the exact repo used for backup for later reference
-	if err := utils.SerializeToFile[repo.Repository](j.Repository, fmt.Sprintf("%s/repo.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[repo.Repository](j.Repository, fmt.Sprintf("%s/repo.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export repository to file: %w", err)
 	}
 
@@ -269,6 +292,10 @@ func (j *Job) Start() error {
 
 		go func(task *rsync_task.RsyncTask) {
 			defer wg.Done()
+
+			slog.With(
+				slog.String("cmd", task.Task.Rsync.Cmd.String()),
+			).Debug("Running rsync command")
 
 			if err := task.Task.Run(); err != nil {
 				slog.With(slog.Any("error", err)).Error("Error encountered during task run")

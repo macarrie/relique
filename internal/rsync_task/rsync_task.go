@@ -26,7 +26,7 @@ func newBackup(source string, destination string, logsRootFolder string, backupP
 	}
 }
 
-func NewRestore(source string, destination string, logsRootFolder string, backupPath string) RsyncTask {
+func NewRestore(source string, destination string, logsRootFolder string, backupPath string, exclude []string, excludeCVS bool, include []string) RsyncTask {
 	rsyncOptions := rsync_lib.RsyncOptions{
 		Archive:      true,
 		DelayUpdates: true,
@@ -40,12 +40,15 @@ func NewRestore(source string, destination string, logsRootFolder string, backup
 		Rsh:          "ssh",
 		Stats:        true,
 		Verbose:      true,
+		Exclude:      exclude,
+		CVSExclude:   excludeCVS,
+		Include:      include,
 	}
 
 	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)
 }
 
-func NewFullBackup(source string, destination string, logsRootFolder string, backupPath string) RsyncTask {
+func NewFullBackup(source string, destination string, logsRootFolder string, backupPath string, exclude []string, excludeCVS bool, include []string) RsyncTask {
 	rsyncOptions := rsync_lib.RsyncOptions{
 		Archive:      true,
 		DelayUpdates: true,
@@ -58,12 +61,15 @@ func NewFullBackup(source string, destination string, logsRootFolder string, bac
 		Rsh:          "ssh",
 		Stats:        true,
 		Verbose:      true,
+		Exclude:      exclude,
+		CVSExclude:   excludeCVS,
+		Include:      include,
 	}
 
 	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)
 }
 
-func NewDiffBackup(source string, destination string, referencePath string, logsRootFolder string, backupPath string) RsyncTask {
+func NewDiffBackup(source string, destination string, referencePath string, logsRootFolder string, backupPath string, exclude []string, excludeCVS bool, include []string) RsyncTask {
 	rsyncOptions := rsync_lib.RsyncOptions{
 		Archive:      true,
 		DelayUpdates: true,
@@ -77,6 +83,9 @@ func NewDiffBackup(source string, destination string, referencePath string, logs
 		Rsh:          "ssh",
 		Stats:        true,
 		Verbose:      true,
+		Exclude:      exclude,
+		CVSExclude:   excludeCVS,
+		Include:      include,
 	}
 
 	return newBackup(source, destination, logsRootFolder, backupPath, rsyncOptions)
