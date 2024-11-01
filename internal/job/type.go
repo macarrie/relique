@@ -82,3 +82,7 @@ func (j *Job) Duration() time.Duration {
 func (j *Job) GetStorageFolderPath() (string, error) {
 	return utils.GetStoragePath(j.Repository, j.RepoName, j.Uuid)
 }
+
+func (j *Job) GetCatalogPath() string {
+	return utils.GetCatalogPath(j.Uuid)
+}

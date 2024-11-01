@@ -158,26 +158,23 @@ func GetByUuid(uuid string) (Image, error) {
 		return Image{}, fmt.Errorf("cannot retrieve image from db: %w", err)
 	}
 
-	imgStorageFolderPath, err := img.GetStorageFolderPath()
-	if err != nil {
-		return Image{}, fmt.Errorf("cannot get image storage folder path: %w", err)
-	}
+	imgCatalogPath := img.GetCatalogPath()
 
-	modFilePath := fmt.Sprintf("%s/module.toml", imgStorageFolderPath)
+	modFilePath := fmt.Sprintf("%s/module.toml", imgCatalogPath)
 	mod, err := module.LoadFromFile(modFilePath)
 	if err != nil {
 		return Image{}, fmt.Errorf("linked module cannot be loaded from file: %w", err)
 	}
 	img.Module = mod
 
-	clFilePath := fmt.Sprintf("%s/client.toml", imgStorageFolderPath)
+	clFilePath := fmt.Sprintf("%s/client.toml", imgCatalogPath)
 	cl, err := client.LoadFromFile(clFilePath)
 	if err != nil {
 		return Image{}, fmt.Errorf("linked client cannot be loaded from file: %w", err)
 	}
 	img.Client = cl
 
-	repoFilePath := fmt.Sprintf("%s/repo.toml", imgStorageFolderPath)
+	repoFilePath := fmt.Sprintf("%s/repo.toml", imgCatalogPath)
 	r, err := repo.LoadFromFile(repoFilePath)
 	if err != nil {
 		return Image{}, fmt.Errorf("linked repo cannot be loaded from file: %w", err)

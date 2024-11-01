@@ -24,6 +24,11 @@ type Module struct {
 }
 
 func (m *Module) String() string {
+	variant := m.GetVariant()
+	if variant == "default" {
+		return m.Name
+	}
+
 	return fmt.Sprintf("%s/%s", m.Name, m.GetVariant())
 }
 

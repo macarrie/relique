@@ -19,10 +19,11 @@ func ConfigGet() (config.Configuration, error) {
 	return config.Current, nil
 }
 
-func ConfigInit(cfgPath string, modPath string, repoPath string) error {
+func ConfigInit(cfgPath string, modPath string, repoPath string, catalogPath string) error {
 	configPath := cfgPath
 	moduleInstallPath := modPath
 	repoStoragePath := repoPath
+	catalogStoragePath := catalogPath
 	if cfgPath == "" {
 		configPath = "/etc/relique"
 		if modPath == "" {
@@ -31,12 +32,18 @@ func ConfigInit(cfgPath string, modPath string, repoPath string) error {
 		if repoPath == "" {
 			repoStoragePath = "/var/lib/relique/storage"
 		}
+		if catalogPath == "" {
+			catalogStoragePath = "/var/lib/relique/catalog"
+		}
 	}
 	if moduleInstallPath == "" {
 		moduleInstallPath = filepath.Clean(fmt.Sprintf("%s/modules", configPath))
 	}
 	if repoStoragePath == "" {
 		repoStoragePath = filepath.Clean(fmt.Sprintf("%s/storage", configPath))
+	}
+	if catalogStoragePath == "" {
+		catalogStoragePath = filepath.Clean(fmt.Sprintf("%s/catalog", configPath))
 	}
 
 	configPath = filepath.Clean(configPath)
@@ -108,7 +115,7 @@ func ConfigInit(cfgPath string, modPath string, repoPath string) error {
 		return fmt.Errorf("cannot create clients folder '%s': %w", clientsFolder, err)
 	}
 	slog.With(
-		slog.String("path", configPath),
+		slog.String("path", clientsFolder),
 	).Info("Created clients configuration folder")
 
 	if err := ClientCreate("local", "localhost"); err != nil {
@@ -116,13 +123,23 @@ func ConfigInit(cfgPath string, modPath string, repoPath string) error {
 	}
 	// TODO: Add example module to local client
 
+	// Create catalog config folder
+	catalogFolder := config.GetCatalogCfgPath()
+	if err := os.Mkdir(catalogFolder, 0755); err != nil {
+		return fmt.Errorf("cannot create catalog folder '%s': %w", catalogFolder, err)
+	}
+	slog.With(
+		slog.String("path", catalogFolder),
+	).Info("Created catalog folder")
+
+
 	// Create repositories config folder
 	reposFolder := config.GetReposCfgPath()
 	if err := os.Mkdir(reposFolder, 0755); err != nil {
 		return fmt.Errorf("cannot create repositories folder '%s': %w", reposFolder, err)
 	}
 	slog.With(
-		slog.String("path", configPath),
+		slog.String("path", reposFolder),
 	).Info("Created repositories configuration folder")
 
 	// Create default repo

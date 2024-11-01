@@ -13,6 +13,7 @@ import (
 var configInitCfgPath string
 var configInitModPath string
 var configInitStoragePath string
+var configInitCatalogPath string
 
 func init() {
 	configCmd := &cobra.Command{
@@ -24,10 +25,11 @@ func init() {
 		Use:   "init CFG_PATH",
 		Short: "Initialize default relique configuration in CFG_PATH/relique folder",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := api.ConfigInit(configInitCfgPath, configInitModPath, configInitStoragePath); err != nil {
+			if err := api.ConfigInit(configInitCfgPath, configInitModPath, configInitStoragePath, configInitCatalogPath); err != nil {
 				slog.With(
 					slog.String("cfg_root", configInitCfgPath),
 					slog.String("module_root", configInitModPath),
+					slog.String("catalog_root", configInitCatalogPath),
 					slog.Any("error", err),
 				).Error("cannot initialize default relique config")
 				os.Exit(1)
@@ -36,7 +38,8 @@ func init() {
 	}
 	configInitCmd.Flags().StringVarP(&configInitCfgPath, "path", "", "", "Configuration folder path (default: '/etc/relique/')")
 	configInitCmd.Flags().StringVarP(&configInitModPath, "module-install-path", "", "", "Module install path (default: '/var/lib/relique/modules')")
-	configInitCmd.Flags().StringVarP(&configInitModPath, "storage-path", "", "", "Default repository storage path (default: '/var/lib/relique/storage')")
+	configInitCmd.Flags().StringVarP(&configInitStoragePath, "storage-path", "", "", "Default repository storage path (default: '/var/lib/relique/storage')")
+	configInitCmd.Flags().StringVarP(&configInitCatalogPath, "catalog-path", "", "", "Default catalog storage path (default: '/var/lib/relique/catalog')")
 
 	configShowCmd := &cobra.Command{
 		Use:   "show",
