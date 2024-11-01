@@ -134,18 +134,25 @@ func (j *Job) SetupBackup() error {
 	}
 	j.Tasks = tasks
 
+	j.GetLog().Debug("Creating job catalog folder")
+	jobCatalogPath := j.GetCatalogPath()
+
+	if err := os.MkdirAll(jobCatalogPath, 0755); err != nil {
+		return fmt.Errorf("cannot setup job catalog folder: %w", err)
+	}
+
 	// Save module used to file in job folder path. Modules configuration files can change so we need to keep trace of the exact module used for backup
-	if err := utils.SerializeToFile[module.Module](j.Module, fmt.Sprintf("%s/module.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[module.Module](j.Module, fmt.Sprintf("%s/module.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export module to file: %w", err)
 	}
 
 	// Save client to file in job folder path. Client configuration files can change so we need to keep trace of the exact client used for backup for later reference
-	if err := utils.SerializeToFile[client.Client](j.Client, fmt.Sprintf("%s/client.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[client.Client](j.Client, fmt.Sprintf("%s/client.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export client to file: %w", err)
 	}
 
 	// Save repo to file in job folder path. Repo configuration files can change so we need to keep trace of the exact repo used for backup for later reference
-	if err := utils.SerializeToFile[repo.Repository](j.Repository, fmt.Sprintf("%s/repo.toml", jobFolderPath)); err != nil {
+	if err := utils.SerializeToFile[repo.Repository](j.Repository, fmt.Sprintf("%s/repo.toml", jobCatalogPath)); err != nil {
 		return fmt.Errorf("cannot export repository to file: %w", err)
 	}
 
@@ -333,12 +340,9 @@ func (j *Job) Start() error {
 		return fmt.Errorf("cannot save job info to database after completion: %w", err)
 	}
 
-	rootFolder, err := j.GetStorageFolderPath()
-	if err != nil {
-		return fmt.Errorf("cannot get root storage folder path: %w", err)
-	}
+	catalogPath := j.GetCatalogPath()
 	jobStats := rsync_task.MergeStats(j.Tasks)
-	if err := utils.SerializeToFile[rsync_lib.Stats](jobStats, fmt.Sprintf("%s/stats.toml", rootFolder)); err != nil {
+	if err := utils.SerializeToFile[rsync_lib.Stats](jobStats, fmt.Sprintf("%s/stats.toml", catalogPath)); err != nil {
 		return fmt.Errorf("cannot export job stats to file: %w", err)
 	}
 
@@ -347,7 +351,7 @@ func (j *Job) Start() error {
 			j.GetLog().Info("Generating backup image from job")
 			img := image.New(j.Client, j.Module, j.Repository)
 			img.Uuid = j.Uuid
-			if err := img.FillStats(jobStats, rootFolder); err != nil {
+			if err := img.FillStats(jobStats, catalogPath); err != nil {
 				return fmt.Errorf("cannot get image stats: %w", err)
 			}
 			if _, err := img.Save(); err != nil {

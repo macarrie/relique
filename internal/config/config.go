@@ -23,6 +23,7 @@ var Loaded bool
 var CLIENTS_DEFAULT_FOLDER string = "clients"
 var REPOS_DEFAULT_FOLDER string = "repositories"
 var MODULES_DEFAULT_FOLDER string = "/var/lib/relique/modules"
+var CATALOG_DEFAULT_FOLDER string = "catalog"
 var DB_DEFAULT_FOLDER string = "db"
 
 type Configuration struct {
@@ -34,6 +35,7 @@ type Configuration struct {
 	RepoCfgPath       string `mapstructure:"repo_cfg_path" json:"repo_cfg_path" toml:"repo_cfg_path"`
 	ModuleInstallPath string `mapstructure:"module_install_path" json:"module_install_path" toml:"module_install_path"`
 	DBPath            string `mapstructure:"db_path" json:"db_path" toml:"db_path"`
+	CatalogPath            string `mapstructure:"catalog_path" json:"catalog_path" toml:"catalog_path"`
 }
 
 func New() {
@@ -114,6 +116,9 @@ func setDefaultValues() {
 	if Current.DBPath == "" {
 		Current.DBPath = DB_DEFAULT_FOLDER
 	}
+	if Current.CatalogPath == "" {
+		Current.CatalogPath = CATALOG_DEFAULT_FOLDER
+	}
 }
 
 func getAbsoluteCfgPath(relative_path string) string {
@@ -139,6 +144,10 @@ func GetClientsCfgPath() string {
 
 func GetReposCfgPath() string {
 	return getAbsCfgDir(Current.RepoCfgPath, REPOS_DEFAULT_FOLDER)
+}
+
+func GetCatalogCfgPath() string {
+	return getAbsCfgDir(Current.CatalogPath, CATALOG_DEFAULT_FOLDER)
 }
 
 func GetDBPath() string {

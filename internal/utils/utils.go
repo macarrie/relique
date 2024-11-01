@@ -44,6 +44,10 @@ func GetStoragePath(r repo.Repository, repoName string, uuid string) (string, er
 	return "", fmt.Errorf("repo type not implemented")
 }
 
+func GetCatalogPath(uuid string) (string) {
+	return filepath.Clean(fmt.Sprintf("%s/%s", config.GetCatalogCfgPath(), uuid))
+}
+
 func FormatDatetime(t time.Time) string {
 	if t.IsZero() {
 		return "---"
