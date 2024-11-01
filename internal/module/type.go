@@ -21,6 +21,9 @@ type Module struct {
 	Variant           string                 `json:"variant" toml:"variant"`
 	AvailableVariants []string               `json:"available_variants" toml:"available_variants"`
 	BackupPaths       []string               `json:"backup_paths" toml:"backup_paths"`
+	Include           []string               `json:"include" toml:"include"`
+	Exclude           []string               `json:"exclude" toml:"exclude"`
+	ExcludeCVS        bool                   `json:"exclude_cvs" toml:"exclude_cvs"`
 }
 
 func (m *Module) String() string {
@@ -99,6 +102,10 @@ func (m *Module) LoadDefaultConfiguration() error {
 
 	if len(m.BackupPaths) == 0 {
 		m.BackupPaths = defaults.BackupPaths
+	}
+
+	if len(m.Exclude) == 0 {
+		m.Exclude = defaults.Exclude
 	}
 
 	return nil

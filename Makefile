@@ -6,7 +6,7 @@ clean:
 	rm -f ./output/*
 
 reset:
-	rm -rf ~/.config/relique/db/relique.sqlite ~/.config/relique/storage/*
+	rm -rf ~/.config/relique/db/relique.sqlite ~/.config/relique/storage/* ~/.config/relique/catalog/*
 
 test:
 	docker build -t relique_tests -f test/Dockerfile_tests  .

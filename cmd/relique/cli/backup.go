@@ -3,6 +3,7 @@ package cli
 import (
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/macarrie/relique/api"
 	"github.com/macarrie/relique/internal/backup_type"
@@ -16,6 +17,9 @@ import (
 var backupClient string
 var backupModule string
 var backupRepo string
+var backupInclusions []string
+var backupExclusions []string
+var backupExcludeCVS bool
 
 func init() {
 	backupCmd := &cobra.Command{
@@ -58,6 +62,8 @@ func init() {
 						BackupType:  backup_type.BackupType{Type: backup_type.Diff},
 						ModuleType:  "generic",
 						BackupPaths: args,
+						Exclude:     backupExclusions,
+						ExcludeCVS:  backupExcludeCVS,
 					}
 				}
 			} else {
@@ -68,6 +74,32 @@ func init() {
 						slog.String("module", backupModule),
 					).Error("Cannot find module on client")
 					os.Exit(1)
+				}
+
+				// Override module with provided cli params
+				if len(backupInclusions) > 0 {
+					slog.With(
+						slog.String("module", mod.Name),
+						slog.String("cli_include", strings.Join(backupInclusions, ", ")),
+						slog.String("mod_include", strings.Join(mod.Include, ", ")),
+					).Info("Override module include list with the one provided in CLI params")
+					mod.Include = backupInclusions
+				}
+				if len(backupExclusions) > 0 {
+					slog.With(
+						slog.String("module", mod.Name),
+						slog.String("cli_exclude", strings.Join(backupExclusions, ", ")),
+						slog.String("mod_exclude", strings.Join(mod.Exclude, ", ")),
+					).Info("Override module exclusions list with the one provided in CLI params")
+					mod.Exclude = backupExclusions
+				}
+				if backupExcludeCVS {
+					slog.With(
+						slog.String("module", mod.Name),
+						slog.Bool("cli_exclude_cvs", backupExcludeCVS),
+						slog.Bool("mod_exclude_cvs", mod.ExcludeCVS),
+					).Info("Override module exclude_cvs parameter")
+					mod.ExcludeCVS = backupExcludeCVS
 				}
 			}
 
@@ -106,6 +138,9 @@ func init() {
 	backupCmd.Flags().StringVarP(&backupClient, "client", "", "", "Client to backup")
 	backupCmd.Flags().StringVarP(&backupModule, "module", "m", "", "Module to use")
 	backupCmd.Flags().StringVarP(&backupModule, "repo", "r", "", "Repository to use")
+	backupCmd.Flags().StringSliceVarP(&backupInclusions, "include", "i", []string{}, "File inclusions")
+	backupCmd.Flags().StringSliceVarP(&backupExclusions, "exclude", "e", []string{}, "File exclusions")
+	backupCmd.Flags().BoolVarP(&backupExcludeCVS, "exclude-cvs", "", false, "Exclude CVS from file selection")
 	backupCmd.MarkFlagRequired("client")
 
 	rootCmd.AddCommand(backupCmd)
