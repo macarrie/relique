@@ -1,6 +1,12 @@
+PROJECTNAME="relique"
+CURRENT_TAG != git describe --tags
+BUILD_OUTPUT_DIR=output
+
+MAKEFLAGS += --silent
+
 build: clean
 	go mod tidy
-	go build -o output/relique cmd/relique/main.go
+	go build -ldflags="-X 'github.com/macarrie/relique/cmd/relique/cli.Version=$(CURRENT_TAG)'" -o $(BUILD_OUTPUT_DIR)/relique cmd/relique/main.go
 
 clean:
 	rm -f ./output/*
