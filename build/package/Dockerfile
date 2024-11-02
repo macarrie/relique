@@ -12,7 +12,7 @@ FROM rockylinux/rockylinux:9-minimal
 RUN groupadd -g 8433 relique 
 RUN useradd -u 8433 -g 8433 relique 
 COPY --from=base /app/output/relique /bin/relique
-RUN relique config init
+RUN relique config init && chown -R relique:relique /etc/relique /var/lib/relique
 
 USER relique
 CMD [ "/bin/bash" ]
