@@ -324,7 +324,7 @@ func (j *Job) Start() error {
 
 			err := task.Task.Stats.GetFromRsyncLog(task.LogFile)
 			if err != nil {
-				slog.With(slog.Any("error", err)).Error("Cannot write task error log to file")
+				slog.With(slog.Any("error", err)).Error("Cannot get task stats")
 			}
 
 		}(&j.Tasks[i])
@@ -368,6 +368,11 @@ func (j *Job) Start() error {
 	}
 
 	catalogPath := j.GetCatalogPath()
+	storagePath, err := j.GetStorageFolderPath()
+	if err != nil {
+		return fmt.Errorf("cannot get job storage path: %w", err)
+	}
+
 	jobStats := rsync_task.MergeStats(j.Tasks)
 	if err := utils.SerializeToFile[rsync_lib.Stats](jobStats, fmt.Sprintf("%s/stats.toml", catalogPath)); err != nil {
 		return fmt.Errorf("cannot export job stats to file: %w", err)
@@ -378,7 +383,7 @@ func (j *Job) Start() error {
 			j.GetLog().Info("Generating backup image from job")
 			img := image.New(j.Client, j.Module, j.Repository)
 			img.Uuid = j.Uuid
-			if err := img.FillStats(jobStats, catalogPath); err != nil {
+			if err := img.FillStats(jobStats, storagePath); err != nil {
 				return fmt.Errorf("cannot get image stats: %w", err)
 			}
 			if _, err := img.Save(); err != nil {

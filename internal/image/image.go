@@ -50,8 +50,8 @@ func (img *Image) GetCatalogPath() string {
 	return utils.GetCatalogPath(img.Uuid)
 }
 
-func (img *Image) FillStats(stats rsync_lib.Stats, rootPath string) error {
-	sizeOnDisk, err := GetSizeOnDisk(rootPath)
+func (img *Image) FillStats(stats rsync_lib.Stats, storagePath string) error {
+	sizeOnDisk, err := GetSizeOnDisk(storagePath)
 	if err != nil {
 		return fmt.Errorf("cannot get image size on disk: %w", err)
 	}
