@@ -1,7 +1,8 @@
 package job_status
 
 const (
-	Pending = iota
+	_ = iota
+	Pending
 	Active
 	Success
 	Incomplete

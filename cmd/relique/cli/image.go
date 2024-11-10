@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var imageListPageSize int
+
 func init() {
 	imageCmd := &cobra.Command{
 		Use:   "image",
@@ -41,8 +43,11 @@ func init() {
 		Use:   "list",
 		Short: "List images generated from backups",
 		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: Handle pagination
-			imageList, err := api.ImageList(api_helpers.PaginationParams{})
+			page := api_helpers.PaginationParams{
+				Limit:  uint64(imageListPageSize),
+				Offset: 0,
+			}
+			imageList, err := api.ImageList(page)
 			if err != nil {
 				slog.With(
 					slog.Any("error", err),
@@ -69,10 +74,10 @@ func init() {
 				)
 			}
 
-			// TODO: Handle pagination
-			fmt.Printf("\nShowing %d out of %d records\n", imageList.Count, imageList.Count)
+			fmt.Printf("\nShowing %d out of %d records\n", len(imageList.Data), imageList.Count)
 		},
 	}
+	utils.AddPaginationParams(imageListCmd, &imageListPageSize)
 
 	imageShowCmd := &cobra.Command{
 		Use:   "show UUID",

@@ -1,7 +1,8 @@
 package backup_type
 
 const (
-	Unknown = iota
+	_ = iota
+	Unknown
 	Diff
 	Full
 	Restore // For display purposes
@@ -9,6 +10,12 @@ const (
 
 type BackupType struct {
 	Type uint8
+}
+
+func New(t uint8) BackupType {
+	return BackupType{
+		Type: t,
+	}
 }
 
 func (t *BackupType) String() string {

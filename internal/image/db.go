@@ -48,7 +48,7 @@ func (img *Image) Save() (int64, error) {
 	request := sq.Insert("images").SetMap(sq.Eq{
 		"uuid":               img.Uuid,
 		"created_at":         img.CreatedAt,
-		"module_type":        img.Module.ModuleType,
+		"module_name":        img.Module.Name,
 		"client_name":        img.Client.Name,
 		"repo_name":          img.Repository.GetName(),
 		"number_of_elements": img.NumberOfElements,
@@ -83,7 +83,7 @@ func (img *Image) Update(tx *sql.Tx) (int64, error) {
 	img.GetLog().Debug("Updating image details into database")
 
 	request := sq.Update("images").SetMap(sq.Eq{
-		"module_type":        img.Module.ModuleType,
+		"module_name":        img.Module.Name,
 		"client_name":        img.Client.Name,
 		"repo_name":          img.Repository.GetName(),
 		"number_of_elements": img.NumberOfElements,
@@ -127,7 +127,7 @@ func GetByUuid(uuid string) (Image, error) {
 		"uuid",
 		"created_at",
 		"client_name",
-		"module_type",
+		"module_name",
 		"repo_name",
 		"number_of_elements",
 		"number_of_files",
@@ -146,7 +146,7 @@ func GetByUuid(uuid string) (Image, error) {
 		&img.Uuid,
 		&img.CreatedAt,
 		&img.ClientName,
-		&img.ModuleType,
+		&img.ModuleName,
 		&img.RepoName,
 		&img.NumberOfElements,
 		&img.NumberOfFiles,

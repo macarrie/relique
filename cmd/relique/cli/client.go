@@ -8,9 +8,14 @@ import (
 
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
+	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/utils"
 	"github.com/spf13/cobra"
 )
+
+var clientListPageSize int
+var clientListSearchModule string
+var clientListSearchModuleType string
 
 func init() {
 	clientCmd := &cobra.Command{
@@ -31,7 +36,15 @@ func init() {
 		Use:   "list",
 		Short: "List configured backup clients",
 		Run: func(cmd *cobra.Command, args []string) {
-			clientList := api.ClientList()
+			page := api_helpers.PaginationParams{
+				Limit:  uint64(clientListPageSize),
+				Offset: 0,
+			}
+			search := api_helpers.ClientSearch{
+				ModuleName: clientListSearchModule,
+				ModuleType: clientListSearchModuleType,
+			}
+			clientList := api.ClientList(page, search)
 
 			tab := tabular.New()
 			tab.Col("name", "Name", 40)
@@ -39,15 +52,20 @@ func init() {
 			tab.Col("modules", "Modules", 40)
 
 			format := tab.Print("name", "addr", "modules")
-			for _, c := range clientList {
+			for _, c := range clientList.Data {
 				var moduleNames []string
 				for _, mod := range c.Modules {
 					moduleNames = append(moduleNames, mod.String())
 				}
 				fmt.Printf(format, c.Name, c.Address, strings.Join(moduleNames, ", "))
 			}
+
+			fmt.Printf("\nShowing %d out of %d records\n", len(clientList.Data), clientList.Count)
 		},
 	}
+	utils.AddPaginationParams(clientListCmd, &clientListPageSize)
+	clientListCmd.Flags().StringVarP(&clientListSearchModule, "module", "m", "", "Filter on module name")
+	clientListCmd.Flags().StringVarP(&clientListSearchModuleType, "module-type", "", "", "Filter on module type")
 
 	clientShowCmd := &cobra.Command{
 		Use:   "show CLIENT_NAME",

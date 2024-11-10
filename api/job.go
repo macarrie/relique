@@ -7,14 +7,13 @@ import (
 	"github.com/macarrie/relique/internal/job"
 )
 
-func JobList(p api_helpers.PaginationParams) (api_helpers.PaginatedResponse[job.Job], error) {
-	// TODO: Handle pagination
-	jobCount, err := job.Count()
+func JobList(p api_helpers.PaginationParams, s api_helpers.JobSearch) (api_helpers.PaginatedResponse[job.Job], error) {
+	jobCount, err := job.Count(s)
 	if err != nil {
 		return api_helpers.PaginatedResponse[job.Job]{}, fmt.Errorf("cannot count total jobs: %w", err)
 	}
 
-	jobs, err := job.Search(p)
+	jobs, err := job.Search(p, s)
 	if err != nil {
 		return api_helpers.PaginatedResponse[job.Job]{}, fmt.Errorf("cannot get jobs from database: %w", err)
 	}

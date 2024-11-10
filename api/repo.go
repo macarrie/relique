@@ -4,16 +4,36 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/repo"
+	"github.com/samber/lo"
 )
 
-func RepoList() []repo.Repository {
-	return config.Current.Repositories
+func RepoList(p api_helpers.PaginationParams, s api_helpers.RepoSearch) api_helpers.PaginatedResponse[repo.Repository] {
+	limit := p.Limit
+	repoList := config.Current.Repositories
+	// Filters
+	if s.RepoType != "" {
+		repoList = lo.Filter(repoList, func(item repo.Repository, index int) bool {
+			return item.GetType() == s.RepoType
+		})
+	}
+
+	// Count after filters
+	count := len(repoList)
+	if limit != 0 {
+		repoList = lo.Slice(repoList, 0, int(p.Limit))
+	}
+	return api_helpers.PaginatedResponse[repo.Repository]{
+		Count:      uint64(count),
+		Pagination: p,
+		Data:       repoList,
+	}
 }
 
 func RepoGet(name string) (repo.Repository, error) {
-	return repo.GetByName(RepoList(), name)
+	return repo.GetByName(config.Current.Repositories, name)
 }
 
 func RepoCreateLocal(name string, path string, isDefault bool) error {

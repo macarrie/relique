@@ -7,6 +7,8 @@ import (
 
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
+	"github.com/macarrie/relique/internal/api_helpers"
+	"github.com/macarrie/relique/internal/utils"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
@@ -14,6 +16,8 @@ import (
 var repoCreateName string
 var repoCreateIsDefault bool
 var repoCreateLocalPath string
+var repoListPageSize int
+var repoListSearchType string
 
 func init() {
 	repoCmd := &cobra.Command{
@@ -34,7 +38,14 @@ func init() {
 		Use:   "list",
 		Short: "List configured backup repositories",
 		Run: func(cmd *cobra.Command, args []string) {
-			repoList := api.RepoList()
+			page := api_helpers.PaginationParams{
+				Limit:  uint64(repoListPageSize),
+				Offset: 0,
+			}
+			search := api_helpers.RepoSearch{
+				RepoType: repoListSearchType,
+			}
+			repoList := api.RepoList(page, search)
 
 			tab := tabular.New()
 			tab.Col("name", "Name", 40)
@@ -42,11 +53,15 @@ func init() {
 			tab.Col("default", "Default", 40)
 
 			format := tab.Print("name", "type", "default")
-			for _, r := range repoList {
+			for _, r := range repoList.Data {
 				fmt.Printf(format, r.GetName(), r.GetType(), r.IsDefault())
 			}
+
+			fmt.Printf("\nShowing %d out of %d records\n", len(repoList.Data), repoList.Count)
 		},
 	}
+	utils.AddPaginationParams(repoListCmd, &repoListPageSize)
+	repoListCmd.Flags().StringVarP(&repoListSearchType, "type", "t", "", "Filter on repository type")
 
 	repoShowCmd := &cobra.Command{
 		Use:   "show REPO_NAME",

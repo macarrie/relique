@@ -1,7 +1,8 @@
 package job_type
 
 const (
-	Unknown = iota
+	_ = iota
+	Unknown
 	Backup
 	Restore
 )
