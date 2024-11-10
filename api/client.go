@@ -6,8 +6,12 @@ import (
 	"log/slog"
 	"os/exec"
 
+	"github.com/samber/lo"
+
+	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/client"
 	"github.com/macarrie/relique/internal/config"
+	"github.com/macarrie/relique/internal/module"
 )
 
 func ClientCreate(name string, address string) error {
@@ -19,13 +23,42 @@ func ClientCreate(name string, address string) error {
 	return nil
 }
 
-func ClientList() []client.Client {
-	return config.Current.Clients
+func ClientList(p api_helpers.PaginationParams, s api_helpers.ClientSearch) api_helpers.PaginatedResponse[client.Client] {
+	limit := p.Limit
+	clientList := config.Current.Clients
+	// Filters
+	if s.ModuleName != "" {
+		clientList = lo.Filter(clientList, func(item client.Client, index int) bool {
+			mods := lo.Filter(item.Modules, func(m module.Module, index int) bool {
+				return m.Name == s.ModuleName
+			})
+			return len(mods) != 0
+		})
+	}
+	if s.ModuleType != "" {
+		clientList = lo.Filter(clientList, func(item client.Client, index int) bool {
+			mods := lo.Filter(item.Modules, func(m module.Module, index int) bool {
+				return m.ModuleType == s.ModuleType
+			})
+			return len(mods) != 0
+		})
+	}
+
+	// Count after filters
+	count := len(clientList)
+	if limit != 0 {
+		clientList = lo.Slice(clientList, 0, int(p.Limit))
+	}
+	return api_helpers.PaginatedResponse[client.Client]{
+		Count:      uint64(count),
+		Pagination: p,
+		Data:       clientList,
+	}
 }
 
 func ClientGet(name string) (client.Client, error) {
-	clientList := ClientList()
-	for _, cl := range clientList {
+	clientList := ClientList(api_helpers.PaginationParams{}, api_helpers.ClientSearch{})
+	for _, cl := range clientList.Data {
 		if cl.Name == name {
 			return cl, nil
 		}

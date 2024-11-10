@@ -8,8 +8,12 @@ import (
 
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
+	"github.com/macarrie/relique/internal/api_helpers"
+	"github.com/macarrie/relique/internal/utils"
 	"github.com/spf13/cobra"
 )
+
+var moduleListPageSize int
 
 func init() {
 	moduleCmd := &cobra.Command{
@@ -30,7 +34,11 @@ func init() {
 		Use:   "list",
 		Short: "List installed modules command",
 		Run: func(cmd *cobra.Command, args []string) {
-			mods, err := api.ModuleList()
+			page := api_helpers.PaginationParams{
+				Limit:  uint64(moduleListPageSize),
+				Offset: 0,
+			}
+			mods, err := api.ModuleList(page)
 			if err != nil {
 				slog.With(
 					slog.Any("error", err),
@@ -45,7 +53,7 @@ func init() {
 			tab.Col("backup_paths", "Backup paths", 30)
 
 			format := tab.Print("name", "variant", "available_variants", "backup_paths")
-			for _, m := range mods {
+			for _, m := range mods.Data {
 				var variant string = m.Variant
 				if variant == "" {
 					variant = "default"
@@ -57,8 +65,11 @@ func init() {
 					strings.Join(m.BackupPaths, ", "),
 				)
 			}
+
+			fmt.Printf("\nShowing %d out of %d records\n", len(mods.Data), mods.Count)
 		},
 	}
+	utils.AddPaginationParams(moduleListCmd, &moduleListPageSize)
 
 	moduleShowCmd := &cobra.Command{
 		Use:   "show MODULE_NAME",

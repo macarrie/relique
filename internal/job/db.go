@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Masterminds/squirrel"
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/macarrie/relique/internal/api_helpers"
@@ -55,7 +56,7 @@ func (j *Job) Save() (int64, error) {
 		"done":               j.Done,
 		"start_time":         j.StartTime,
 		"end_time":           j.EndTime,
-		"module_type":        j.Module.ModuleType,
+		"module_name":        j.Module.Name,
 		"client_name":        j.Client.Name,
 		"repo_name":          j.Repository.GetName(),
 		"previous_job_uuid":  j.PreviousJobUuid,
@@ -94,7 +95,7 @@ func (j *Job) Update(tx *sql.Tx) (int64, error) {
 		"done":               j.Done,
 		"start_time":         j.StartTime,
 		"end_time":           j.EndTime,
-		"module_type":        j.Module.ModuleType,
+		"module_name":        j.Module.Name,
 		"client_name":        j.Client.Name,
 		"repo_name":          j.Repository.GetName(),
 		"previous_job_uuid":  j.PreviousJobUuid,
@@ -141,7 +142,7 @@ func GetByUuid(uuid string) (Job, error) {
 		"start_time",
 		"end_time",
 		"client_name",
-		"module_type",
+		"module_name",
 		"repo_name",
 		"previous_job_uuid",
 		"restore_image_uuid",
@@ -163,7 +164,7 @@ func GetByUuid(uuid string) (Job, error) {
 		&job.StartTime,
 		&job.EndTime,
 		&job.ClientName,
-		&job.ModuleType,
+		&job.ModuleName,
 		&job.RepoName,
 		&job.PreviousJobUuid,
 		&job.RestoreImageUuid,
@@ -208,7 +209,27 @@ func GetByUuid(uuid string) (Job, error) {
 	return job, nil
 }
 
-func Search(p api_helpers.PaginationParams) ([]Job, error) {
+func ApplySearchParams(request squirrel.SelectBuilder, s api_helpers.JobSearch) squirrel.SelectBuilder {
+	if s.ModuleName != "" {
+		request = request.Where("module_name = ?", s.ModuleName)
+	}
+	if s.ClientName != "" {
+		request = request.Where("client_name = ?", s.ClientName)
+	}
+	if s.BackupType != 0 {
+		request = request.Where("backup_type = ?", s.BackupType)
+	}
+	if s.JobType != 0 {
+		request = request.Where("job_type = ?", s.JobType)
+	}
+	if s.Status != 0 {
+		request = request.Where("status = ?", s.Status)
+	}
+
+	return request
+}
+
+func Search(p api_helpers.PaginationParams, s api_helpers.JobSearch) ([]Job, error) {
 	slog.Debug("Searching for jobs in db")
 	var jobs []Job
 
@@ -226,8 +247,7 @@ func Search(p api_helpers.PaginationParams) ([]Job, error) {
 		request = request.Offset(p.Offset)
 	}
 
-	// TODO/ Handle pagination
-	// TODO/ Handle search parameters
+	request = ApplySearchParams(request, s)
 	request = request.OrderBy("jobs.id DESC")
 
 	query, args, err := request.ToSql()
@@ -284,7 +304,7 @@ func Search(p api_helpers.PaginationParams) ([]Job, error) {
 }
 
 // TODO: Handle search parameters to have a selective count
-func Count() (uint64, error) {
+func Count(s api_helpers.JobSearch) (uint64, error) {
 	var count uint64
 
 	request := sq.Select(
@@ -293,6 +313,7 @@ func Count() (uint64, error) {
 		"jobs",
 	)
 
+	request = ApplySearchParams(request, s)
 	request = request.OrderBy("jobs.id DESC")
 
 	query, args, err := request.ToSql()
@@ -326,7 +347,7 @@ func GetPrevious(j Job, backupType backup_type.BackupType) (Job, error) {
 	).Where(
 		"jobs.client_name = ?", j.Client.Name,
 	).Where(
-		"jobs.module_type = ?", j.Module.ModuleType,
+		"jobs.module_name = ?", j.Module.Name,
 	).OrderBy(
 		"jobs.id DESC",
 	)

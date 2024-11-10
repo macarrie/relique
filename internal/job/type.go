@@ -46,7 +46,7 @@ type Job struct {
 
 	// For DB storage
 	ClientName string `json:"-"`
-	ModuleType string `json:"-"`
+	ModuleName string `json:"-"`
 	RepoName   string `json:"-"`
 }
 

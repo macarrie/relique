@@ -2,6 +2,7 @@ FROM golang:1.22 AS base
 
 WORKDIR /app
 COPY go.mod go.sum ./
+RUN apt install -y git
 RUN go mod download
 COPY . .
 RUN make build

@@ -8,13 +8,22 @@ import (
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
 	"github.com/macarrie/relique/internal/api_helpers"
+	"github.com/macarrie/relique/internal/backup_type"
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
+	"github.com/macarrie/relique/internal/job_status"
 	"github.com/macarrie/relique/internal/job_type"
 	"github.com/macarrie/relique/internal/utils"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
+
+var jobListPageSize int
+var jobListSearchModule string
+var jobListSearchClient string
+var jobListSearchType string
+var jobListSearchBackupType string
+var jobListSearchStatus string
 
 func init() {
 	jobCmd := &cobra.Command{
@@ -42,8 +51,28 @@ func init() {
 		Use:   "list",
 		Short: "List backup and restore jobs",
 		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: Handle pagination
-			jobList, err := api.JobList(api_helpers.PaginationParams{})
+			page := api_helpers.PaginationParams{
+				Limit:  uint64(jobListPageSize),
+				Offset: 0,
+			}
+			search := api_helpers.JobSearch{
+				ModuleName: jobListSearchModule,
+				ClientName: jobListSearchClient,
+				JobType:    0,
+				BackupType: 0,
+				Status:     0,
+			}
+			if jobListSearchType != "" {
+				search.JobType = job_type.FromString(jobListSearchType).Type
+			}
+			if jobListSearchBackupType != "" {
+				search.BackupType = backup_type.FromString(jobListSearchBackupType).Type
+			}
+			if jobListSearchStatus != "" {
+				search.Status = job_status.FromString(jobListSearchStatus).Status
+			}
+
+			jobList, err := api.JobList(page, search)
 			if err != nil {
 				slog.With(
 					slog.Any("error", err),
@@ -83,10 +112,15 @@ func init() {
 				)
 			}
 
-			// TODO: Handle pagination
-			fmt.Printf("\nShowing %d out of %d records\n", jobList.Count, jobList.Count)
+			fmt.Printf("\nShowing %d out of %d records\n", len(jobList.Data), jobList.Count)
 		},
 	}
+	utils.AddPaginationParams(jobListCmd, &jobListPageSize)
+	jobListCmd.Flags().StringVarP(&jobListSearchClient, "client", "", "", "Filter on client name")
+	jobListCmd.Flags().StringVarP(&jobListSearchModule, "module", "m", "", "Filter on module name")
+	jobListCmd.Flags().StringVarP(&jobListSearchStatus, "status", "s", "", "Filter on job status")
+	jobListCmd.Flags().StringVarP(&jobListSearchType, "type", "t", "", "Filter on job type")
+	jobListCmd.Flags().StringVarP(&jobListSearchBackupType, "backup-type", "", "", "Filter on backup type")
 
 	jobShowCmd := &cobra.Command{
 		Use:   "show UUID",

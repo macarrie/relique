@@ -24,7 +24,7 @@ type Image struct {
 	SizeOnDisk       uint64          `json:"size_on_disk"`
 
 	ClientName string
-	ModuleType string
+	ModuleName string
 	RepoName   string
 }
 
