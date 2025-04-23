@@ -1,12 +1,19 @@
-FROM golang:1.22 AS base
+FROM node:23-bookworm AS webui
+WORKDIR /app
+RUN apt install -y make
+COPY . .
+RUN make webui
 
+
+FROM golang:1.24 AS base
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN apt install -y git
 RUN go mod download
 COPY . .
-RUN make build
-
+COPY --from=webui /app/webui/dist /app/internal/server/dist
+RUN ls /app/internal/server
+RUN make bin
 
 
 FROM rockylinux/rockylinux:9-minimal
@@ -19,4 +26,4 @@ COPY --from=base /app/output/relique /bin/relique
 RUN relique config init && chown -R relique:relique /etc/relique /var/lib/relique
 
 USER relique
-CMD [ "/bin/bash" ]
+CMD [ "/bin/relique", "server", "start" ]

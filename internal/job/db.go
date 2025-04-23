@@ -202,7 +202,7 @@ func GetByUuid(uuid string) (Job, error) {
 	if err != nil {
 		slog.With(
 			slog.String("uuid", uuid),
-		).Warn("No stats could be retrieved for job. This could be normal if job is still running or stopped before writing stats file")
+		).Debug("No stats could be retrieved for job. This could be normal if job is still running or stopped before writing stats file")
 	}
 	job.Stats = stats
 
@@ -224,6 +224,12 @@ func ApplySearchParams(request squirrel.SelectBuilder, s api_helpers.JobSearch) 
 	}
 	if s.Status != 0 {
 		request = request.Where("status = ?", s.Status)
+	}
+	if s.Before != "" {
+		request = request.Where("datetime(start_time) < datetime(?)", s.Before)
+	}
+	if s.After != "" {
+		request = request.Where("datetime(start_time) > datetime(?)", s.After)
 	}
 
 	return request
@@ -303,7 +309,6 @@ func Search(p api_helpers.PaginationParams, s api_helpers.JobSearch) ([]Job, err
 	return jobs, nil
 }
 
-// TODO: Handle search parameters to have a selective count
 func Count(s api_helpers.JobSearch) (uint64, error) {
 	var count uint64
 

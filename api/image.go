@@ -8,14 +8,13 @@ import (
 	"github.com/macarrie/relique/internal/image"
 )
 
-func ImageList(p api_helpers.PaginationParams) (api_helpers.PaginatedResponse[image.Image], error) {
-	// TODO: Handle pagination
+func ImageList(p api_helpers.PaginationParams, s api_helpers.ImageSearch) (api_helpers.PaginatedResponse[image.Image], error) {
 	imgCount, err := image.Count()
 	if err != nil {
 		return api_helpers.PaginatedResponse[image.Image]{}, fmt.Errorf("cannot count total images: %w", err)
 	}
 
-	imgs, err := image.Search(p, config.Current.ModuleInstallPath)
+	imgs, err := image.Search(p, s, config.Current.ModuleInstallPath)
 	if err != nil {
 		return api_helpers.PaginatedResponse[image.Image]{}, fmt.Errorf("cannot get images from database: %w", err)
 	}

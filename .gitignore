@@ -1,1 +1,4 @@
 output/
+webui/node_modules
+webui/dist
+internal/server/dist

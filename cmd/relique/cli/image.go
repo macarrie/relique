@@ -16,6 +16,8 @@ import (
 )
 
 var imageListPageSize int
+var imageListSearchModule string
+var imageListSearchClient string
 
 func init() {
 	imageCmd := &cobra.Command{
@@ -47,7 +49,11 @@ func init() {
 				Limit:  uint64(imageListPageSize),
 				Offset: 0,
 			}
-			imageList, err := api.ImageList(page)
+			search := api_helpers.ImageSearch{
+				ModuleName: imageListSearchModule,
+				ClientName: imageListSearchClient,
+			}
+			imageList, err := api.ImageList(page, search)
 			if err != nil {
 				slog.With(
 					slog.Any("error", err),
@@ -78,6 +84,8 @@ func init() {
 		},
 	}
 	utils.AddPaginationParams(imageListCmd, &imageListPageSize)
+	imageListCmd.Flags().StringVarP(&imageListSearchClient, "client", "", "", "Filter on client name")
+	imageListCmd.Flags().StringVarP(&imageListSearchModule, "module", "m", "", "Filter on module name")
 
 	imageShowCmd := &cobra.Command{
 		Use:   "show UUID",

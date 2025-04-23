@@ -6,4 +6,6 @@ type JobSearch struct {
 	BackupType uint8  `json:"backup_type"`
 	JobType    uint8  `json:"job_type"`
 	Status     uint8  `json:"status"`
+	Before     string `json:"before"`
+	After      string `json:"after"`
 }

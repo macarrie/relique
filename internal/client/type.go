@@ -54,6 +54,8 @@ func (c *Client) GetLog() *slog.Logger {
 	return slog.With(
 		slog.String("name", c.Name),
 		slog.String("address", c.Address),
+		slog.String("ssh_user", c.SSHUser),
+		slog.Int("ssh_port", c.SSHPort),
 	)
 }
 
