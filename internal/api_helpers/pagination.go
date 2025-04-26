@@ -6,7 +6,7 @@ type PaginationParams struct {
 }
 
 type PaginatedResponse[P any] struct {
-	Pagination PaginationParams
+	Pagination PaginationParams `json:"pagination"`
 
 	Count uint64 `json:"count"`
 	Data  []P    `json:"data"`

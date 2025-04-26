@@ -26,16 +26,23 @@ var MODULES_DEFAULT_FOLDER string = "/var/lib/relique/modules"
 var CATALOG_DEFAULT_FOLDER string = "catalog"
 var DB_DEFAULT_FOLDER string = "db"
 
+var WEBUI_DEFAULT_BIND_ADDR string = "0.0.0.0"
+var WEBUI_DEFAULT_PORT int = 8433
+var WEBUI_DEFAULT_SSL_CERT string = "/etc/relique/certs/cert.pem"
+var WEBUI_DEFAULT_SSL_KEY string = "/etc/relique/certs/key.pem"
+
 type Configuration struct {
 	Clients      []client.Client   `json:"clients" toml:"clients"`
 	Repositories []repo.Repository `json:"repositories" toml:"repositories"`
 	Modules      []module.Module   `json:"modules" toml:"modules"`
 
+	WebUI HTTPConfig `json:"webui" toml:"webui"`
+
 	ClientCfgPath     string `mapstructure:"client_cfg_path" json:"client_cfg_path" toml:"client_cfg_path"`
 	RepoCfgPath       string `mapstructure:"repo_cfg_path" json:"repo_cfg_path" toml:"repo_cfg_path"`
 	ModuleInstallPath string `mapstructure:"module_install_path" json:"module_install_path" toml:"module_install_path"`
 	DBPath            string `mapstructure:"db_path" json:"db_path" toml:"db_path"`
-	CatalogPath            string `mapstructure:"catalog_path" json:"catalog_path" toml:"catalog_path"`
+	CatalogPath       string `mapstructure:"catalog_path" json:"catalog_path" toml:"catalog_path"`
 }
 
 func New() {
@@ -118,6 +125,18 @@ func setDefaultValues() {
 	}
 	if Current.CatalogPath == "" {
 		Current.CatalogPath = CATALOG_DEFAULT_FOLDER
+	}
+	if Current.WebUI.BindAddr == "" {
+		Current.WebUI.BindAddr = WEBUI_DEFAULT_BIND_ADDR
+	}
+	if Current.WebUI.Port == 0 {
+		Current.WebUI.Port = WEBUI_DEFAULT_PORT
+	}
+	if Current.WebUI.SSLCert == "" {
+		Current.WebUI.SSLCert = WEBUI_DEFAULT_SSL_CERT
+	}
+	if Current.WebUI.SSLKey == "" {
+		Current.WebUI.SSLKey = WEBUI_DEFAULT_SSL_KEY
 	}
 }
 

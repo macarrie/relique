@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Masterminds/squirrel"
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/macarrie/relique/internal/api_helpers"
@@ -184,12 +185,28 @@ func GetByUuid(uuid string) (Image, error) {
 	return img, nil
 }
 
-func Search(p api_helpers.PaginationParams, modulesInstallPath string) ([]Image, error) {
+func ApplySearchParams(request squirrel.SelectBuilder, s api_helpers.ImageSearch) squirrel.SelectBuilder {
+	if s.ModuleName != "" {
+		request = request.Where("module_name = ?", s.ModuleName)
+	}
+	if s.ClientName != "" {
+		request = request.Where("client_name = ?", s.ClientName)
+	}
+	if s.Before != "" {
+		request = request.Where("datetime(created_at) < datetime(?)", s.Before)
+	}
+	if s.After != "" {
+		request = request.Where("datetime(created_at) > datetime(?)", s.After)
+	}
+
+	return request
+}
+
+func Search(p api_helpers.PaginationParams, s api_helpers.ImageSearch, modulesInstallPath string) ([]Image, error) {
 	slog.Debug("Searching for jobs in db")
 	var imgs []Image
 
 	// TODO: Prepare request and clean data to avoid SQL injections
-	// TODO: handle status and backup type
 	request := sq.Select(
 		"uuid",
 	).From(
@@ -202,8 +219,7 @@ func Search(p api_helpers.PaginationParams, modulesInstallPath string) ([]Image,
 		request = request.Offset(p.Offset)
 	}
 
-	// TODO/ Handle pagination
-	// TODO/ Handle search parameters
+	request = ApplySearchParams(request, s)
 	request = request.OrderBy("images.id DESC")
 
 	query, args, err := request.ToSql()

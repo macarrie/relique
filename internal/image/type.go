@@ -14,7 +14,7 @@ type Image struct {
 	ID int64
 
 	Uuid             string          `json:"uuid"`
-	CreatedAt        time.Time       `json:"end_time"`
+	CreatedAt        time.Time       `json:"created_at"`
 	Client           client.Client   `json:"client"`
 	Module           module.Module   `json:"module"`
 	Repository       repo.Repository `json:"repository"`

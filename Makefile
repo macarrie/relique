@@ -2,14 +2,21 @@ PROJECTNAME="relique"
 CURRENT_TAG != git describe --tags
 BUILD_OUTPUT_DIR=output
 
-MAKEFLAGS += --silent
+#MAKEFLAGS += --silent
 
-build: clean
+build: clean webui bin
+
+bin: 
 	go mod tidy
-	go build -ldflags="-X 'github.com/macarrie/relique/cmd/relique/cli.Version=$(CURRENT_TAG)'" -o $(BUILD_OUTPUT_DIR)/relique cmd/relique/main.go
+	go build -ldflags="-X 'github.com/macarrie/relique/api.ReliqueVersion=$(CURRENT_TAG)'" -o $(BUILD_OUTPUT_DIR)/relique cmd/relique/main.go
+
+webui:
+	cd webui && npm ci && npm run build
+	cp -r ./webui/dist internal/server/
 
 clean:
 	rm -f ./output/*
+	rm -rf ./webui/dist internal/server/dist
 
 reset:
 	rm -rf ~/.config/relique/db/relique.sqlite ~/.config/relique/storage/* ~/.config/relique/catalog/*
@@ -17,7 +24,7 @@ reset:
 test:
 	docker build -t relique_tests -f test/Dockerfile_tests  .
 
-docker:
+docker: clean
 	docker build -t relique -f build/package/Dockerfile  .
 
 release: clean
@@ -34,4 +41,4 @@ tag:
 	@echo "Creating git tag v$(TAG)"
 	git tag v$(TAG)
 
-.PHONY: build clean reset test docker release tag
+.PHONY: build clean reset test docker release tag bin webui

@@ -55,6 +55,21 @@ func NewRestore(img image.Image, targetClient client.Client, restorePaths map[st
 func (j *Job) SetupBackup() error {
 	j.GetLog().Debug("Starting job setup")
 
+	j.Status.Status = job_status.Active
+	j.StartTime = time.Now()
+
+	if j.Client.SSHUser == "" {
+		j.Client.SSHUser = client.DEFAULT_SSH_USER
+	}
+
+	if j.Client.SSHPort != 0 {
+		j.Client.SSHPort = client.DEFAULT_SSH_PORT
+	}
+
+	if _, err := j.Save(); err != nil {
+		return fmt.Errorf("cannot save job info to database before start: %w", err)
+	}
+
 	if j.BackupType.Type == backup_type.Diff {
 		j.GetLog().Debug("Looking for previous diff jobs to compute diff from")
 		previousDiffJob, diffErr := GetPrevious(*j, backup_type.BackupType{Type: backup_type.Diff})
@@ -268,12 +283,6 @@ func (j *Job) SetupRestore() error {
 
 func (j *Job) Start() error {
 	j.GetLog().Debug("Starting job sync tasks")
-	j.Status.Status = job_status.Active
-	j.StartTime = time.Now()
-
-	if _, err := j.Save(); err != nil {
-		return fmt.Errorf("cannot save job info to database before start: %w", err)
-	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	var wg sync.WaitGroup
