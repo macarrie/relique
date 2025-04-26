@@ -1,6 +1,7 @@
 FROM node:23-bookworm AS webui
 WORKDIR /app
-RUN apt install -y make
+ENV NODE_ENV=production
+RUN apt install -y make 
 COPY . .
 RUN make webui
 
@@ -12,7 +13,6 @@ RUN apt install -y git
 RUN go mod download
 COPY . .
 COPY --from=webui /app/webui/dist /app/internal/server/dist
-RUN ls /app/internal/server
 RUN make bin
 
 

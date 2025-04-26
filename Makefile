@@ -11,7 +11,7 @@ bin:
 	go build -ldflags="-X 'github.com/macarrie/relique/api.ReliqueVersion=$(CURRENT_TAG)'" -o $(BUILD_OUTPUT_DIR)/relique cmd/relique/main.go
 
 webui:
-	cd webui && npm run build
+	cd webui && npm ci && npm run build
 	cp -r ./webui/dist internal/server/
 
 clean:
