@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 
 import { createColumnHelper } from "@tanstack/react-table";
+import { Column } from "react-table";
 import StatusBadge from "../components/status_badge";
 import Job from "../types/job";
 import Utils from "../utils/utils";
 import JobUtils from "../utils/job";
 import Table from "../components/table";
 import React from "react";
+import TableUtils from "../utils/table";
 
 function JobList({
     title = "",
@@ -15,6 +17,7 @@ function JobList({
     sorted = true,
     paginated = true,
     data = {} as Job[],
+    loading = true,
 }) {
 
     function uuidDisplay(id: string) {
@@ -44,9 +47,9 @@ function JobList({
             cell: (cell: any) => (<div><span className="badge badge-soft badge-sm badge-neutral">{cell.getValue()}</span></div>),
         }),
         columnHelper.accessor('job_type', {
-            header: () => (<div className="hidden md:block">Type</div>),
+            header: () => (<div className="">Type</div>),
             id: 'job_type',
-            cell: (cell: any) => (<div className="hidden md:block">{cell.getValue()}</div>),
+            cell: (cell: any) => (<div className="">{cell.getValue()}</div>),
         }),
         columnHelper.accessor((job: Job) => job.status, {
             header: () => (<div>Status</div>),
@@ -54,15 +57,15 @@ function JobList({
             cell: (cell: any) => (<div><StatusBadge label={cell.getValue()} status={JobUtils.jobStateToCode(cell.getValue())} /></div>),
         }),
         columnHelper.accessor('start_time', {
-            header: () => (<div className="hidden md:block">Start</div>),
+            header: () => (<div className="">Start</div>),
             id: 'start_time',
-            cell: (cell: any) => (<div className="hidden md:block">{Utils.formatDate(cell.getValue())}</div>),
+            cell: (cell: any) => (<div className="">{Utils.formatDate(cell.getValue())}</div>),
             sortingFn: 'datetime',
         }),
         columnHelper.accessor('end_time', {
-            header: () => (<div className="hidden md:block">End</div>),
+            header: () => (<div className="">End</div>),
             id: 'end_time',
-            cell: (cell: any) => (<div className="hidden md:block">{Utils.formatDate(cell.getValue())}</div>),
+            cell: (cell: any) => (<div className="">{Utils.formatDate(cell.getValue())}</div>),
             sortingFn: 'datetime',
         }),
     ];
@@ -72,8 +75,8 @@ function JobList({
             title={title}
             actions={actions}
             custom_actions={custom_actions}
-            data={data}
-            columns={columns}
+            data={loading ? [{}, {}, {}] : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
             paginated={paginated}
             sorted={sorted}
         />

@@ -8,6 +8,15 @@ import (
 	"github.com/macarrie/relique/internal/config"
 )
 
+func webAPIPostConfigReload(c *gin.Context) {
+	if err := api.ConfigLoad(); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
+}
+
 func webAPIGetConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, config.Current)
 }

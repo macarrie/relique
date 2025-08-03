@@ -14,13 +14,20 @@ import (
 	"github.com/macarrie/relique/internal/module"
 )
 
-func ClientCreate(name string, address string) error {
+func ClientCreate(name string, address string, sshUser string, sshPort int) error {
 	cl := client.New(name, address)
-	if err := cl.Write(config.GetClientsCfgPath()); err != nil {
-		return err
+	if sshUser != "" {
+		cl.SSHUser = sshUser
+	}
+	if sshPort != 0 {
+		cl.SSHPort = sshPort
 	}
 
-	return nil
+	return ClientSave(cl)
+}
+
+func ClientSave(cl client.Client) error {
+	return cl.Write(config.GetClientsCfgPath())
 }
 
 func ClientList(p api_helpers.PaginationParams, s api_helpers.ClientSearch) api_helpers.PaginatedResponse[client.Client] {

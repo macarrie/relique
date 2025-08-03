@@ -1,4 +1,5 @@
 import axios from "axios";
+import Client from "../types/client";
 
 axios.defaults.baseURL = "/api/v1/";
 
@@ -15,6 +16,9 @@ export default class API {
         },
         get_version: function () {
             return API.handler().get('/config/version');
+        },
+        reload: function () {
+            return API.handler().post('/config/reload');
         },
     };
 
@@ -38,6 +42,9 @@ export default class API {
         },
         get: function (name: string) {
             return API.handler().get('/clients/' + name);
+        },
+        create: function (p = {} as Client) {
+            return API.handler().post('/clients/' + p?.name, p);
         },
         ping: function (name: string) {
             return API.handler().get('/clients/' + name + "/ping");

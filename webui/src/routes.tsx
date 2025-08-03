@@ -10,6 +10,8 @@ import Images from "./pages/images";
 import ImageDetails from "./pages/image_details";
 import Repositories from "./pages/repositories";
 import RepositoryDetails from "./pages/repository_details";
+import Config from "./pages/config";
+import ClientNew from "./pages/client_new";
 
 const routes = [
     {
@@ -36,6 +38,11 @@ const routes = [
         path: "/clients",
         name: "All clients",
         elt: () => <Clients />
+    },
+    {
+        path: "/clients/new",
+        name: "Create client",
+        elt: () => <ClientNew />
     },
     {
         path: "/clients/:client_name",
@@ -71,6 +78,11 @@ const routes = [
         path: "/repositories/:repo_name",
         name: "Repository details",
         elt: () => <RepositoryDetails />
+    },
+    {
+        path: "/config",
+        name: "Configuration",
+        elt: () => <Config />
     },
     {
         path: "*",

@@ -32,6 +32,12 @@ function StatusBadge(props: any) {
         changeStatus(props.status);
     }, [props.status]);
 
+    if (props.loading) {
+        return (
+            <span className={`badge badge-sm font-normal skeleton w-16`}></span>
+        );
+    }
+
     return (
         <span className={`badge badge-sm font-normal ${getColor()}`}>{label}</span>
     );

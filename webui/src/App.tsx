@@ -10,6 +10,8 @@ import appRoutes from "./routes"
 import './App.css'
 import Sidebar from './layout/sidebar'
 import Main from './layout/main'
+import { ToastContainer } from "react-toastify";
+
 
 function App() {
   return (
@@ -24,6 +26,11 @@ function App() {
           ))}
         </Routes>
       </Main>
+
+      <ToastContainer
+        position="top-right"
+        theme="colored"
+      />
     </BrowserRouter >
   );
 }

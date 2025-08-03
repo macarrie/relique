@@ -21,9 +21,13 @@ import (
 
 var ReliqueVersion string
 
+func ConfigLoad() error {
+	return config.Load("relique")
+}
+
 func ConfigGet() (config.Configuration, error) {
 	if !config.Loaded {
-		if err := config.Load("relique"); err != nil {
+		if err := ConfigLoad(); err != nil {
 			return config.Configuration{}, fmt.Errorf("cannot load relique configuration: %w", err)
 		}
 	}
@@ -242,7 +246,7 @@ func ConfigInit(cfgPath string, modPath string, repoPath string, catalogPath str
 		slog.String("path", clientsFolder),
 	).Info("Created clients configuration folder")
 
-	if err := ClientCreate("local", "localhost"); err != nil {
+	if err := ClientCreate("local", "localhost", "", 0); err != nil {
 		return fmt.Errorf("cannot create default client: %w", err)
 	}
 	// TODO: Add example module to local client

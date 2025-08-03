@@ -10,14 +10,19 @@ import ModuleCard from '../components/module_card';
 import Utils from '../utils/utils';
 import ClientCard from '../components/client_card';
 import ImageList from '../components/image_list';
+import Const from '../types/const';
+import TextPlaceholder from '../components/text_placeholder';
 
 function JobDetails() {
     const { job_uuid } = useParams();
     let [j, setJob] = useState<Job>({} as Job);
     let [img, setImage] = useState<Image>({} as Image);
+    let [loading, setLoading] = useState<boolean>(true);
+    let [imgLoading, setImgLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getJob() {
+            setLoading(true);
             if (job_uuid === undefined) {
                 console.log("Job uuid undefined, cannot get job details");
                 return;
@@ -25,8 +30,10 @@ function JobDetails() {
 
             API.jobs.get(job_uuid).then((response: any) => {
                 setJob(response.data);
+                setLoading(false);
             }).catch(error => {
                 console.log("Cannot get job details", error);
+                Utils.notify(Const.CRITICAL, "Cannot get job details", error.toString())
                 setJob({} as Job);
             });
         }
@@ -36,6 +43,7 @@ function JobDetails() {
 
     useEffect(() => {
         function getImage() {
+            setImgLoading(true);
             if (job_uuid === undefined) {
                 console.log("Image uuid undefined, cannot get image details");
                 return;
@@ -43,8 +51,10 @@ function JobDetails() {
 
             API.images.get(job_uuid).then((response: any) => {
                 setImage(response.data);
+                setImgLoading(false);
             }).catch(error => {
                 console.log("Cannot get image details", error);
+                Utils.notify(Const.CRITICAL, "Image details loading", "Cannot get image details: " + error)
                 setImage({} as Image);
             });
         }
@@ -55,16 +65,21 @@ function JobDetails() {
     return (
         <>
             <Card>
-                <div className="px-6 py-4 flex">
+                <div className="px-6 py-4 flex items-center">
                     <h3 className="flex-grow font-bold">
                         General info
                     </h3>
+                    {loading && (
+                        <div className='flex-grow'>
+                            <TextPlaceholder />
+                        </div>
+                    )}
                     <span className="text-l ml-4 code">
                         {j.uuid}
                     </span>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4 m-4">
+                <div className="grid grid-cols-2 gap-4 m-4">
                     <Card>
                         <div className="p-4 flex flex-row items-center mb-2">
                             <div className="font-bold">Job settings</div>
@@ -73,37 +88,76 @@ function JobDetails() {
                             <tbody>
                                 <tr>
                                     <td>Type</td>
-                                    <td>{j.job_type}</td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        {j.job_type}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Backup type</td>
-                                    <td>{j.backup_type}</td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        {j.backup_type}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Running</td>
-                                    <td>{j.done ? "Finished" : "In execution"}</td>
+                                    <td>
+                                        {loading ? (
+                                            <TextPlaceholder />
+                                        ) : (
+                                            <>
+                                                {j.done ? "Finished" : "In execution"}
+                                            </>
+                                        )}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Status</td>
-                                    <td><StatusBadge label={j.status} status={JobUtils.jobStateToCode(j.status)} /></td>
+                                    <td><StatusBadge loading={loading} label={j.status} status={JobUtils.jobStateToCode(j.status)} /></td>
                                 </tr>
                                 <tr>
                                     <td>Start time</td>
-                                    <td>{Utils.formatDate(j.start_time)}</td>
+                                    <td>
+                                        {loading ? (
+                                            <TextPlaceholder />
+                                        ) : (
+                                            <>
+                                                {Utils.formatDate(j.start_time)}
+                                            </>
+                                        )}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>End time</td>
-                                    <td>{Utils.formatDate(j.end_time)}</td>
+                                    <td>
+                                        {loading ? (
+                                            <TextPlaceholder />
+                                        ) : (
+                                            <>
+                                                {Utils.formatDate(j.end_time)}
+                                            </>
+                                        )}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Storage repository</td>
-                                    <td><Link to={`/repo/${j.repository?.name}`}>{j.repository?.name}</Link></td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        <Link to={`/repo/${j.repository?.name}`}>{j.repository?.name}</Link>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </Card>
-                    <ClientCard client={j.client} />
-                    <ModuleCard className="col-span-2" module={j.module} full />
+                    <ClientCard client={j.client} loading={loading} />
+                    <ModuleCard className="col-span-2" module={j.module} loading={loading} full />
                 </div>
             </Card>
 
@@ -114,6 +168,7 @@ function JobDetails() {
                     data={img?.uuid ? [img] : []}
                     paginated={false}
                     sorted={false}
+                    loading={imgLoading}
                 />
             </Card>
 
