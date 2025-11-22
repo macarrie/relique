@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/samber/lo"
 
@@ -111,5 +113,33 @@ func ClientSSHPing(c client.Client) error {
 	}
 
 	c.GetLog().Info("Client SSH ping successful")
+	return nil
+}
+
+func ClientDelete(c client.Client) error {
+	c.GetLog().Debug("Removing client from configuration")
+	fmt.Printf("CLIENT CFG PATH: %+v\n", config.GetClientsCfgPath())
+	clientCfgRoot := config.GetClientsCfgPath()
+
+	if clientCfgRoot == "" {
+		return fmt.Errorf("empty clients configuration path, aborting to avoid removing wrong files")
+	}
+
+	filePath := filepath.Join(clientCfgRoot, fmt.Sprintf("%s.toml", c.Name))
+
+	// Check existence
+	if _, err := os.Stat(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("client file does not exist: %s", filePath)
+		}
+		return fmt.Errorf("failed to stat client file: %w", err)
+	}
+
+	// Remove file
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("failed to remove client file: %w", err)
+	}
+
+	c.GetLog().Info("Client removed from configuration successfully")
 	return nil
 }

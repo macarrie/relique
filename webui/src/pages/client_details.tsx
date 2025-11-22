@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Card from '../components/card';
 import Const from '../types/const';
 import StatusDot from '../components/status_dot';
@@ -19,6 +19,8 @@ function ClientDetails() {
     let [loading, setLoading] = useState<boolean>(true);
     let [imgs, setImages] = useState<Image[]>([]);
     let [imgsLoading, setImgsLoading] = useState<boolean>(true);
+
+    let navigate = useNavigate();
 
     useEffect(() => {
         function getClient() {
@@ -82,6 +84,26 @@ function ClientDetails() {
         getImageList();
     }, [])
 
+    function reloadConfig() {
+        API.config.reload().then((_: any) => {
+            Utils.notify(Const.OK, "Configuration reloaded", "Redirecting to client list");
+            navigate(`/clients`);
+        }).catch(error => {
+            console.log("Cannot reload config", error);
+            Utils.notify(Const.CRITICAL, "Cannot reload config", error.toString())
+        });
+    }
+
+    function deleteClient() {
+        API.clients.delete(c).then((_: any) => {
+            Utils.notify(Const.OK, "Client deleted", "Reloading configuration")
+            reloadConfig();
+        }).catch(error => {
+            console.log("Cannot delete client", error);
+            Utils.notify(Const.CRITICAL, "Cannot delete client", error.toString())
+        });
+    }
+
     function displayModules(mods: Module[]) {
         if (loading) {
             return (
@@ -103,11 +125,34 @@ function ClientDetails() {
 
     return (
         <>
+
             <Card>
                 <div className="px-6 py-4 flex">
                     <h3 className="flex-grow font-bold">
                         General info
                     </h3>
+                    <div className='space-x-2'>
+                        <dialog id="delete_confirm" className="modal">
+                            <div className="modal-box">
+                                <h3 className="font-bold text-lg">Client deletion</h3>
+                                <p className="py-4">Client info will be deleted from Relique configuration. This action is not recoverable.</p>
+                                <p className="py-4">Do you want to continue ?</p>
+                                <div className="modal-action">
+                                    <form method="dialog" className='space-x-2'>
+                                        <button type="button" className="btn" onClick={() => (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.close()}>Cancel</button>
+                                        <button type="button" className="btn btn-error" onClick={() => { deleteClient(); (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.close(); }}>Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </dialog>                       
+                        <div className="btn btn-sm btn-error" onClick={() => (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.showModal()}>Delete</div>
+                        <Link to={`/clients/${client_name}/edit`} className="cursor-pointer text-slate-500">
+                            <div className="btn btn-sm" onClick={() => console.log("Delete client")}>
+                                <i className={`text-lg ri-edit-fill`}></i>
+                                Edit
+                            </div>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 m-4">

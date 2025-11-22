@@ -46,6 +46,12 @@ export default class API {
         create: function (p = {} as Client) {
             return API.handler().post('/clients/' + p?.name, p);
         },
+        update: function (p = {} as Client) {
+            return API.handler().put('/clients/' + p?.name, p);
+        },
+        delete: function (p = {} as Client) {
+            return API.handler().delete('/clients/' + p?.name);
+        },
         ping: function (name: string) {
             return API.handler().get('/clients/' + name + "/ping");
         },

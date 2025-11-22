@@ -11,7 +11,7 @@ function Config() {
     let [loading, setLoading] = useState<boolean>(true);
 
     function reloadConfig() {
-        API.config.reload().then((response: any) => {
+        API.config.reload().then((_: any) => {
             Utils.notify(Const.OK, "Config reloaded", "Configuration has been reloaded on server")
             getConfig();
         }).catch(error => {

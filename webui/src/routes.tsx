@@ -11,7 +11,7 @@ import ImageDetails from "./pages/image_details";
 import Repositories from "./pages/repositories";
 import RepositoryDetails from "./pages/repository_details";
 import Config from "./pages/config";
-import ClientNew from "./pages/client_new";
+import ClientEdit from "./pages/client_edit";
 
 const routes = [
     {
@@ -42,12 +42,17 @@ const routes = [
     {
         path: "/clients/new",
         name: "Create client",
-        elt: () => <ClientNew />
+        elt: () => <ClientEdit />
     },
     {
         path: "/clients/:client_name",
         name: "Client details",
         elt: () => <ClientDetails />
+    },
+    {
+        path: "/clients/:client_name/edit",
+        name: "Edit",
+        elt: () => <ClientEdit />
     },
     {
         path: "/modules",

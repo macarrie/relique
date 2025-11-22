@@ -2,15 +2,12 @@ import { useEffect, useState } from "react";
 
 import Module from "../types/module";
 import Card from "./card";
-import StatusBadge from "./status_badge";
 import Const from "../types/const";
-import TextPlaceholder from "./text_placeholder";
-import { values } from "lodash";
 import Utils from "../utils/utils";
 import API from "../utils/api";
 
 function ModuleForm(props: any) {
-    let mod: Module = props.module;
+    let [mod, setModule] = useState<Module>(props.module);
     let [moduleList, setModules] = useState<Array<Module>>([]);
 
     useEffect(() => {
@@ -28,28 +25,38 @@ function ModuleForm(props: any) {
     }, [])
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        console.log(e)
-        mod[e.target.name] = e.target.value;
-        console.log("FORM UPDATE: ", mod)
-        props.onChange(mod);
+        let newMod = {
+            ...mod,
+            [e.target.name]: e.target.value
+        };
+        setModule(newMod);
+        props.onChange(newMod);
     }
 
     const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log(e)
-        mod[e.target.name] = e.target.checked;
-        console.log("FORM UPDATE: ", mod)
-        props.onChange(mod);
+        let newMod = {
+            ...mod,
+            [e.target.name]: e.target.checked
+        };
+        setModule(newMod)
+        props.onChange(newMod);
     }
 
     const handleArrayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log(e)
-        mod[e.target.name] = e.target.value.split(',');
-        console.log("FORM UPDATE: ", mod)
-        props.onChange(mod);
+        let newMod = {
+            ...mod,
+            [e.target.name]: e.target.value.split(',')
+        };
+        setModule(newMod)
+        props.onChange(newMod);
     }
 
     return (
         <Card className={props.className}>
+            <button className="float-right text-slate-500 cursor-pointer" onClick={() => {props.onDeleteRequest(mod)}}>
+                <i className={`text-lg ri-close-line`}></i>
+            </button>
+
             <form className='space-y-2'>
                 <fieldset className="fieldset">
                     <label className="label">Module name</label>

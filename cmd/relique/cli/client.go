@@ -48,8 +48,9 @@ func init() {
 	}
 
 	clientListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List configured backup clients",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List configured backup clients",
 		Run: func(cmd *cobra.Command, args []string) {
 			page := api_helpers.PaginationParams{
 				Limit:  uint64(clientListPageSize),
@@ -270,9 +271,10 @@ Port: 	{{.SSHPort}}
 	clientModuleAddCmd.Flags().BoolVarP(&clientModuleExcludeCVS, "exclude-cvs", "", false, "Exclude CVS from file selections")
 
 	clientModuleRmCmd := &cobra.Command{
-		Use:   "rm CLIENT_NAME MODULE_NAME",
-		Short: "Remove module from client",
-		Args:  cobra.ExactArgs(2),
+		Use:     "remove CLIENT_NAME MODULE_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Remove module from client",
+		Args:    cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			clientName := args[0]
 			moduleName := args[1]
@@ -322,12 +324,45 @@ Port: 	{{.SSHPort}}
 	}
 	clientModuleRmCmd.Flags().BoolVarP(&assumeYes, "yes", "y", false, "Skip confirmation on module delete")
 
+	clientRemoveCmd := &cobra.Command{
+		Use:     "remove CLIENT_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Client delete command",
+		Args:    cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			clientName := args[0]
+
+			c, err := api.ClientGet(clientName)
+			if err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot find client")
+				os.Exit(1)
+			}
+
+			deleteErr := api.ClientDelete(c)
+			if deleteErr != nil {
+				slog.With(
+					slog.Any("error", deleteErr),
+					slog.String("client", clientName),
+				).Error("Cannot delete client")
+				os.Exit(1)
+			}
+
+			c.GetLog().With(
+				slog.String("client", clientName),
+			).Info("Removed client from configuration")
+		},
+	}
+
 	rootCmd.AddCommand(clientCmd)
 	clientCmd.AddCommand(clientListCmd)
 	clientCmd.AddCommand(clientShowCmd)
 	clientCmd.AddCommand(clientPingCmd)
 	clientCmd.AddCommand(clientCreateCmd)
 	clientCmd.AddCommand(clientModuleCmd)
+	clientCmd.AddCommand(clientRemoveCmd)
 	clientModuleCmd.AddCommand(clientModuleAddCmd)
 	clientModuleCmd.AddCommand(clientModuleRmCmd)
 }

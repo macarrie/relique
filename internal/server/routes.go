@@ -51,6 +51,9 @@ func getRoutes() *gin.Engine {
 		v1.GET("/clients/:name", webAPIGetClient)
 		// Create client
 		v1.POST("/clients/:name", webAPIPostClient)
+		// Modify client
+		v1.PUT("/clients/:name", webAPIPutClient)
+		v1.DELETE("/clients/:name", webAPIDeleteClient)
 		v1.GET("/clients/:name/ping", webAPIGetClientPing)
 
 		v1.GET("/modules", webAPIListModules)

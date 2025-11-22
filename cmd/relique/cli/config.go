@@ -17,8 +17,9 @@ var configInitCatalogPath string
 
 func init() {
 	configCmd := &cobra.Command{
-		Use:   "config",
-		Short: "Show relique configuration",
+		Use:     "config",
+		Aliases: []string{"cfg"},
+		Short:   "Show relique configuration",
 	}
 
 	configInitCmd := &cobra.Command{

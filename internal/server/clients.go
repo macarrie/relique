@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -61,7 +62,6 @@ func webAPIGetClientPing(c *gin.Context) {
 // Create client
 func webAPIPostClient(c *gin.Context) {
 	var cl client.Client
-	slog.Warn("CREATING CLIENT")
 	if bindErr := c.ShouldBindJSON(&cl); bindErr != nil {
 		c.AbortWithError(http.StatusBadRequest, bindErr)
 		return
@@ -76,7 +76,6 @@ func webAPIPostClient(c *gin.Context) {
 	}
 
 	if len(cl.Modules) > 0 {
-		slog.Warn("SAVING CLIENT MODULES")
 		if err := api.ClientSave(cl); err != nil {
 			cl.GetLog().With(
 				slog.Any("error", err),
@@ -87,4 +86,63 @@ func webAPIPostClient(c *gin.Context) {
 	}
 
 	c.AbortWithStatus(http.StatusCreated)
+}
+
+// Modify client
+func webAPIPutClient(c *gin.Context) {
+	name := c.Param("name")
+	cl, err := api.ClientGet(name)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("name", name),
+		).Error("Cannot find client in config")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	var requestClient client.Client
+	if bindErr := c.ShouldBindJSON(&requestClient); bindErr != nil {
+		c.AbortWithError(http.StatusBadRequest, bindErr)
+		return
+	}
+
+	if valid := requestClient.Valid(); !valid {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("cannot save invalid client"))
+		return
+	}
+
+	if err := api.ClientSave(requestClient); err != nil {
+		cl.GetLog().With(
+			slog.Any("error", err),
+		).Error("Cannot save client")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
+}
+
+// Modify client
+func webAPIDeleteClient(c *gin.Context) {
+	name := c.Param("name")
+	cl, err := api.ClientGet(name)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("name", name),
+		).Error("Cannot find client in config")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	if err := api.ClientDelete(cl); err != nil {
+		cl.GetLog().With(
+			slog.Any("error", err),
+		).Error("Cannot delete client")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
 }
