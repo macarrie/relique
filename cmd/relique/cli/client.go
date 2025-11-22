@@ -9,13 +9,28 @@ import (
 	"github.com/InVisionApp/tabular"
 	"github.com/macarrie/relique/api"
 	"github.com/macarrie/relique/internal/api_helpers"
+	"github.com/macarrie/relique/internal/backup_type"
+	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/utils"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
 var clientListPageSize int
 var clientListSearchModule string
 var clientListSearchModuleType string
+
+var clientCreateAddress string
+var clientCreateSSHUser string
+var clientCreateSSHPort int
+
+var clientModuleType string
+var clientModuleBackupType string
+var clientModuleVariant string
+var clientModuleBackupPaths []string
+var clientModuleInclude []string
+var clientModuleExclude []string
+var clientModuleExcludeCVS bool
 
 func init() {
 	clientCmd := &cobra.Command{
@@ -33,8 +48,9 @@ func init() {
 	}
 
 	clientListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List configured backup clients",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List configured backup clients",
 		Run: func(cmd *cobra.Command, args []string) {
 			page := api_helpers.PaginationParams{
 				Limit:  uint64(clientListPageSize),
@@ -109,6 +125,9 @@ Port: 	{{.SSHPort}}
 | Variant | {{ if .Variant | eq "" }} default {{ else }}{{ .Variant }}{{ end }} |
 | Available variants | {{ if .AvailableVariants | len | eq 0 }} default {{ else }}{{ .Variant }}{{ end }}{{ join .AvailableVariants ", " }} |
 | Backup paths | {{ join .BackupPaths ", " }} |
+| Inclusions | {{ join .Include ", " }} |
+| Exclusions | {{ join .Exclude ", " }} |
+| Exclude CVS | {{ .ExcludeCVS }} |
 
 {{ end }}
 `
@@ -150,16 +169,190 @@ Port: 	{{.SSHPort}}
 		Short: "Create a new backup client",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("TODO: Create backup client")
+			clientName := args[0]
+			var clientAddress string
+
+			if clientCreateAddress == "" {
+				clientAddress = clientName
+			} else {
+				clientAddress = clientCreateAddress
+			}
+
+			if err := api.ClientCreate(clientName, clientAddress, clientCreateSSHUser, clientCreateSSHPort); err != nil {
+				slog.With(
+					slog.String("name", clientName),
+					slog.String("address", clientAddress),
+					slog.String("ssh_user", clientCreateSSHUser),
+					slog.Int("ssh_port", clientCreateSSHPort),
+					slog.Any("error", err),
+				).Error("Cannot create client")
+				os.Exit(1)
+			}
+			slog.With(
+				slog.String("name", clientName),
+				slog.String("address", clientAddress),
+				slog.String("ssh_user", clientCreateSSHUser),
+				slog.Int("ssh_port", clientCreateSSHPort),
+			).Info("Created client configuration file")
 		},
 	}
+	clientCreateCmd.Flags().StringVarP(&clientCreateAddress, "address", "", "", "Client address (using client name if empty)")
+	clientCreateCmd.Flags().StringVarP(&clientCreateSSHUser, "ssh-user", "u", "", "Client SSH port")
+	clientCreateCmd.Flags().IntVarP(&clientCreateSSHPort, "ssh-port", "p", 0, "Client SSH port")
 
-	clientModifyCmd := &cobra.Command{
-		Use:   "modify CLIENT_NAME",
-		Short: "Modify an existing backup client",
-		Args:  cobra.ExactArgs(1),
+	clientModuleCmd := &cobra.Command{
+		Use:   "module",
+		Short: "Handle client modules",
+	}
+	clientModuleAddCmd := &cobra.Command{
+		Use:   "add CLIENT_NAME MODULE_NAME",
+		Short: "Add module to client",
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("TODO: Modify backup client")
+			clientName := args[0]
+			moduleName := args[1]
+
+			backupType := backup_type.FromString(clientModuleBackupType)
+			if backupType.Type == backup_type.Unknown {
+				slog.With(
+					slog.String("value_from_cli", clientModuleBackupType),
+				).Error("Invalid value for backup type")
+				os.Exit(1)
+			}
+
+			c, err := api.ClientGet(clientName)
+			if err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot find client")
+				os.Exit(1)
+			}
+
+			mod := module.Module{
+				Name:        moduleName,
+				ModuleType:  clientModuleType,
+				BackupType:  backupType,
+				Variant:     clientModuleVariant,
+				BackupPaths: clientModuleBackupPaths,
+				Include:     clientModuleInclude,
+				Exclude:     clientModuleExclude,
+				ExcludeCVS:  clientModuleExcludeCVS,
+			}
+
+			// TODO: Check if module already exists
+			_, alreadyExists := lo.Find(c.Modules, func(m module.Module) bool {
+				return m.Name == moduleName
+			})
+			if alreadyExists {
+				slog.With(
+					slog.String("module_name", moduleName),
+				).Error("Module already exists on client")
+				os.Exit(1)
+			}
+
+			c.Modules = append(c.Modules, mod)
+			if err := api.ClientSave(c); err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot save client configuration to file")
+				os.Exit(1)
+			}
+			c.GetLog().Info("Saved new module into client configuration file")
+		},
+	}
+	clientModuleAddCmd.Flags().StringVarP(&clientModuleType, "type", "t", "generic", "Module type")
+	clientModuleAddCmd.Flags().StringVarP(&clientModuleBackupType, "backup-type", "", "diff", "Backup type")
+	clientModuleAddCmd.Flags().StringVarP(&clientModuleVariant, "variant", "", "default", "Backup module variant")
+	clientModuleAddCmd.Flags().StringSliceVarP(&clientModuleBackupPaths, "path", "p", []string{}, "Backup path")
+	clientModuleAddCmd.Flags().StringSliceVarP(&clientModuleExclude, "exclude", "e", []string{}, "File exclusions")
+	clientModuleAddCmd.Flags().StringSliceVarP(&clientModuleInclude, "include", "i", []string{}, "File inclusions")
+	clientModuleAddCmd.Flags().BoolVarP(&clientModuleExcludeCVS, "exclude-cvs", "", false, "Exclude CVS from file selections")
+
+	clientModuleRmCmd := &cobra.Command{
+		Use:     "remove CLIENT_NAME MODULE_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Remove module from client",
+		Args:    cobra.ExactArgs(2),
+		Run: func(cmd *cobra.Command, args []string) {
+			clientName := args[0]
+			moduleName := args[1]
+
+			c, err := api.ClientGet(clientName)
+			if err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot find client")
+				os.Exit(1)
+			}
+
+			_, alreadyExists := lo.Find(c.Modules, func(m module.Module) bool {
+				return m.Name == moduleName
+			})
+			if !alreadyExists {
+				slog.With(
+					slog.String("module_name", moduleName),
+				).Error("Module not found on client")
+				os.Exit(1)
+			}
+
+			if assumeYes {
+				slog.Info("Skipping confirmation on user request (-y/--yes flag provided)")
+			} else {
+				if !utils.Confirm("Confirm module removal from client") {
+					slog.Error("Module removal canceled")
+					os.Exit(1)
+				}
+			}
+
+			c.Modules = lo.Filter(c.Modules, func(m module.Module, _ int) bool {
+				return m.Name != moduleName
+			})
+			if err := api.ClientSave(c); err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot save client configuration to file")
+				os.Exit(1)
+			}
+			c.GetLog().With(
+				slog.String("module_name", moduleName),
+			).Info("Removed module from client configuration file")
+		},
+	}
+	clientModuleRmCmd.Flags().BoolVarP(&assumeYes, "yes", "y", false, "Skip confirmation on module delete")
+
+	clientRemoveCmd := &cobra.Command{
+		Use:     "remove CLIENT_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Client delete command",
+		Args:    cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			clientName := args[0]
+
+			c, err := api.ClientGet(clientName)
+			if err != nil {
+				slog.With(
+					slog.Any("error", err),
+					slog.String("client", clientName),
+				).Error("Cannot find client")
+				os.Exit(1)
+			}
+
+			deleteErr := api.ClientDelete(c)
+			if deleteErr != nil {
+				slog.With(
+					slog.Any("error", deleteErr),
+					slog.String("client", clientName),
+				).Error("Cannot delete client")
+				os.Exit(1)
+			}
+
+			c.GetLog().With(
+				slog.String("client", clientName),
+			).Info("Removed client from configuration")
 		},
 	}
 
@@ -168,5 +361,8 @@ Port: 	{{.SSHPort}}
 	clientCmd.AddCommand(clientShowCmd)
 	clientCmd.AddCommand(clientPingCmd)
 	clientCmd.AddCommand(clientCreateCmd)
-	clientCmd.AddCommand(clientModifyCmd)
+	clientCmd.AddCommand(clientModuleCmd)
+	clientCmd.AddCommand(clientRemoveCmd)
+	clientModuleCmd.AddCommand(clientModuleAddCmd)
+	clientModuleCmd.AddCommand(clientModuleRmCmd)
 }

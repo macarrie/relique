@@ -9,14 +9,19 @@ import ClientCard from '../components/client_card';
 import RepositoryCard from '../components/repository_card';
 import Job from '../types/job';
 import JobList from '../components/job_list';
+import Const from '../types/const';
+import TextPlaceholder from '../components/text_placeholder';
 
 function ImageDetails() {
     const { img_uuid } = useParams();
     let [img, setImage] = useState<Image>({} as Image);
     let [job, setJob] = useState<Job>({} as Job);
+    let [loading, setLoading] = useState<boolean>(true);
+    let [jobLoading, setJobLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getImage() {
+            setLoading(true);
             if (img_uuid === undefined) {
                 console.log("Image uuid undefined, cannot get image details");
                 return;
@@ -24,8 +29,10 @@ function ImageDetails() {
 
             API.images.get(img_uuid).then((response: any) => {
                 setImage(response.data);
+                setLoading(false);
             }).catch(error => {
                 console.log("Cannot get image details", error);
+                Utils.notify(Const.CRITICAL, "Cannot get image details", error.toString())
                 setImage({} as Image);
             });
         }
@@ -35,6 +42,7 @@ function ImageDetails() {
 
     useEffect(() => {
         function getJob() {
+            setJobLoading(true);
             if (img_uuid === undefined) {
                 console.log("Job uuid undefined, cannot get job details");
                 return;
@@ -42,8 +50,10 @@ function ImageDetails() {
 
             API.jobs.get(img_uuid).then((response: any) => {
                 setJob(response.data);
+                setJobLoading(false);
             }).catch(error => {
                 console.log("Cannot get job details", error);
+                Utils.notify(Const.CRITICAL, "Cannot get job details", error.toString())
                 setJob({} as Job);
             });
         }
@@ -54,10 +64,15 @@ function ImageDetails() {
     return (
         <>
             <Card>
-                <div className="px-6 py-4 flex">
+                <div className="px-6 py-4 flex items-center">
                     <h3 className="flex-grow font-bold">
                         General info
                     </h3>
+                    {loading && (
+                        <div className='flex-grow'>
+                            <TextPlaceholder />
+                        </div>
+                    )}
                     <span className="text-l ml-4 code">
                         {img.uuid}
                     </span>
@@ -72,26 +87,49 @@ function ImageDetails() {
                             <tbody>
                                 <tr>
                                     <td>Size on disk</td>
-                                    <td>{Utils.formatSize(img.size_on_disk)}</td>
+                                    <td>
+                                        {loading ? (
+                                            <TextPlaceholder />
+                                        ) : (
+                                            <>
+                                                {Utils.formatSize(img.size_on_disk)}
+                                            </>
+                                        )}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Number of elements (total)</td>
-                                    <td>{img.number_of_elements}</td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        {img.number_of_elements}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Number of directories</td>
-                                    <td>{img.number_of_folders}</td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        {img.number_of_folders}
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Number of files</td>
-                                    <td>{img.number_of_files}</td>
+                                    <td>
+                                        {loading && (
+                                            <TextPlaceholder />
+                                        )}
+                                        {img.number_of_files}
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </Card>
-                    <ClientCard client={img.client} />
-                    <ModuleCard module={img.module} full />
-                    <RepositoryCard repo={img.repository} />
+                    <ClientCard client={img.client} loading={loading} />
+                    <ModuleCard module={img.module} loading={loading} full />
+                    <RepositoryCard repo={img.repository} loading={loading} />
                 </div>
             </Card>
 
@@ -103,6 +141,7 @@ function ImageDetails() {
                     data={[job]}
                     paginated={false}
                     sorted={false}
+                    loading={jobLoading}
                 />
             </Card>
         </>

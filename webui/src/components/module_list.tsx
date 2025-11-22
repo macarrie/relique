@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { createColumnHelper } from "@tanstack/react-table";
 import Table from "./table";
 import Module from "../types/module";
+import TableUtils from "../utils/table";
+import { Column } from "react-table";
 
 function ModuleList({
     title = "",
@@ -11,6 +13,7 @@ function ModuleList({
     sorted = true,
     paginated = true,
     data = {} as Module[],
+    loading = true,
 }) {
     function renderVariants(vars: string) {
         return (
@@ -34,7 +37,7 @@ function ModuleList({
             id: 'type',
             cell: (cell: any) => (<div>{cell.getValue()}</div>),
         }),
-        columnHelper.accessor((mod) => (mod.available_variants ?? []).join(", "), {
+        columnHelper.accessor((mod: Module) => (mod.available_variants ?? []).join(", "), {
             header: () => (<div>Variants</div>),
             id: 'variants',
             cell: (cell: any) => (<div className="space-x-1">{renderVariants(cell.getValue())}</div>),
@@ -46,8 +49,8 @@ function ModuleList({
             title={title}
             actions={actions}
             custom_actions={custom_actions}
-            data={data}
-            columns={columns}
+            data={loading ? [{}, {}, {}] : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
             paginated={paginated}
             sorted={sorted}
         />

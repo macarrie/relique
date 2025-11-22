@@ -1,12 +1,13 @@
 function DashboardStat({
     label = "",
     value = 0 as any,
-    color = "text-base-content"
+    color = "text-base-content",
+    loading = false,
 }) {
     return (
 
         <div className="stat place-items-center">
-            <div className={`stat-value ${value ? color : 'text-base-content/50'}`}>
+            <div className={`stat-value ${value ? color : 'text-base-content/50'} ${loading && 'text-transparent skeleton'}`}>
                 {value}
             </div>
             <div className={`stat-title ${value ? color : 'text-base-content/50'}`}>

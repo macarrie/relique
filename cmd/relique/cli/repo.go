@@ -35,8 +35,9 @@ func init() {
 	}
 
 	repoListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List configured backup repositories",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List configured backup repositories",
 		Run: func(cmd *cobra.Command, args []string) {
 			page := api_helpers.PaginationParams{
 				Limit:  uint64(repoListPageSize),

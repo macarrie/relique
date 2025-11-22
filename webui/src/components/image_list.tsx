@@ -4,6 +4,8 @@ import { createColumnHelper } from "@tanstack/react-table";
 import Image from "../types/image";
 import Utils from "../utils/utils";
 import Table from "./table";
+import TableUtils from "../utils/table";
+import { Column } from "react-table";
 
 function ImageList({
     title = "",
@@ -12,6 +14,7 @@ function ImageList({
     sorted = true,
     paginated = true,
     data = {} as Image[],
+    loading = true,
 }) {
 
     function uuidDisplay(id: string) {
@@ -58,8 +61,8 @@ function ImageList({
             title={title}
             actions={actions}
             custom_actions={custom_actions}
-            data={data}
-            columns={columns}
+            data={loading ? [{}, {}, {}] : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
             paginated={paginated}
             sorted={sorted}
         />

@@ -5,11 +5,15 @@ import API from "../utils/api";
 import ClientList from "../components/client_list";
 import Client from "../types/client";
 import Const from "../types/const";
+import Utils from "../utils/utils";
+import { Link } from "react-router-dom";
 
 function Clients() {
     let [clients, setClients] = useState<Client[]>([]);
+    let [loading, setLoading] = useState<boolean>(true);
 
     function getClients() {
+        setLoading(true);
         API.clients.list({ limit: 10000 }).then((response: any) => {
             let clientList = response.data.data || []
             // Update clients status to unknown at load
@@ -18,8 +22,10 @@ function Clients() {
                 return c
             })
             setClients(clientList);
+            setLoading(false);
         }).catch(error => {
             console.log("Cannot get client list", error);
+            Utils.notify(Const.CRITICAL, "Cannot get client list", error.toString())
             setClients([]);
         });
     }
@@ -63,6 +69,7 @@ function Clients() {
             )
         }).catch(error => {
             console.log("Cannot ping client", error);
+            Utils.notify(Const.CRITICAL, "Cannot get ping client", error.toString())
             setClientStateLoading(name, false)
         });
     }, [])
@@ -79,10 +86,12 @@ function Clients() {
                     actions={true}
                     custom_actions={[
                         <div className="btn btn-sm" onClick={() => pingAllClients()}>Ping all</div>,
+                        <Link to="/clients/new" className="btn btn-sm btn-success">Create</Link>,
                     ]}
                     data={clients}
                     paginated={true}
                     sorted={true}
+                    loading={loading}
                 />
             </Card>
         </>

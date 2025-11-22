@@ -4,13 +4,17 @@ import Card from '../components/card';
 import API from '../utils/api';
 import Repository from '../types/repository';
 import RepositoryCard from '../components/repository_card';
+import Const from '../types/const';
+import Utils from '../utils/utils';
 
 function RepositoryDetails() {
     const { repo_name } = useParams();
     let [repo, setRepo] = useState<Repository>({} as Repository);
+    let [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getModule() {
+            setLoading(true);
             if (repo_name === undefined) {
                 console.log("Repository name undefined, cannot get repo details");
                 return;
@@ -18,8 +22,10 @@ function RepositoryDetails() {
 
             API.repos.get(repo_name).then((response: any) => {
                 setRepo(response.data);
+                setLoading(false);
             }).catch(error => {
-                console.log("Cannot get job details", error);
+                console.log("Cannot get repository details", error);
+                Utils.notify(Const.CRITICAL, "Cannot get repo details", error.toString())
                 setRepo({} as Repository);
             });
         }
@@ -36,7 +42,7 @@ function RepositoryDetails() {
                     </h3>
                 </div>
                 <div className="m-4">
-                    <RepositoryCard repo={repo} />
+                    <RepositoryCard loading={loading} repo={repo} />
                 </div>
             </Card>
         </>

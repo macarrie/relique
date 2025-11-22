@@ -21,8 +21,9 @@ var imageListSearchClient string
 
 func init() {
 	imageCmd := &cobra.Command{
-		Use:   "image",
-		Short: "Backup image related commands",
+		Use:     "image",
+		Aliases: []string{"img"},
+		Short:   "Backup image related commands",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			_, err := api.ConfigGet()
 			if err != nil {
@@ -42,8 +43,9 @@ func init() {
 	}
 
 	imageListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List images generated from backups",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List images generated from backups",
 		Run: func(cmd *cobra.Command, args []string) {
 			page := api_helpers.PaginationParams{
 				Limit:  uint64(imageListPageSize),

@@ -48,8 +48,9 @@ func init() {
 	}
 
 	jobListCmd := &cobra.Command{
-		Use:   "list",
-		Short: "List backup and restore jobs",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List backup and restore jobs",
 		Run: func(cmd *cobra.Command, args []string) {
 			page := api_helpers.PaginationParams{
 				Limit:  uint64(jobListPageSize),
@@ -92,11 +93,12 @@ func init() {
 			format := tab.Print("uuid", "client", "module", "status", "type", "start_time", "duration")
 			for _, j := range jobList.Data {
 				var jobType string
-				if j.JobType.Type == job_type.Backup {
+				switch j.JobType.Type {
+				case job_type.Backup:
 					jobType = fmt.Sprintf("backup/%s", j.BackupType.String())
-				} else if j.JobType.Type == job_type.Restore {
+				case job_type.Restore:
 					jobType = "restore"
-				} else {
+				default:
 					jobType = j.JobType.String()
 				}
 

@@ -90,9 +90,10 @@ func init() {
 	}
 
 	moduleRemoveCmd := &cobra.Command{
-		Use:   "remove MODULE_NAME",
-		Short: "Module uninstall command",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove MODULE_NAME",
+		Aliases: []string{"rm"},
+		Short:   "Module uninstall command",
+		Args:    cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Print("TODO: Remove module")
 		},

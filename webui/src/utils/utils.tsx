@@ -1,3 +1,7 @@
+import { toast } from "react-toastify";
+import Notification from "../components/notification";
+import Const from "../types/const";
+
 export default class Utils {
     static formatDate = function (d: string): string {
         let obj = new Date(d);
@@ -23,5 +27,34 @@ export default class Utils {
 
 
         return bytes.toFixed(dp) + ' ' + units[u];
+    }
+
+    static notify = function (status: number, title: string, content: string) {
+        let func
+        switch (status) {
+            case Const.OK: {
+                func = toast.success
+                break;
+            }
+            case Const.WARNING: {
+                func = toast.warn
+                break;
+            }
+            case Const.CRITICAL: {
+                func = toast.error
+                break;
+            }
+            default: {
+                func = toast.info
+                break;
+            }
+        }
+
+        func(Notification, {
+            data: {
+                title: title,
+                content: content,
+            }
+        })
     }
 }

@@ -4,6 +4,7 @@ import Module from "../types/module";
 import Card from "./card";
 import StatusBadge from "./status_badge";
 import Const from "../types/const";
+import TextPlaceholder from "./text_placeholder";
 
 function ModuleCard(props: any) {
     let mod: Module = props.module;
@@ -15,11 +16,7 @@ function ModuleCard(props: any) {
         }
     }, [props.full])
 
-    if (mod === null || mod === undefined) {
-        return <div>Loading</div>
-    }
-
-    if (mod.variant === "") {
+    if (mod?.variant === "") {
         mod.variant = "default";
     }
 
@@ -49,7 +46,13 @@ function ModuleCard(props: any) {
     return (
         <Card className={props.className}>
             <div className="p-4 flex flex-row items-center mb-2">
-                <div className="flex-grow font-bold align-middle">Module <span className="ml-1 badge badge-neutral badge-soft font-normal">{mod.name}</span></div>
+                <div className="flex-grow font-bold align-middle">Module
+                    {props.loading ? (
+                        <span className="ml-2 badge skeleton w-16"></span>
+                    ) : (
+                        <span className='ml-2 badge badge-neutral badge-soft font-normal'>{mod?.name}</span>
+                    )}
+                </div>
 
                 {(!props.full && showMoreContent) && (
                     <button className={"text-right button button-small button-text"}
@@ -62,31 +65,72 @@ function ModuleCard(props: any) {
             <table className="table">
                 <tr>
                     <td>Module type</td>
-                    <td>{mod.module_type}</td>
+                    <td>
+                        {props.loading && (
+                            <TextPlaceholder />
+                        )}
+                        {mod?.module_type}
+                    </td>
                 </tr>
                 <tr>
                     <td>Variant</td>
-                    <td>{mod.variant}</td>
+                    <td>
+                        {props.loading && (
+                            <TextPlaceholder />
+                        )}
+                        {mod?.variant}
+                    </td>
                 </tr>
                 <tr>
                     <td>Backup type</td>
-                    <td>{mod.backup_type}</td>
+                    <td>
+                        {props.loading && (
+                            <TextPlaceholder />
+                        )}
+                        {mod?.backup_type}
+                    </td>
                 </tr>
                 <tr>
                     <td>Backup paths</td>
-                    <td>{displayBackupPaths(mod.backup_paths)}</td>
+                    <td>
+                        {props.loading ? (
+                            <TextPlaceholder />
+                        ) : (
+                            <>
+                                {displayBackupPaths(mod?.backup_paths)}
+                            </>
+                        )}
+                    </td>
                 </tr>
                 <tr>
                     <td>Exclusions</td>
-                    <td>{displayBackupPaths(mod.exclude)}</td>
+                    <td>
+                        {props.loading ? (
+                            <TextPlaceholder />
+                        ) : (
+                            <>
+                                {displayBackupPaths(mod?.exclude)}
+                            </>
+                        )}
+                    </td>
                 </tr>
                 <tr>
                     <td>Inclusions</td>
-                    <td>{displayBackupPaths(mod.include)}</td>
+                    <td>
+                        {props.loading ? (
+                            <TextPlaceholder />
+                        ) : (
+                            <>
+                                {displayBackupPaths(mod?.include)}
+                            </>
+                        )}
+                    </td>
                 </tr>
                 <tr>
                     <td>Exclude CVS items</td>
-                    <td><StatusBadge label={mod.exclude_cvs ? "true" : "false"} status={mod.exclude_cvs ? Const.OK : Const.CRITICAL} /></td>
+                    <td>
+                        <StatusBadge loading={props.loading} label={mod?.exclude_cvs ? "true" : "false"} status={mod?.exclude_cvs ? Const.OK : Const.CRITICAL} />
+                    </td>
                 </tr>
             </table>
         </Card>

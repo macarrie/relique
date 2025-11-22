@@ -137,7 +137,7 @@ func init() {
 	}
 	backupCmd.Flags().StringVarP(&backupClient, "client", "", "", "Client to backup")
 	backupCmd.Flags().StringVarP(&backupModule, "module", "m", "", "Module to use")
-	backupCmd.Flags().StringVarP(&backupModule, "repo", "r", "", "Repository to use")
+	backupCmd.Flags().StringVarP(&backupRepo, "repo", "r", "", "Repository to use")
 	backupCmd.Flags().StringSliceVarP(&backupInclusions, "include", "i", []string{}, "File inclusions")
 	backupCmd.Flags().StringSliceVarP(&backupExclusions, "exclude", "e", []string{}, "File exclusions")
 	backupCmd.Flags().BoolVarP(&backupExcludeCVS, "exclude-cvs", "", false, "Exclude CVS from file selection")

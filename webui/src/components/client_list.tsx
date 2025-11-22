@@ -6,6 +6,8 @@ import Client from "../types/client";
 import Module from "../types/module";
 import StatusDot from "./status_dot";
 import React from "react";
+import TableUtils from "../utils/table";
+import { Column } from "react-table";
 
 function ClientList({
     title = "",
@@ -14,11 +16,12 @@ function ClientList({
     sorted = true,
     paginated = true,
     data = {} as Client[],
+    loading = true,
 }) {
 
     const columnHelper = createColumnHelper<Client>()
     const columns = [
-        columnHelper.accessor((client) => { return client }, {
+        columnHelper.accessor((client: Client) => { return client }, {
             header: () => (<div className="text-center">Health</div>),
             id: 'health',
             cell: (cell: any) => (<div className="text-center">{cell.getValue().state_is_loading ? <span className="text-neutral-300 loading loading-spinner loading-xs"></span> : <StatusDot status={cell.getValue().ssh_alive} />}</div>),
@@ -33,7 +36,7 @@ function ClientList({
             id: 'address',
             cell: (cell: any) => (<div className="code">{cell.getValue()}</div>),
         }),
-        columnHelper.accessor((client) => (client.modules || []).map((mod: Module) => mod.name).join(", "), {
+        columnHelper.accessor((client: Client) => (client.modules || []).map((mod: Module) => mod.name).join(", "), {
             header: () => (<div>Modules</div>),
             id: 'modules',
             cell: (cell: any) => (<div className="space-x-1">{renderModules(cell.getValue())}</div>),
@@ -62,8 +65,8 @@ function ClientList({
             title={title}
             actions={actions}
             custom_actions={custom_actions}
-            data={data}
-            columns={columns}
+            data={loading ? [{}, {}, {}] : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
             paginated={paginated}
             sorted={sorted}
         />

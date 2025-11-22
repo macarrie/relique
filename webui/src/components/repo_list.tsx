@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { createColumnHelper } from "@tanstack/react-table";
 import Table from "./table";
 import Repository from "../types/repository";
+import TableUtils from "../utils/table";
+import { Column } from "react-table";
 
 function RepoList({
     title = "",
@@ -11,6 +13,7 @@ function RepoList({
     sorted = true,
     paginated = true,
     data = {} as Repository[],
+    loading = true,
 }) {
     const columnHelper = createColumnHelper<Repository>()
     const columns = [
@@ -31,8 +34,8 @@ function RepoList({
             title={title}
             actions={actions}
             custom_actions={custom_actions}
-            data={data}
-            columns={columns}
+            data={loading ? [{}, {}, {}] : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
             paginated={paginated}
             sorted={sorted}
         />

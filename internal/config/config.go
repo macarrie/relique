@@ -43,6 +43,8 @@ type Configuration struct {
 	ModuleInstallPath string `mapstructure:"module_install_path" json:"module_install_path" toml:"module_install_path"`
 	DBPath            string `mapstructure:"db_path" json:"db_path" toml:"db_path"`
 	CatalogPath       string `mapstructure:"catalog_path" json:"catalog_path" toml:"catalog_path"`
+
+	CurrentFile string `mapstructure:"current_file" json:"current_file" toml:"current_file"`
 }
 
 func New() {
@@ -87,6 +89,7 @@ func Load(fileName string) error {
 		return fmt.Errorf("cannot load repositories configuration: %w", err)
 	}
 	cfg.Repositories = repos
+	cfg.CurrentFile = viper.ConfigFileUsed()
 
 	Current = cfg
 	Loaded = true
