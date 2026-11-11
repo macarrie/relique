@@ -8,6 +8,7 @@ import API from "../utils/api";
 import Utils from "../utils/utils";
 import RemoveModal from "./remove_modal";
 import TextPlaceholder from "./text_placeholder";
+import PropertyList from "./property_list";
 
 // Asks confirmation before removing an image, with a recap of what is removed and what is kept.
 // onRemoved receives the image uuid and whether the job that generated it was removed too.
@@ -19,18 +20,24 @@ type Props = {
 
 function ImageRemoveModal({ image, onClose, onRemoved }: Props) {
     const [linkedJob, setLinkedJob] = useState<Job | null>(null);
-    const [linkedLoading, setLinkedLoading] = useState<boolean>(false);
+    const [linkedLoading, setLinkedLoading] = useState<boolean>(image !== null);
     const [cleanJob, setCleanJob] = useState<boolean>(false);
+    const [prevImage, setPrevImage] = useState<Image | null>(image);
 
-    useEffect(() => {
+    // Reset the dialog when another image is selected
+    if (image !== prevImage) {
+        setPrevImage(image);
         setCleanJob(false);
         setLinkedJob(null);
+        setLinkedLoading(image !== null);
+    }
+
+    useEffect(() => {
         if (!image) {
             return;
         }
 
         // Images share their uuid with the job that generated them
-        setLinkedLoading(true);
         API.jobs.get(image.uuid).then((response: AxiosResponse<Job>) => {
             setLinkedJob(response.data);
         }).catch(() => {
@@ -69,15 +76,13 @@ function ImageRemoveModal({ image, onClose, onRemoved }: Props) {
                 The following image will be removed. Its backup data (<b>{Utils.formatSize(image?.size_on_disk ?? 0)}</b>) will
                 be permanently deleted from repository <b>{image?.repository?.name}</b>:
             </p>
-            <table className="table table-sm">
-                <tbody>
-                    <tr><td>ID</td><td className="code">{image?.uuid}</td></tr>
-                    <tr><td>Client</td><td>{image?.client?.name}</td></tr>
-                    <tr><td>Module</td><td>{image?.module?.name}</td></tr>
-                    <tr><td>Date</td><td>{image && Utils.formatDate(image.created_at)}</td></tr>
-                    <tr><td>Size</td><td>{Utils.formatSize(image?.size_on_disk ?? 0)}</td></tr>
-                </tbody>
-            </table>
+            <PropertyList items={[
+                { label: "ID", value: image?.uuid, mono: true },
+                { label: "Client", value: image?.client?.name },
+                { label: "Module", value: image?.module?.name },
+                { label: "Date", value: image && <span className="tabular-nums">{Utils.formatDate(image.created_at)}</span> },
+                { label: "Size", value: <span className="tabular-nums">{Utils.formatSize(image?.size_on_disk ?? 0)}</span> },
+            ]} />
 
             {linkedLoading && <TextPlaceholder />}
             {!linkedLoading && linkedJob && (
@@ -87,7 +92,7 @@ function ImageRemoveModal({ image, onClose, onRemoved }: Props) {
                         Also remove the job that generated this image
                     </label>
                     {!cleanJob && (
-                        <p className="text-sm text-base-content/70">
+                        <p className="text-muted">
                             The job is kept in the job history, with its logs and statistics.
                         </p>
                     )}

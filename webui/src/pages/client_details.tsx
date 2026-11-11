@@ -1,55 +1,32 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Card from '../components/card';
 import Const from '../types/const';
-import StatusDot from '../components/status_dot';
+import Status from '../components/status';
+import PageHeader from '../components/page_header';
+import Section from '../components/section';
+import PropertyList from '../components/property_list';
+import ModuleProperties from '../components/module_properties';
+import EmptyValue from '../components/empty_value';
+import ClientUtils from '../utils/client';
 import Client from '../types/client';
 import API from '../utils/api';
-import ModuleCard from '../components/module_card';
 import Module from '../types/module';
 import Image from '../types/image';
 import ImageList from '../components/image_list';
-import ClientCard from '../components/client_card';
 import Utils from '../utils/utils';
-import TextPlaceholder from '../components/text_placeholder';
 
 function ClientDetails() {
     const { client_name } = useParams();
-    let [c, setClient] = useState<Client>({} as Client);
-    let [loading, setLoading] = useState<boolean>(true);
-    let [imgs, setImages] = useState<Image[]>([]);
-    let [imgsLoading, setImgsLoading] = useState<boolean>(true);
+    const [c, setClient] = useState<Client>({} as Client);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [imgs, setImages] = useState<Image[]>([]);
+    const [imgsLoading, setImgsLoading] = useState<boolean>(true);
 
-    let navigate = useNavigate();
-
-    useEffect(() => {
-        function getClient() {
-            setLoading(true);
-            if (client_name === undefined) {
-                console.log("Client name undefined, cannot get client details");
-                return;
-            }
-
-            API.clients.get(client_name).then((response: any) => {
-                let c: Client = response.data
-                c.state_is_loading = true;
-                c.ssh_alive = Const.UNKNOWN;
-                c.ssh_alive_message = "";
-                setClient(c);
-                setLoading(false);
-                pingClient(client_name);
-            }).catch(error => {
-                console.log("Cannot get client details", error);
-                Utils.notify(Const.CRITICAL, "Cannot get client details", error.toString())
-                setClient({} as Client);
-            });
-        }
-
-        getClient();
-    }, [client_name])
+    const navigate = useNavigate();
+    const deleteDialog = useRef<HTMLDialogElement>(null);
 
     const pingClient = useCallback((name: string) => {
-        API.clients.ping(name).then((response: any) => {
+        API.clients.ping(name).then((response) => {
             // Wait 500ms before removing loading spinner to avoid blinking
             setTimeout(
                 () => setClient(c => {
@@ -69,9 +46,35 @@ function ClientDetails() {
     }, [])
 
     useEffect(() => {
+        function getClient() {
+            setLoading(true);
+            if (client_name === undefined) {
+                console.log("Client name undefined, cannot get client details");
+                return;
+            }
+
+            API.clients.get(client_name).then((response) => {
+                const c: Client = response.data
+                c.state_is_loading = true;
+                c.ssh_alive = Const.UNKNOWN;
+                c.ssh_alive_message = "";
+                setClient(c);
+                setLoading(false);
+                pingClient(client_name);
+            }).catch(error => {
+                console.log("Cannot get client details", error);
+                Utils.notify(Const.CRITICAL, "Cannot get client details", error.toString())
+                setClient({} as Client);
+            });
+        }
+
+        getClient();
+    }, [client_name, pingClient])
+
+    useEffect(() => {
         function getImageList() {
             setImgsLoading(true);
-            API.images.list({ limit: 10000, client: client_name }).then((response: any) => {
+            API.images.list({ limit: 10000, client: client_name }).then((response) => {
                 setImages(response.data.data ?? []);
                 setImgsLoading(false);
             }).catch(error => {
@@ -82,10 +85,10 @@ function ClientDetails() {
         }
 
         getImageList();
-    }, [])
+    }, [client_name])
 
     function reloadConfig() {
-        API.config.reload().then((_: any) => {
+        API.config.reload().then(() => {
             Utils.notify(Const.OK, "Configuration reloaded", "Redirecting to client list");
             navigate(`/clients`);
         }).catch(error => {
@@ -95,7 +98,7 @@ function ClientDetails() {
     }
 
     function deleteClient() {
-        API.clients.delete(c).then((_: any) => {
+        API.clients.delete(c).then(() => {
             Utils.notify(Const.OK, "Client deleted", "Reloading configuration")
             reloadConfig();
         }).catch(error => {
@@ -106,124 +109,91 @@ function ClientDetails() {
 
     function displayModules(mods: Module[]) {
         if (loading) {
-            return (
-                <TextPlaceholder />
-            )
+            return <ModuleProperties module={{} as Module} loading />;
         }
 
         if (!mods || mods.length === 0) {
-            return <div className={"text-base-content/70 italic"}>None</div>;
+            return <EmptyValue label="No module configured" />;
         }
 
-        return <>
-            {mods.map((m: Module) => {
-                return <ModuleCard key={m.name} module={m} full />
-            })}
-        </>;
-
+        return (
+            <div className="grid lg:grid-cols-2 gap-x-10 gap-y-8">
+                {mods.map((m: Module) => (
+                    <div key={m.name} className="space-y-2">
+                        <h3 className="font-display text-base font-semibold">{m.name}</h3>
+                        <ModuleProperties module={m} />
+                    </div>
+                ))}
+            </div>
+        );
     }
+
+    const sshStatus = (
+        <Status
+            loading={c.state_is_loading}
+            status={c.ssh_alive}
+            label={ClientUtils.sshStatusLabel(c.ssh_alive)} />
+    );
 
     return (
         <>
+            <PageHeader
+                title={<><span className="font-normal text-muted">Client</span> {c.name}</>}
+                loading={loading}
+                meta={!loading && (
+                    <>
+                        <span className="code text-muted">{ClientUtils.sshTarget(c)}</span>
+                        {sshStatus}
+                    </>
+                )}
+                actions={<>
+                    <Link to={`/clients/${client_name}/edit`} className="btn btn-sm">
+                        <i className="ri-edit-line"></i>
+                        Edit
+                    </Link>
+                    <button className="btn btn-sm btn-ghost text-error" onClick={() => deleteDialog.current?.showModal()}>
+                        <i className="ri-delete-bin-line"></i>
+                        Delete
+                    </button>
+                </>}
+            />
 
-            <Card>
-                <div className="px-6 py-4 flex">
-                    <h3 className="flex-grow font-bold">
-                        General info
-                    </h3>
-                    <div className='space-x-2'>
-                        <dialog id="delete_confirm" className="modal">
-                            <div className="modal-box">
-                                <h3 className="font-bold text-lg">Client deletion</h3>
-                                <p className="py-4">Client info will be deleted from Relique configuration. This action is not recoverable.</p>
-                                <p className="py-4">Do you want to continue ?</p>
-                                <div className="modal-action">
-                                    <form method="dialog" className='space-x-2'>
-                                        <button type="button" className="btn" onClick={() => (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.close()}>Cancel</button>
-                                        <button type="button" className="btn btn-error" onClick={() => { deleteClient(); (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.close(); }}>Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </dialog>                       
-                        <div className="btn btn-sm btn-error" onClick={() => (document.getElementById('delete_confirm') as HTMLDialogElement | null)?.showModal()}>Delete</div>
-                        <Link to={`/clients/${client_name}/edit`} className="cursor-pointer text-slate-500">
-                            <div className="btn btn-sm" onClick={() => console.log("Delete client")}>
-                                <i className={`text-lg ri-edit-fill`}></i>
-                                Edit
-                            </div>
-                        </Link>
+            <dialog ref={deleteDialog} className="modal">
+                <div className="modal-box space-y-3">
+                    <h3 className="font-display text-lg font-semibold">Delete client <span className="code">{c.name}</span>?</h3>
+                    <p>The client is removed from the Relique configuration. This cannot be undone.</p>
+                    <div className="modal-action">
+                        <button type="button" className="btn btn-sm" onClick={() => deleteDialog.current?.close()}>Cancel</button>
+                        <button type="button" className="btn btn-sm btn-error" onClick={() => { deleteClient(); deleteDialog.current?.close(); }}>Delete client</button>
                     </div>
                 </div>
+                <form method="dialog" className="modal-backdrop"><button>close</button></form>
+            </dialog>
 
-                <div className="grid md:grid-cols-2 gap-4 m-4">
-                    <ClientCard client={c} link={false} loading={loading} />
-                    <Card>
-                        <div className="p-4 flex flex-row items-center mb-2">
-                            <div className={"flex-grow font-bold"}>Health</div>
-                        </div>
-                        <table className="table">
-                            <tr>
-                                <td>SSH</td>
-                                <td>
-                                    <div className="flex flex-row items-center mb-2">
-                                        <div className="mr-2">
-                                            {c.state_is_loading ? (
-                                                <span className="text-neutral-300 loading loading-spinner loading-xs"></span>
-                                            ) : (
-                                                <StatusDot status={c.ssh_alive} />
-                                            )}
-                                        </div>
-                                        {loading && <TextPlaceholder />}
-                                        <div className="text-sm">
-                                            {c.ssh_alive === Const.UNKNOWN && (
-                                                <span>SSH connectivity unknown</span>
-                                            )}
-                                            {c.ssh_alive === Const.OK && (
-                                                <span>
-                                                    SSH ping successful
-                                                </span>
-                                            )}
-                                            {c.ssh_alive === Const.CRITICAL && (
-                                                <span>
-                                                    Cannot reach client via SSH
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {c.ssh_alive === Const.OK && (
-                                        <div className="block alert alert-success alert-soft">
-                                            <span>
-                                                SSH ping successful from relique server to
-                                            </span>
-                                            <span className='ml-1 code'>
-                                                {c.ssh_user == "" ? Const.DEFAULT_CLIENT_SSH_USER : c.ssh_user}@{c.address}:{c.ssh_port == 0 ? Const.DEFAULT_CLIENT_SSH_PORT : c.ssh_port}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {c.ssh_alive === Const.CRITICAL && (
-                                        <div className="block alert alert-error alert-soft">{c.ssh_alive_message}</div>
-                                    )}
-                                </td>
-                            </tr>
-                        </table>
-                    </Card>
-                </div>
-            </Card>
+            <Section title="Connection">
+                <PropertyList loading={loading} items={[
+                    { label: "Address", value: c.address, mono: true },
+                    { label: "SSH user", value: ClientUtils.sshUser(c), mono: true },
+                    { label: "SSH port", value: ClientUtils.sshPort(c), mono: true },
+                    {
+                        label: "SSH status", value: (
+                            <div className="space-y-1">
+                                {sshStatus}
+                                {c.ssh_alive === Const.CRITICAL && c.ssh_alive_message && (
+                                    <p className="code text-error whitespace-pre-wrap">{c.ssh_alive_message}</p>
+                                )}
+                            </div>
+                        )
+                    },
+                ]} />
+            </Section>
 
-            <Card>
-                <div className="px-6 py-4 flex">
-                    <h3 className="flex-grow font-bold">
-                        Modules
-                    </h3>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4 m-4">
-                    {displayModules(c.modules)}
-                </div>
-            </Card>
+            <Section title="Modules">
+                {displayModules(c.modules)}
+            </Section>
 
-            <Card>
+            <Section title="Images">
                 <ImageList
-                    title="Associated images"
                     actions={true}
                     data={imgs}
                     paginated={true}
@@ -232,8 +202,7 @@ function ClientDetails() {
                     deletable={true}
                     onDeleted={(uuid: string) => setImages(prev => prev.filter(img => img.uuid !== uuid))}
                 />
-            </Card>
-
+            </Section>
         </>
     );
 }

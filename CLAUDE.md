@@ -87,7 +87,7 @@ Adding an HTTP endpoint: add the route in `internal/server/routes.go` under the 
 - All files use `.tsx`, including types and utils. Types are `type X = {...}; export default X;` and use the API's snake_case field names.
 - Avoid using the "any" type in typescript
 - API calls go through `API.<resource>.<method>()` and use `.then/.catch`; errors are surfaced with `Utils.notify(Const.CRITICAL, ...)` (react-toastify).
-- Styling: Tailwind utility classes + daisyUI components; theme tokens are defined in `src/index.css`. Icons use Remix Icon classes (`ri-*`).
+- Styling: follow `webui/DESIGN.md`. Use theme tokens (defined in `src/index.css`) and the shared primitives (`PageHeader`, `Section`, `PropertyList`, `Status`, `Stat`…), never raw Tailwind palette colors, cards or name badges. Icons use Remix Icon line classes (`ri-*-line`).
 - 4-space indentation, double quotes.
 
 ## Git conventions

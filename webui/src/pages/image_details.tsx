@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
-import Card from '../components/card';
 import Image from '../types/image';
 import API from '../utils/api';
-import ModuleCard from '../components/module_card';
 import Utils from '../utils/utils';
-import ClientCard from '../components/client_card';
-import RepositoryCard from '../components/repository_card';
 import Job from '../types/job';
 import JobList from '../components/job_list';
 import Const from '../types/const';
-import TextPlaceholder from '../components/text_placeholder';
+import PageHeader from '../components/page_header';
+import Section from '../components/section';
+import PropertyList from '../components/property_list';
+import ClientProperties from '../components/client_properties';
+import ModuleProperties from '../components/module_properties';
+import RepositoryProperties from '../components/repository_properties';
 import ImageRemoveModal from '../components/image_remove_modal';
 
 function ImageDetails() {
     const { img_uuid } = useParams();
-    let [img, setImage] = useState<Image>({} as Image);
-    let [job, setJob] = useState<Job>({} as Job);
-    let [loading, setLoading] = useState<boolean>(true);
-    let [jobLoading, setJobLoading] = useState<boolean>(true);
+    const [img, setImage] = useState<Image>({} as Image);
+    const [job, setJob] = useState<Job>({} as Job);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [jobLoading, setJobLoading] = useState<boolean>(true);
     const [removeOpen, setRemoveOpen] = useState<boolean>(false);
 
     const navigate = useNavigate();
@@ -31,7 +32,7 @@ function ImageDetails() {
                 return;
             }
 
-            API.images.get(img_uuid).then((response: any) => {
+            API.images.get(img_uuid).then((response) => {
                 setImage(response.data);
                 setLoading(false);
             }).catch(error => {
@@ -52,7 +53,7 @@ function ImageDetails() {
                 return;
             }
 
-            API.jobs.get(img_uuid).then((response: any) => {
+            API.jobs.get(img_uuid).then((response) => {
                 setJob(response.data);
                 setJobLoading(false);
             }).catch(error => {
@@ -72,93 +73,50 @@ function ImageDetails() {
 
     return (
         <>
-            <Card>
-                <div className="px-6 py-4 flex items-center">
-                    <h3 className="flex-grow font-bold">
-                        General info
-                    </h3>
-                    {loading && (
-                        <div className='flex-grow'>
-                            <TextPlaceholder />
-                        </div>
-                    )}
-                    <span className="text-l ml-4 code">
-                        {img.uuid}
-                    </span>
-                    <button
-                        type="button"
-                        className="btn btn-sm btn-error ml-4"
-                        disabled={loading}
-                        onClick={() => setRemoveOpen(true)}>
+            <PageHeader
+                title={<>Image <span className="code text-2xl font-normal text-muted">{Utils.shortID(img.uuid)}</span></>}
+                loading={loading}
+                meta={!loading && (
+                    <>
+                        <span className="tabular-nums">{Utils.formatDate(img.created_at)}</span>
+                        <span className="code text-muted">{img.uuid}</span>
+                    </>
+                )}
+                actions={
+                    <button type="button" className="btn btn-sm btn-ghost text-error" disabled={loading} onClick={() => setRemoveOpen(true)}>
                         <i className="ri-delete-bin-line"></i>
                         Delete
                     </button>
-                </div>
-                <ImageRemoveModal
-                    image={removeOpen ? img : null}
-                    onClose={() => setRemoveOpen(false)}
-                    onRemoved={() => navigate("/images")}
-                />
+                }
+            />
+            <ImageRemoveModal
+                image={removeOpen ? img : null}
+                onClose={() => setRemoveOpen(false)}
+                onRemoved={() => navigate("/images")}
+            />
 
-                <div className="grid md:grid-cols-2 gap-4 m-4">
-                    <Card>
-                        <div className="p-4 flex flex-row items-center mb-2">
-                            <div className="font-bold">Image stats</div>
-                        </div>
-                        <table className="table">
-                            <tbody>
-                                <tr>
-                                    <td>Size on disk</td>
-                                    <td>
-                                        {loading ? (
-                                            <TextPlaceholder />
-                                        ) : (
-                                            <>
-                                                {Utils.formatSize(img.size_on_disk)}
-                                            </>
-                                        )}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Number of elements (total)</td>
-                                    <td>
-                                        {loading && (
-                                            <TextPlaceholder />
-                                        )}
-                                        {img.number_of_elements}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Number of directories</td>
-                                    <td>
-                                        {loading && (
-                                            <TextPlaceholder />
-                                        )}
-                                        {img.number_of_folders}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Number of files</td>
-                                    <td>
-                                        {loading && (
-                                            <TextPlaceholder />
-                                        )}
-                                        {img.number_of_files}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </Card>
-                    <ClientCard client={img.client} loading={loading} />
-                    <ModuleCard module={img.module} loading={loading} full />
-                    <RepositoryCard repo={img.repository} loading={loading} />
-                </div>
-            </Card>
+            <div className="grid md:grid-cols-2 gap-4">
+                <Section title="Contents">
+                    <PropertyList loading={loading} items={[
+                        { label: "Size on disk", value: <span className="tabular-nums">{Utils.formatSize(img.size_on_disk)}</span> },
+                        { label: "Elements", value: <span className="tabular-nums">{img.number_of_elements}</span> },
+                        { label: "Directories", value: <span className="tabular-nums">{img.number_of_folders}</span> },
+                        { label: "Files", value: <span className="tabular-nums">{img.number_of_files}</span> },
+                    ]} />
+                </Section>
+                <Section title="Client">
+                    <ClientProperties client={img.client} loading={loading} link />
+                </Section>
+                <Section title={<>Module {!loading && <span className="font-normal text-muted">{img.module?.name}</span>}</>}>
+                    <ModuleProperties module={img.module} loading={loading} />
+                </Section>
+                <Section title="Repository">
+                    <RepositoryProperties repo={img.repository} loading={loading} link />
+                </Section>
+            </div>
 
-
-            <Card>
+            <Section title="Source job">
                 <JobList
-                    title="Generated from job"
                     actions={false}
                     data={job?.uuid ? [job] : []}
                     paginated={false}
@@ -167,7 +125,7 @@ function ImageDetails() {
                     deletable={true}
                     onDeleted={(_uuid: string, imageRemoved: boolean) => imageRemoved ? navigate("/images") : setJob({} as Job)}
                 />
-            </Card>
+            </Section>
         </>
     );
 }

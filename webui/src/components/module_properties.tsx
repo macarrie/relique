@@ -1,140 +1,43 @@
-import { useEffect, useState } from "react";
-
 import Module from "../types/module";
-import Card from "./card";
-import StatusBadge from "./status_badge";
-import Const from "../types/const";
-import TextPlaceholder from "./text_placeholder";
+import PropertyList, { Property } from "./property_list";
+import YesNo from "./yes_no";
 
-function ModuleCard(props: any) {
-    let mod: Module = props.module;
-    let [showMoreContent, setShowMoreContent] = useState(false);
-
-    useEffect(() => {
-        if (props.full) {
-            setShowMoreContent(true);
-        }
-    }, [props.full])
-
-    if (mod?.variant === "") {
-        mod.variant = "default";
-    }
-
-    function showLess() {
-        setShowMoreContent(false);
-    }
-
-    function showMore() {
-        setShowMoreContent(true);
-    }
-
-    function displayBackupPaths(paths: any) {
-        let modPaths = paths ?? [];
-        if (modPaths.length === 0) {
-            return <div className={"text-base-content/50 italic"}>None</div>;
-        }
-
-        return (
-            <>
-                {modPaths.map((path: string) => {
-                    return <div key={path} className={"code"}>{path}</div>
-                })}
-            </>
-        )
+function pathList(paths?: string[]) {
+    if (!paths || paths.length === 0) {
+        return undefined;
     }
 
     return (
-        <Card className={props.className}>
-            <div className="p-4 flex flex-row items-center mb-2">
-                <div className="flex-grow font-bold align-middle">Module
-                    {props.loading ? (
-                        <span className="ml-2 badge skeleton w-16"></span>
-                    ) : (
-                        <span className='ml-2 badge badge-neutral badge-soft font-normal'>{mod?.name}</span>
-                    )}
-                </div>
-
-                {(!props.full && showMoreContent) && (
-                    <button className={"text-right button button-small button-text"}
-                        onClick={() => showLess()}>Less</button>
-                )}
-                <button className={`text-right button button-small button-text ${showMoreContent && "hidden"}`}
-                    onClick={() => showMore()}>More
-                </button>
-            </div>
-            <table className="table">
-                <tr>
-                    <td>Module type</td>
-                    <td>
-                        {props.loading && (
-                            <TextPlaceholder />
-                        )}
-                        {mod?.module_type}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Variant</td>
-                    <td>
-                        {props.loading && (
-                            <TextPlaceholder />
-                        )}
-                        {mod?.variant}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Backup type</td>
-                    <td>
-                        {props.loading && (
-                            <TextPlaceholder />
-                        )}
-                        {mod?.backup_type}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Backup paths</td>
-                    <td>
-                        {props.loading ? (
-                            <TextPlaceholder />
-                        ) : (
-                            <>
-                                {displayBackupPaths(mod?.backup_paths)}
-                            </>
-                        )}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Exclusions</td>
-                    <td>
-                        {props.loading ? (
-                            <TextPlaceholder />
-                        ) : (
-                            <>
-                                {displayBackupPaths(mod?.exclude)}
-                            </>
-                        )}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Inclusions</td>
-                    <td>
-                        {props.loading ? (
-                            <TextPlaceholder />
-                        ) : (
-                            <>
-                                {displayBackupPaths(mod?.include)}
-                            </>
-                        )}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Exclude CVS items</td>
-                    <td>
-                        <StatusBadge loading={props.loading} label={mod?.exclude_cvs ? "true" : "false"} status={mod?.exclude_cvs ? Const.OK : Const.CRITICAL} />
-                    </td>
-                </tr>
-            </table>
-        </Card>
+        <ul>
+            {paths.map((path: string) => <li key={path}>{path}</li>)}
+        </ul>
     );
 }
 
-export default ModuleCard;
+// installed=true describes a module installed on the server (shows available variants);
+// otherwise it describes a module configured on a client (shows the selected variant).
+function ModuleProperties({
+    module,
+    loading = false,
+    installed = false,
+}: {
+    module: Module,
+    loading?: boolean,
+    installed?: boolean,
+}) {
+    const items: Property[] = [
+        { label: "Module type", value: module?.module_type },
+        installed
+            ? { label: "Variants", value: (module?.available_variants ?? []).join(", ") }
+            : { label: "Variant", value: module?.variant || "default" },
+        { label: "Backup type", value: module?.backup_type },
+        { label: "Backup paths", value: pathList(module?.backup_paths), mono: true },
+        { label: "Exclusions", value: pathList(module?.exclude), mono: true },
+        { label: "Inclusions", value: pathList(module?.include), mono: true },
+        { label: "Exclude CVS", value: <YesNo value={module?.exclude_cvs} /> },
+    ];
+
+    return <PropertyList items={items} loading={loading} />;
+}
+
+export default ModuleProperties;

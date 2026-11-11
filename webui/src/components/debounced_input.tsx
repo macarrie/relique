@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useEffectEvent, useState } from "react"
 
 function DebouncedInput({
     value: initialValue,
@@ -11,18 +11,24 @@ function DebouncedInput({
     debounce?: number
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>) {
     const [value, setValue] = useState(initialValue)
+    const [prevInitialValue, setPrevInitialValue] = useState(initialValue)
 
-    useEffect(() => {
+    // Reset the local value when the value prop changes from the outside
+    if (initialValue !== prevInitialValue) {
+        setPrevInitialValue(initialValue)
         setValue(initialValue)
-    }, [initialValue])
+    }
+
+    // Read the latest onChange without restarting the debounce timer when it changes
+    const emitChange = useEffectEvent((v: string | number) => onChange(v))
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            onChange(value)
+            emitChange(value)
         }, debounce)
 
         return () => clearTimeout(timeout)
-    }, [value])
+    }, [value, debounce])
 
     return (
         <input {...props} value={value} onChange={e => setValue(e.target.value)} />

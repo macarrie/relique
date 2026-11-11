@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-import Card from "../components/card";
+import PageHeader from "../components/page_header";
+import Section from "../components/section";
 import API from "../utils/api";
 import Image from "../types/image";
 import ImageList from "../components/image_list";
@@ -8,13 +9,13 @@ import Const from "../types/const";
 import Utils from "../utils/utils";
 
 function Images() {
-    let [imgs, setImages] = useState<Image[]>([]);
-    let [loading, setLoading] = useState<boolean>(true);
+    const [imgs, setImages] = useState<Image[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getImageList() {
             setLoading(true);
-            API.images.list({ limit: 10000 }).then((response: any) => {
+            API.images.list({ limit: 10000 }).then((response) => {
                 setImages(response.data.data ?? []);
                 setLoading(false);
             }).catch(error => {
@@ -29,9 +30,9 @@ function Images() {
 
     return (
         <>
-            <Card>
+            <PageHeader title="Images" />
+            <Section>
                 <ImageList
-                    title="All images"
                     actions={true}
                     data={imgs}
                     paginated={true}
@@ -40,7 +41,7 @@ function Images() {
                     deletable={true}
                     onDeleted={(uuid: string) => setImages(prev => prev.filter(img => img.uuid !== uuid))}
                 />
-            </Card>
+            </Section>
         </>
     );
 }

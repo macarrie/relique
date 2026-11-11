@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
-import Card from '../components/card';
 import API from '../utils/api';
-import ModuleCard from '../components/module_card';
 import Module from '../types/module';
 import Const from '../types/const';
 import Utils from '../utils/utils';
+import PageHeader from '../components/page_header';
+import Section from '../components/section';
+import ModuleProperties from '../components/module_properties';
 
 function ModuleDetails() {
     const { module_name } = useParams();
-    let [mod, setModule] = useState<Module>({} as Module);
-    let [loading, setLoading] = useState<boolean>(true);
+    const [mod, setModule] = useState<Module>({} as Module);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getModule() {
@@ -20,7 +21,7 @@ function ModuleDetails() {
                 return;
             }
 
-            API.modules.get(module_name).then((response: any) => {
+            API.modules.get(module_name).then((response) => {
                 setModule(response.data);
                 setLoading(false);
             }).catch(error => {
@@ -35,16 +36,14 @@ function ModuleDetails() {
 
     return (
         <>
-            <Card>
-                <div className="px-6 py-4 flex">
-                    <h3 className="flex-grow font-bold">
-                        Module details
-                    </h3>
-                </div>
-                <div className="m-4">
-                    <ModuleCard loading={loading} module={mod} full />
-                </div>
-            </Card>
+            <PageHeader
+                title={<><span className="font-normal text-muted">Module</span> {mod.name}</>}
+                loading={loading}
+                meta={!loading && <span>{mod.module_type} module</span>}
+            />
+            <Section title="Defaults">
+                <ModuleProperties loading={loading} module={mod} installed />
+            </Section>
         </>
     );
 }

@@ -1,18 +1,12 @@
-import Breadcrumb from "../components/breadcrumb"
+import React from "react";
 
-function Main(props: any) {
+function Main({ children }: { children?: React.ReactNode }) {
     return (
-        <>
-            <div className="p-4 sm:ml-64">
-                <div className="mb-4">
-                    <Breadcrumb />
-                </div>
-
-                <div className="container space-y-4">
-                    {props.children}
-                </div>
+        <main className="sm:ml-56 px-6 py-6 lg:px-10">
+            <div className="max-w-[100rem] mx-auto flex flex-col gap-4">
+                {children}
             </div>
-        </>
+        </main>
     )
 }
 

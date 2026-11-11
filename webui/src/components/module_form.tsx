@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 
 import Module from "../types/module";
-import Card from "./card";
 import Const from "../types/const";
 import Utils from "../utils/utils";
 import API from "../utils/api";
 
-function ModuleForm(props: any) {
-    let [mod, setModule] = useState<Module>(props.module);
-    let [moduleList, setModules] = useState<Array<Module>>([]);
+type ModuleFormProps = {
+    id: string,
+    module: Module,
+    className?: string,
+    onChange: (mod: Module) => void,
+    onDeleteRequest: (mod: Module) => void,
+};
+
+function ModuleForm(props: ModuleFormProps) {
+    const [mod, setModule] = useState<Module>(props.module);
+    const [moduleList, setModules] = useState<Array<Module>>([]);
 
     useEffect(() => {
         function getModuleList() {
-            API.modules.list({ limit: 10000 }).then((response: any) => {
+            API.modules.list({ limit: 10000 }).then((response) => {
                 setModules(response.data.data ?? []);
             }).catch(error => {
                 console.log("Cannot get module list", error);
@@ -24,96 +31,84 @@ function ModuleForm(props: any) {
         getModuleList();
     }, [])
 
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        let newMod = {
-            ...mod,
-            [e.target.name]: e.target.value
-        };
+    const update = (newMod: Module) => {
         setModule(newMod);
         props.onChange(newMod);
     }
 
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        update({ ...mod, [e.target.name]: e.target.value });
+    }
+
     const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let newMod = {
-            ...mod,
-            [e.target.name]: e.target.checked
-        };
-        setModule(newMod)
-        props.onChange(newMod);
+        update({ ...mod, [e.target.name]: e.target.checked });
     }
 
     const handleArrayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let newMod = {
-            ...mod,
-            [e.target.name]: e.target.value.split(',')
-        };
-        setModule(newMod)
-        props.onChange(newMod);
+        update({ ...mod, [e.target.name]: e.target.value.split(',') });
     }
 
     return (
-        <Card className={props.className}>
-            <button className="float-right text-slate-500 cursor-pointer" onClick={() => {props.onDeleteRequest(mod)}}>
-                <i className={`text-lg ri-close-line`}></i>
-            </button>
+        <div className={`space-y-3 ${props.className ?? ""}`}>
+            <div className="flex items-baseline gap-4">
+                <h3 className="flex-grow font-display text-base font-semibold">
+                    {mod.name || <span className="text-muted font-normal">Unnamed module</span>}
+                </h3>
+                <button type="button" className="btn btn-xs btn-ghost text-error" onClick={() => props.onDeleteRequest(mod)}>
+                    <i className="ri-close-line"></i>
+                    Remove
+                </button>
+            </div>
 
-            <form className='space-y-2'>
-                <fieldset className="fieldset">
-                    <label className="label">Module name</label>
-                    <div className="input validator">
-                        <input name="name" type="text" required placeholder="Module name" value={mod.name} onChange={handleFormChange} />
-                        <span className="badge badge-outline badge-xs">Required</span>
-                    </div>
-                </fieldset>
+            <fieldset className="fieldset">
+                <label className="label" htmlFor={`${props.id}-name`}>Name</label>
+                <input id={`${props.id}-name`} name="name" type="text" className={`input w-full ${mod.name === "" ? "input-error" : ""}`} required placeholder="Module name" value={mod.name ?? ""} onChange={handleFormChange} />
+                {mod.name === "" && <p className="text-error">A module name is required</p>}
+            </fieldset>
 
+            <div className="grid grid-cols-2 gap-4">
                 <fieldset className="fieldset">
-                    <label className="label">Module type</label>
-                    <select name="module_type" defaultValue="generic" value={mod.module_type} className="select" onChange={handleFormChange}>
-                        {moduleList.map((m: Module, index: number) => {
-                            return (
-                                <option key={index}>{m.name}</option>
-                            )
-                        })}
+                    <label className="label" htmlFor={`${props.id}-type`}>Module type</label>
+                    <select id={`${props.id}-type`} name="module_type" value={mod.module_type} className="select w-full" onChange={handleFormChange}>
+                        {mod.module_type && !moduleList.some((m: Module) => m.name === mod.module_type) && (
+                            <option key={mod.module_type}>{mod.module_type}</option>
+                        )}
+                        {moduleList.map((m: Module) => (
+                            <option key={m.name}>{m.name}</option>
+                        ))}
                     </select>
                 </fieldset>
 
                 <fieldset className="fieldset">
-                    <label className="label">Backup type</label>
-                    <select name="backup_type" defaultValue="diff" value={mod.backup_type} className="select" onChange={handleFormChange}>
+                    <label className="label" htmlFor={`${props.id}-backup-type`}>Backup type</label>
+                    <select id={`${props.id}-backup-type`} name="backup_type" value={mod.backup_type} className="select w-full" onChange={handleFormChange}>
                         <option>diff</option>
                         <option>full</option>
                     </select>
                 </fieldset>
+            </div>
 
-                <fieldset className="fieldset">
-                    <label className="label">Backup paths</label>
-                    <div className="input">
-                        <input name="backup_paths" type="text" placeholder="Backup paths" value={(mod.backup_paths ?? []).join(',')} onChange={handleArrayChange} />
-                    </div>
-                </fieldset>
+            <fieldset className="fieldset">
+                <label className="label" htmlFor={`${props.id}-paths`}>Backup paths</label>
+                <input id={`${props.id}-paths`} name="backup_paths" type="text" className="input w-full font-mono" placeholder="/etc,/home" value={(mod.backup_paths ?? []).join(',')} onChange={handleArrayChange} />
+                <p className="label">Comma-separated</p>
+            </fieldset>
 
-                <fieldset className="fieldset">
-                    <label className="label">Exclusions</label>
-                    <div className="input">
-                        <input name="exclude" type="text" placeholder="Exclusions" value={(mod.exclude ?? []).join(',')} onChange={handleArrayChange} />
-                    </div>
-                </fieldset>
+            <fieldset className="fieldset">
+                <label className="label" htmlFor={`${props.id}-exclude`}>Exclusions</label>
+                <input id={`${props.id}-exclude`} name="exclude" type="text" className="input w-full font-mono" value={(mod.exclude ?? []).join(',')} onChange={handleArrayChange} />
+            </fieldset>
 
-                <fieldset className="fieldset">
-                    <label className="label">Inclusions</label>
-                    <div className="input">
-                        <input name="include" type="text" placeholder="Inclusions" value={(mod.include ?? []).join(',')} onChange={handleArrayChange} />
-                    </div>
-                </fieldset>
+            <fieldset className="fieldset">
+                <label className="label" htmlFor={`${props.id}-include`}>Inclusions</label>
+                <input id={`${props.id}-include`} name="include" type="text" className="input w-full font-mono" value={(mod.include ?? []).join(',')} onChange={handleArrayChange} />
+            </fieldset>
 
-                <fieldset className="fieldset">
-                    <label className="label">
-                        <input name="exclude_cvs" type="checkbox" placeholder="Exclude CVS" checked={mod.exclude_cvs} onChange={handleCheckboxChange} />
-                        Exclude CVS
-                    </label>
-                </fieldset>
-            </form>
-        </Card>
+            <label className="label text-base-content">
+                <input name="exclude_cvs" type="checkbox" className="checkbox checkbox-sm" checked={mod.exclude_cvs ?? false} onChange={handleCheckboxChange} />
+                Exclude CVS files (.git, .svn…)
+            </label>
+        </div>
     );
 }
 

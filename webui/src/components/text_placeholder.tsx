@@ -1,6 +1,6 @@
-function TextPlaceholder() {
+function TextPlaceholder({ className = "w-40" }) {
     return (
-        <div className="h-2 w-full skeleton"></div>
+        <span className={`skeleton inline-block h-3 align-middle ${className}`}></span>
     )
 }
 

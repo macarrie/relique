@@ -11,8 +11,8 @@ type Job = {
     done: boolean,
     backup_type: string,
     job_type: string,
-    start_time: any,
-    end_time: any,
+    start_time: string,
+    end_time: string,
 };
 
 export default Job;

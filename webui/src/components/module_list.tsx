@@ -4,54 +4,40 @@ import { createColumnHelper } from "@tanstack/react-table";
 import Table from "./table";
 import Module from "../types/module";
 import TableUtils from "../utils/table";
-import { Column } from "react-table";
+import EmptyValue from "./empty_value";
 
 function ModuleList({
-    title = "",
     actions = true,
-    custom_actions = [],
     sorted = true,
     paginated = true,
-    data = {} as Module[],
+    data = [] as Module[],
     loading = true,
 }) {
-    function renderVariants(vars: string) {
-        return (
-            <>
-                {vars.split(",").map((v: any) => (
-                    <span className="badge badge-neutral badge-sm badge-soft" key={v}>{v}</span>
-                ))}
-            </>
-        )
-    }
-
     const columnHelper = createColumnHelper<Module>()
     const columns = [
         columnHelper.accessor((mod: Module) => mod.name, {
-            header: () => (<div>Name</div>),
+            header: () => "Name",
             id: 'module_name',
-            cell: (cell: any) => (<div><Link className="link-primary link-hover" to={`/modules/${cell.getValue()}`}>{cell.getValue()}</Link></div>)
+            cell: (cell) => (<Link className="text-link font-medium" to={`/modules/${cell.getValue()}`}>{cell.getValue()}</Link>)
         }),
         columnHelper.accessor('module_type', {
-            header: () => (<div>Type</div>),
+            header: () => "Type",
             id: 'type',
-            cell: (cell: any) => (<div>{cell.getValue()}</div>),
+            cell: (cell) => cell.getValue(),
         }),
         columnHelper.accessor((mod: Module) => (mod.available_variants ?? []).join(", "), {
-            header: () => (<div>Variants</div>),
+            header: () => "Variants",
             id: 'variants',
-            cell: (cell: any) => (<div className="space-x-1">{renderVariants(cell.getValue())}</div>),
+            cell: (cell) => (cell.getValue() ? cell.getValue() : <EmptyValue />),
         }),
     ];
 
     return (
         <Table
-            title={title}
             actions={actions}
-            custom_actions={custom_actions}
-            data={loading ? [{}, {}, {}] : data}
-            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
-            paginated={paginated}
+            data={loading ? TableUtils.GetPlaceholderRows<Module>() : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
+            paginated={paginated && !loading}
             sorted={sorted}
         />
     );

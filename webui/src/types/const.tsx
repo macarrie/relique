@@ -9,5 +9,5 @@ export default class Const {
     static DEFAULT_CLIENT_SSH_USER = "relique"
     static DEFAULT_CLIENT_SSH_PORT = 22
 
-    static DASHBOARD_NB_LATEST_JOBS = 5;
+    static DASHBOARD_NB_LATEST_JOBS = 10;
 }

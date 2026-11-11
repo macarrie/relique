@@ -4,70 +4,56 @@ import { createColumnHelper } from "@tanstack/react-table";
 import Table from "./table";
 import Client from "../types/client";
 import Module from "../types/module";
-import StatusDot from "./status_dot";
-import React from "react";
+import Status from "./status";
 import TableUtils from "../utils/table";
-import { Column } from "react-table";
+import EmptyValue from "./empty_value";
+import ClientUtils from "../utils/client";
 
 function ClientList({
-    title = "",
     actions = true,
-    custom_actions = [] as React.ReactNode[],
     sorted = true,
     paginated = true,
-    data = {} as Client[],
+    data = [] as Client[],
     loading = true,
 }) {
 
     const columnHelper = createColumnHelper<Client>()
     const columns = [
-        columnHelper.accessor((client: Client) => { return client }, {
-            header: () => (<div className="text-center">Health</div>),
+        columnHelper.accessor((client: Client) => client, {
+            header: () => (<span className="sr-only">Health</span>),
             id: 'health',
-            cell: (cell: any) => (<div className="text-center">{cell.getValue().state_is_loading ? <span className="text-neutral-300 loading loading-spinner loading-xs"></span> : <StatusDot status={cell.getValue().ssh_alive} />}</div>),
+            cell: (cell) => (
+                <Status
+                    variant="dot"
+                    loading={cell.getValue().state_is_loading}
+                    status={cell.getValue().ssh_alive}
+                    label={ClientUtils.sshStatusLabel(cell.getValue().ssh_alive)} />
+            ),
+            enableSorting: false,
         }),
         columnHelper.accessor((c: Client) => c.name, {
-            header: () => (<div>Name</div>),
+            header: () => "Name",
             id: 'name',
-            cell: (cell: any) => (<div><Link className="link-primary link-hover" to={`/clients/${cell.getValue()}`}>{cell.getValue()}</Link></div>),
+            cell: (cell) => (<Link className="text-link font-medium" to={`/clients/${cell.getValue()}`}>{cell.getValue()}</Link>),
         }),
         columnHelper.accessor('address', {
-            header: () => (<div>Address</div>),
+            header: () => "Address",
             id: 'address',
-            cell: (cell: any) => (<div className="code">{cell.getValue()}</div>),
+            cell: (cell) => (<span className="code">{cell.getValue()}</span>),
         }),
         columnHelper.accessor((client: Client) => (client.modules || []).map((mod: Module) => mod.name).join(", "), {
-            header: () => (<div>Modules</div>),
+            header: () => "Modules",
             id: 'modules',
-            cell: (cell: any) => (<div className="space-x-1">{renderModules(cell.getValue())}</div>),
+            cell: (cell) => (cell.getValue() ? <span>{cell.getValue()}</span> : <EmptyValue />),
         }),
     ];
 
-    function renderModules(mods: string) {
-        if (!mods) {
-            return <span className="italic text-base-content/20">None</span>;
-        }
-
-        let module_names: string[] = mods.split(",")
-        return (
-            <div className="flex flex-wrap gap-y-2 gap-x-1">
-                {module_names.map((mod: any) => (
-                    <div key={mod}>
-                        <span className="badge badge-sm badge-neutral badge-soft">{mod}</span>
-                    </div>
-                ))}
-            </div>
-        )
-    }
-
     return (
         <Table
-            title={title}
             actions={actions}
-            custom_actions={custom_actions}
-            data={loading ? [{}, {}, {}] : data}
-            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
-            paginated={paginated}
+            data={loading ? TableUtils.GetPlaceholderRows<Client>() : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
+            paginated={paginated && !loading}
             sorted={sorted}
         />
     );

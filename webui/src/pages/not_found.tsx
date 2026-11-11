@@ -1,10 +1,14 @@
+import { Link } from "react-router-dom";
+import PageHeader from "../components/page_header";
+
 function NotFound() {
     return (
-        <div className="flex h-max m-y-8 justify-center items-center">
-            <div className="text-6xl italic text-slate-300">
-                Not found
-            </div>
-        </div>
+        <>
+            <PageHeader title="Page not found" />
+            <p className="text-muted">
+                This page does not exist. Go back to the <Link to="/dashboard" className="text-link">dashboard</Link>.
+            </p>
+        </>
     );
 }
 

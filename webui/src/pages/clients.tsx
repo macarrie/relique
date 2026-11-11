@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
-import Card from "../components/card";
+import PageHeader from "../components/page_header";
+import Section from "../components/section";
 import API from "../utils/api";
 import ClientList from "../components/client_list";
 import Client from "../types/client";
@@ -9,13 +10,12 @@ import Utils from "../utils/utils";
 import { Link } from "react-router-dom";
 
 function Clients() {
-    let [clients, setClients] = useState<Client[]>([]);
-    let [loading, setLoading] = useState<boolean>(true);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     function getClients() {
-        setLoading(true);
-        API.clients.list({ limit: 10000 }).then((response: any) => {
-            let clientList = response.data.data || []
+        API.clients.list({ limit: 10000 }).then((response) => {
+            const clientList = response.data.data || []
             // Update clients status to unknown at load
             clientList.map((c: Client) => {
                 c.ssh_alive = Const.UNKNOWN
@@ -49,7 +49,7 @@ function Clients() {
 
     const pingClient = useCallback((name: string) => {
         setClientStateLoading(name, true)
-        API.clients.ping(name).then((response: any) => {
+        API.clients.ping(name).then((response) => {
             // Wait 500ms before removing loading spinner to avoid blinking
             setTimeout(
                 () => setClients(clients => clients.map((c: Client) => {
@@ -80,20 +80,28 @@ function Clients() {
 
     return (
         <>
-            <Card>
+            <PageHeader
+                title="Clients"
+                actions={<>
+                    <button className="btn btn-sm" onClick={() => pingAllClients()} disabled={loading}>
+                        <i className="ri-pulse-line"></i>
+                        Check connectivity
+                    </button>
+                    <Link to="/clients/new" className="btn btn-sm btn-primary">
+                        <i className="ri-add-line"></i>
+                        New client
+                    </Link>
+                </>}
+            />
+            <Section>
                 <ClientList
-                    title="All clients"
                     actions={true}
-                    custom_actions={[
-                        <div className="btn btn-sm" onClick={() => pingAllClients()}>Ping all</div>,
-                        <Link to="/clients/new" className="btn btn-sm btn-success">Create</Link>,
-                    ]}
                     data={clients}
                     paginated={true}
                     sorted={true}
                     loading={loading}
                 />
-            </Card>
+            </Section>
         </>
     );
 }

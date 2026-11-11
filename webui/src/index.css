@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "remixicon/fonts/remixicon.css";
 
+/*
+ * Relique design tokens. See webui/DESIGN.md before changing anything here.
+ * All text/background pairs below are checked for WCAG AA (>= 4.5:1).
+ */
 
 @plugin "daisyui" {
   themes: light --default;
@@ -12,33 +16,83 @@
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #FDFFFC;
-  --color-base-200: #F6FBF2;
-  --color-base-300: #EDF3E9;
-  --color-base-content: #2F312E;
-  --color-primary: #296EB4;
-  --color-primary-content: #F3F9FF;
-  --color-secondary: #E2607D;
-  --color-secondary-content: #5A0014;
-  --color-accent: #FB7756;
-  --color-accent-content: #5E0000;
-  --color-neutral: #2F312E;
-  --color-neutral-content: var(--color-base-100);
-  --color-info: var(--color-primary);
-  --color-info-content: #b0e2ff;
-  --color-success: #49A75C;
-  --color-success-content: #EEFDEF;
-  --color-warning: #F1C40F;
-  --color-warning-content: #8F7000;
-  --color-error: #F75248;
-  --color-error-content: #6E0000;
+  /* Surfaces & text */
+  --color-base-100: #FFFFFF;
+  --color-base-200: #F7F6F3;
+  --color-base-300: #E6E3DD;
+  --color-base-content: #1F1E1B;
+
+  /* Accent: amber. Fill only; use primary-strong for accent text. */
+  --color-primary: #E8A317;
+  --color-primary-content: #1F1E1B;
+  --color-accent: #FDF3DC;
+  --color-accent-content: #6B4000;
+
+  /* Neutral (secondary is unused, aliased to neutral) */
+  --color-neutral: #2A2925;
+  --color-neutral-content: #FFFFFF;
+  --color-secondary: #2A2925;
+  --color-secondary-content: #FFFFFF;
+
+  /* Status: meaning only, always paired with a label or icon */
+  --color-info: #2563A8;
+  --color-info-content: #FFFFFF;
+  --color-success: #23753D;
+  --color-success-content: #FFFFFF;
+  --color-warning: #C2410C;
+  --color-warning-content: #FFFFFF;
+  --color-error: #C42B25;
+  --color-error-content: #FFFFFF;
+
+  /* Shape: flat, no depth effects */
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
 }
 
-@layer base {}
+@theme {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-@layer components {
-  .code {
-    @apply font-mono;
-    @apply text-secondary;
+  --color-muted: #6B6760;
+  --color-primary-strong: #8F5400;
+}
+
+@layer base {
+  html {
+    @apply font-sans text-[0.9375rem] text-base-content bg-base-100 antialiased;
   }
+}
+
+/* Inline technical data: paths, addresses, IDs, versions. Inherits color. */
+@utility code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* Text link: accent text color, underline on hover */
+@utility text-link {
+  color: var(--color-primary-strong);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+/* Small uppercase label: table headers, property names */
+@utility text-label {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-muted);
 }

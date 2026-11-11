@@ -1,23 +1,20 @@
 import { Link } from "react-router-dom";
 
-import { CellContext, createColumnHelper } from "@tanstack/react-table";
-import { Column } from "react-table";
-import StatusBadge from "../components/status_badge";
+import { useState } from "react";
+import { createColumnHelper } from "@tanstack/react-table";
+import Status from "./status";
 import Job from "../types/job";
 import Utils from "../utils/utils";
 import JobUtils from "../utils/job";
-import Table from "../components/table";
-import React, { useState } from "react";
+import Table from "./table";
 import JobRemoveModal from "./job_remove_modal";
-import TableUtils from "../utils/table";
+import TableUtils, { TableColumns } from "../utils/table";
 
 function JobList({
-    title = "",
     actions = true,
-    custom_actions = [] as React.ReactNode,
     sorted = true,
     paginated = true,
-    data = {} as Job[],
+    data = [] as Job[],
     loading = true,
     // Display a delete button on each row
     deletable = false,
@@ -26,52 +23,44 @@ function JobList({
 }) {
     const [toRemove, setToRemove] = useState<Job | null>(null);
 
-    function uuidDisplay(id: string) {
-        if (!id) {
-            return "unknown"
-        }
-
-        return id.split("-")[0]
-    }
-
     const columnHelper = createColumnHelper<Job>()
-    const columns = [
+    const columns: TableColumns<Job> = [
         columnHelper.accessor((job: Job) => job.uuid, {
-            header: () => (<div className="w-full">ID</div>),
+            header: () => "ID",
             id: 'id',
-            cell: (cell: any) => (<div className="code"><Link to={`/jobs/${cell.getValue()}`} className="link-hover">{uuidDisplay(cell.getValue())}</Link></div>),
+            cell: (cell) => (<Link to={`/jobs/${cell.getValue()}`} className="code text-link">{Utils.shortID(cell.getValue())}</Link>),
             enableSorting: false,
         }),
         columnHelper.accessor((job: Job) => job.client?.name, {
-            header: () => (<div>Client</div>),
+            header: () => "Client",
             id: 'client_name',
-            cell: (cell: any) => (<div><Link to={`/clients/${cell.getValue()}`} className="link-hover link-primary">{cell.getValue()}</Link></div>)
+            cell: (cell) => (<Link to={`/clients/${cell.getValue()}`} className="text-link">{cell.getValue()}</Link>)
         }),
-        columnHelper.accessor((job: any) => job.module?.name, {
-            header: () => (<div>Module</div>),
+        columnHelper.accessor((job: Job) => job.module?.name, {
+            header: () => "Module",
             id: 'module_name',
-            cell: (cell: any) => (<div><span className="badge badge-soft badge-sm badge-neutral">{cell.getValue()}</span></div>),
+            cell: (cell) => cell.getValue(),
         }),
         columnHelper.accessor('job_type', {
-            header: () => (<div className="">Type</div>),
+            header: () => "Type",
             id: 'job_type',
-            cell: (cell: any) => (<div className="">{cell.getValue()}</div>),
+            cell: (cell) => cell.getValue(),
         }),
         columnHelper.accessor((job: Job) => job.status, {
-            header: () => (<div>Status</div>),
+            header: () => "Status",
             id: 'status',
-            cell: (cell: any) => (<div><StatusBadge label={cell.getValue()} status={JobUtils.jobStateToCode(cell.getValue())} /></div>),
+            cell: (cell) => (<Status label={cell.getValue()} status={JobUtils.jobStateToCode(cell.getValue())} />),
         }),
         columnHelper.accessor('start_time', {
-            header: () => (<div className="">Start</div>),
+            header: () => "Start",
             id: 'start_time',
-            cell: (cell: any) => (<div className="">{Utils.formatDate(cell.getValue())}</div>),
+            cell: (cell) => (<span className="tabular-nums">{Utils.formatDate(cell.getValue())}</span>),
             sortingFn: 'datetime',
         }),
         columnHelper.accessor('end_time', {
-            header: () => (<div className="">End</div>),
+            header: () => "End",
             id: 'end_time',
-            cell: (cell: any) => (<div className="">{Utils.formatDate(cell.getValue())}</div>),
+            cell: (cell) => (<span className="tabular-nums">{Utils.formatDate(cell.getValue())}</span>),
             sortingFn: 'datetime',
         }),
     ];
@@ -80,7 +69,7 @@ function JobList({
         columns.push(columnHelper.display({
             id: 'actions',
             header: () => (<div></div>),
-            cell: (cell: CellContext<Job, unknown>) => {
+            cell: (cell) => {
                 const job = cell.row.original;
                 return (
                     <div className="text-right">
@@ -95,7 +84,7 @@ function JobList({
                     </div>
                 );
             },
-        }) as typeof columns[number]);
+        }));
     }
 
     return (
@@ -108,12 +97,10 @@ function JobList({
             />
         )}
         <Table
-            title={title}
             actions={actions}
-            custom_actions={custom_actions}
-            data={loading ? [{}, {}, {}] : data}
-            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
-            paginated={paginated}
+            data={loading ? TableUtils.GetPlaceholderRows<Job>() : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
+            paginated={paginated && !loading}
             sorted={sorted}
         />
         </>
