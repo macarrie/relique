@@ -29,7 +29,7 @@
     "react-toastify": "^11.0.5",
     "remixicon": "^4.6.0",
     "tailwindcss": "^4.0.12",
-    "typescript": "~5.7.2"
+    "typescript": "~5.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
