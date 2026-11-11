@@ -1,6 +1,52 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "baseBranches": ["master"],
+  "enabledManagers": ["gomod", "npm"],
+  "labels": ["dependencies"],
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "packageRules": [
+    {
+      "description": "Go: group minor/patch updates",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "go dependencies (non-major)"
+    },
+    {
+      "description": "Go: skip the go/toolchain directives; Go version bumps stay manual",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang", "toolchain"],
+      "enabled": false
+    },
+    {
+      "description": "Web UI: group minor/patch updates",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["webui/package.json"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "webui dependencies (non-major)"
+    },
+    {
+      "description": "Web UI: keep related ecosystems together even for majors",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "react"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/vite", "daisyui"],
+      "groupName": "tailwind"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["eslint", "@eslint/js", "typescript-eslint", "/^eslint-plugin-/", "globals"],
+      "groupName": "eslint"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vite", "@vitejs/plugin-react"],
+      "groupName": "vite"
+    }
   ]
 }
