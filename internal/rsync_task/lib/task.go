@@ -67,9 +67,9 @@ func (t *Task) Run() error {
 	}
 
 	var wg sync.WaitGroup
+	wg.Add(2)
 	go processStdout(&wg, t, stdout)
 	go processStderr(&wg, t, stderr)
-	wg.Add(2)
 
 	if err = t.Rsync.Start(); err != nil {
 		// Close pipes to unblock goroutines

@@ -1,4 +1,4 @@
-FROM node:23-bookworm AS webui
+FROM node:26-bookworm AS webui
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt install -y make 
@@ -6,7 +6,7 @@ COPY . .
 RUN make webui
 
 
-FROM golang:1.24 AS base
+FROM golang:1.27 AS base
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN apt install -y git
