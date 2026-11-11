@@ -85,6 +85,7 @@ Adding an HTTP endpoint: add the route in `internal/server/routes.go` under the 
 
 - Function components with hooks (`useState`, `useEffect`, `useCallback`); one default-exported component per file; snake_case file names (`client_details.tsx`), PascalCase component names.
 - All files use `.tsx`, including types and utils. Types are `type X = {...}; export default X;` and use the API's snake_case field names.
+- Avoid using the "any" type in typescript
 - API calls go through `API.<resource>.<method>()` and use `.then/.catch`; errors are surfaced with `Utils.notify(Const.CRITICAL, ...)` (react-toastify).
 - Styling: Tailwind utility classes + daisyUI components; theme tokens are defined in `src/index.css`. Icons use Remix Icon classes (`ri-*`).
 - 4-space indentation, double quotes.
@@ -92,5 +93,5 @@ Adding an HTTP endpoint: add the route in `internal/server/routes.go` under the 
 ## Git conventions
 
 - Conventional-commit style subjects with scope: `feat(cli): …`, `fix(docker): …`, `feat(webui): …`.
-- Main branch is `master`; feature work happens on branches and merges through PRs.
+- Main branch is `master`; feature work happens on branches and merges through PRs. Do not commit directly in the `master` branch.
 - Release commits are `Release vX.Y.Z` made with `make release`.

@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 
-import { createColumnHelper } from "@tanstack/react-table";
+import { CellContext, createColumnHelper } from "@tanstack/react-table";
 import Image from "../types/image";
 import Utils from "../utils/utils";
 import Table from "./table";
 import TableUtils from "../utils/table";
 import { Column } from "react-table";
+import { useState } from "react";
+import ImageRemoveModal from "./image_remove_modal";
 
 function ImageList({
     title = "",
@@ -15,7 +17,12 @@ function ImageList({
     paginated = true,
     data = {} as Image[],
     loading = true,
+    // Display a delete button on each row
+    deletable = false,
+    // Called after a successful removal from a row delete button
+    onDeleted = undefined as ((uuid: string, jobRemoved: boolean) => void) | undefined,
 }) {
+    const [toRemove, setToRemove] = useState<Image | null>(null);
 
     function uuidDisplay(id: string) {
         if (!id) {
@@ -56,7 +63,33 @@ function ImageList({
         }),
     ];
 
+    if (deletable) {
+        columns.push(columnHelper.display({
+            id: 'actions',
+            header: () => (<div></div>),
+            cell: (cell: CellContext<Image, unknown>) => (
+                <div className="text-right">
+                    <button
+                        type="button"
+                        className="btn btn-ghost btn-xs text-error"
+                        title="Delete image"
+                        onClick={() => setToRemove(cell.row.original)}>
+                        <i className="ri-delete-bin-line text-base"></i>
+                    </button>
+                </div>
+            ),
+        }) as typeof columns[number]);
+    }
+
     return (
+        <>
+        {deletable && (
+            <ImageRemoveModal
+                image={toRemove}
+                onClose={() => setToRemove(null)}
+                onRemoved={(uuid: string, linkedRemoved: boolean) => onDeleted?.(uuid, linkedRemoved)}
+            />
+        )}
         <Table
             title={title}
             actions={actions}
@@ -66,6 +99,7 @@ function ImageList({
             paginated={paginated}
             sorted={sorted}
         />
+        </>
     );
 }
 

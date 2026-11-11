@@ -94,7 +94,19 @@ func saveDoneJob(t *testing.T, r repo.Repository, mod module.Module) Job {
 		t.Fatalf("cannot save test job: %v", err)
 	}
 	writeCatalog(t, j)
+	saveImageFor(t, j)
 	return j
+}
+
+// saveImageFor stores the image generated from a job, sharing its uuid
+func saveImageFor(t *testing.T, j Job) image.Image {
+	t.Helper()
+	img := image.New(j.Client, j.Module, j.Repository)
+	img.Uuid = j.Uuid
+	if _, err := img.Save(); err != nil {
+		t.Fatalf("cannot save test image: %v", err)
+	}
+	return img
 }
 
 func TestNewBackup(t *testing.T) {
@@ -421,6 +433,7 @@ func TestSetupBackupDiff(t *testing.T) {
 	if _, err := first.Save(); err != nil {
 		t.Fatal(err)
 	}
+	saveImageFor(t, first)
 
 	// Previous full job exists: diff is computed from it
 	second := NewBackup(testClient(), mod, r)
@@ -443,6 +456,7 @@ func TestSetupBackupDiff(t *testing.T) {
 	if _, err := second.Save(); err != nil {
 		t.Fatal(err)
 	}
+	saveImageFor(t, second)
 
 	// Previous diff job exists: diff is computed from latest diff
 	third := NewBackup(testClient(), mod, r)
@@ -587,5 +601,74 @@ func TestStart(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestDeleteAndExists(t *testing.T) {
+	r := setupTestEnv(t)
+	j := saveDoneJob(t, r, testModule("mod", backup_type.Full))
+
+	exists, err := Exists(j.Uuid)
+	if err != nil || !exists {
+		t.Fatalf("Exists() before delete = %v, %v, want true", exists, err)
+	}
+
+	if err := j.Delete(); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+
+	exists, err = Exists(j.Uuid)
+	if err != nil || exists {
+		t.Errorf("Exists() after delete = %v, %v, want false", exists, err)
+	}
+	// Image sharing the job uuid is not removed with the job
+	if imgExists, _ := image.Exists(j.Uuid); !imgExists {
+		t.Errorf("Delete() of a job must not delete its image")
+	}
+
+	unknown := Job{Uuid: "does-not-exist"}
+	if err := unknown.Delete(); err == nil {
+		t.Errorf("Delete() of an unknown job should return an error")
+	}
+}
+
+func TestGetPreviousSkipsJobsWithoutImage(t *testing.T) {
+	r := setupTestEnv(t)
+	mod := testModule("mod", backup_type.Full)
+
+	older := saveDoneJob(t, r, mod)
+	latest := saveDoneJob(t, r, mod)
+	img := image.Image{Uuid: latest.Uuid}
+	if err := img.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	current := NewBackup(testClient(), mod, r)
+	got, err := GetPrevious(current, backup_type.New(backup_type.Full))
+	if err != nil {
+		t.Fatalf("GetPrevious() error = %v", err)
+	}
+	if got.Uuid != older.Uuid {
+		t.Errorf("GetPrevious() = %v, want %v (latest job has no image anymore)", got.Uuid, older.Uuid)
+	}
+}
+
+func TestSetupRestoreWithoutSourceJob(t *testing.T) {
+	r := setupTestEnv(t)
+	source := saveDoneJob(t, r, testModule("mod", backup_type.Full, "/etc"))
+	if err := source.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	sourceImg, err := image.GetByUuid(source.Uuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	j := NewRestore(sourceImg, testClient(), nil)
+	if err := j.SetupRestore(); err != nil {
+		t.Fatalf("SetupRestore() from an image whose job was removed error = %v", err)
+	}
+	if len(j.Tasks) != 1 {
+		t.Errorf("SetupRestore() created %d tasks, want 1", len(j.Tasks))
 	}
 }

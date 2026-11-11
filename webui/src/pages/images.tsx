@@ -37,6 +37,8 @@ function Images() {
                     paginated={true}
                     sorted={true}
                     loading={loading}
+                    deletable={true}
+                    onDeleted={(uuid: string) => setImages(prev => prev.filter(img => img.uuid !== uuid))}
                 />
             </Card>
         </>

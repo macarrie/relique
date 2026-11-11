@@ -243,3 +243,36 @@ func TestAddPaginationParams(t *testing.T) {
 		t.Errorf("parsed limit = %v, want 7", limit)
 	}
 }
+
+func TestParseAge(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "days", args: "90d", want: 90 * 24 * time.Hour},
+		{name: "weeks", args: "2w", want: 14 * 24 * time.Hour},
+		{name: "hours", args: "12h", want: 12 * time.Hour},
+		{name: "go_duration", args: "1h30m", want: 90 * time.Minute},
+		{name: "spaces", args: " 1d ", want: 24 * time.Hour},
+		{name: "zero", args: "0d", wantErr: true},
+		{name: "negative", args: "-1d", wantErr: true},
+		{name: "negative_duration", args: "-1h", wantErr: true},
+		{name: "empty", args: "", wantErr: true},
+		{name: "garbage", args: "abc", wantErr: true},
+		{name: "no_number", args: "d", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseAge(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseAge() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseAge() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

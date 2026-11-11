@@ -11,6 +11,7 @@ import (
 	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
+	"github.com/macarrie/relique/internal/image"
 	"github.com/macarrie/relique/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,62 @@ import (
 var imageListPageSize int
 var imageListSearchModule string
 var imageListSearchClient string
+
+var imageRemoveOlderThan string
+var imageRemoveSearchModule string
+var imageRemoveSearchClient string
+var imageRemoveCleanJob bool
+
+// buildImageRemovalPlan selects the images to remove and the jobs linked to them, without modifying anything
+func buildImageRemovalPlan(args []string) (removalPlan, error) {
+	var selected []image.Image
+	if len(args) == 1 {
+		img, err := api.ImageGet(args[0])
+		if err != nil {
+			return removalPlan{}, fmt.Errorf("cannot get image details: %w", err)
+		}
+		selected = append(selected, img)
+	} else {
+		before, cutoff, err := olderThanCutoff(imageRemoveOlderThan)
+		if err != nil {
+			return removalPlan{}, fmt.Errorf("cannot parse --older-than: %w", err)
+		}
+		search := api_helpers.ImageSearch{
+			ModuleName: imageRemoveSearchModule,
+			ClientName: imageRemoveSearchClient,
+			Before:     before,
+		}
+		fmt.Printf("Selecting images created before %s\n", utils.FormatDatetime(cutoff))
+
+		imageList, err := api.ImageList(api_helpers.PaginationParams{Limit: 0}, search)
+		if err != nil {
+			return removalPlan{}, fmt.Errorf("cannot get image list: %w", err)
+		}
+		selected = imageList.Data
+	}
+
+	plan := removalPlan{ImagesToRemove: selected}
+	for _, img := range selected {
+		exists, err := api.JobExists(img.Uuid)
+		if err != nil {
+			return removalPlan{}, fmt.Errorf("cannot check if image '%s' has a linked job: %w", img.Uuid, err)
+		}
+		if !exists {
+			continue
+		}
+		j, err := api.JobGet(img.Uuid)
+		if err != nil {
+			return removalPlan{}, fmt.Errorf("cannot get job linked to image '%s': %w", img.Uuid, err)
+		}
+		if imageRemoveCleanJob {
+			plan.JobsToRemove = append(plan.JobsToRemove, j)
+		} else {
+			plan.JobsKept = append(plan.JobsKept, j)
+		}
+	}
+
+	return plan, nil
+}
 
 func init() {
 	imageCmd := &cobra.Command{
@@ -150,7 +207,49 @@ Directories: {{ .NumberOfFolders}}
 		},
 	}
 
+	imageRemoveCmd := &cobra.Command{
+		Use:     "remove [UUID]",
+		Aliases: []string{"rm"},
+		Short:   "Remove images and their data, by UUID or by age",
+		Long: `Remove an image by UUID, or every image older than a given age with --older-than.
+Image data stored in the repository is deleted.
+
+The job that generated the image is kept for history unless --clean-job is used.
+A recap of everything that will be removed is displayed and must be confirmed before anything is deleted.`,
+		Example: `  relique image remove 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+  relique image remove 1b4e28ba-2fa1-11d2-883f-0016d3cca427 --clean-job
+  relique image remove --older-than 90d --module my-module --yes`,
+		Args: validateRemoveArgs("client", "module"),
+		Run: func(cmd *cobra.Command, args []string) {
+			plan, err := buildImageRemovalPlan(args)
+			if err != nil {
+				slog.With(
+					slog.Any("error", err),
+				).Error("Cannot select images to remove")
+				os.Exit(1)
+			}
+
+			if !confirmRemoval(plan) {
+				return
+			}
+
+			uuids := make([]string, 0, len(plan.ImagesToRemove))
+			for _, img := range plan.ImagesToRemove {
+				uuids = append(uuids, img.Uuid)
+			}
+			runRemoval("image", uuids, func(uuid string) error {
+				return api.ImageRemove(uuid, imageRemoveCleanJob)
+			})
+		},
+	}
+	imageRemoveCmd.Flags().StringVarP(&imageRemoveOlderThan, "older-than", "", "", "Remove images created before this age (e.g. 90d, 2w, 12h)")
+	imageRemoveCmd.Flags().StringVarP(&imageRemoveSearchClient, "client", "", "", "With --older-than: filter on client name")
+	imageRemoveCmd.Flags().StringVarP(&imageRemoveSearchModule, "module", "m", "", "With --older-than: filter on module name")
+	imageRemoveCmd.Flags().BoolVarP(&imageRemoveCleanJob, "clean-job", "", false, "Also remove the job that generated the image")
+	imageRemoveCmd.Flags().BoolVarP(&assumeYes, "yes", "y", false, "Skip confirmation (the recap is still displayed)")
+
 	rootCmd.AddCommand(imageCmd)
 	imageCmd.AddCommand(imageListCmd)
 	imageCmd.AddCommand(imageShowCmd)
+	imageCmd.AddCommand(imageRemoveCmd)
 }

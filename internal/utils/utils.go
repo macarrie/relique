@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -125,4 +126,38 @@ func Confirm(label string) bool {
 
 	_, err := prompt.Run()
 	return err == nil
+}
+
+// ParseAge parses an age such as "90d", "2w" or any value accepted by time.ParseDuration ("12h", "30m")
+func ParseAge(s string) (time.Duration, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("cannot parse empty age")
+	}
+
+	var d time.Duration
+	unit := s[len(s)-1]
+	switch unit {
+	case 'd', 'w':
+		n, err := strconv.Atoi(s[:len(s)-1])
+		if err != nil {
+			return 0, fmt.Errorf("cannot parse age '%s': %w", s, err)
+		}
+		d = time.Duration(n) * 24 * time.Hour
+		if unit == 'w' {
+			d *= 7
+		}
+	default:
+		parsed, err := time.ParseDuration(s)
+		if err != nil {
+			return 0, fmt.Errorf("cannot parse age '%s' (expected format like 90d, 2w or 12h): %w", s, err)
+		}
+		d = parsed
+	}
+
+	if d <= 0 {
+		return 0, fmt.Errorf("cannot use age '%s': must be greater than zero", s)
+	}
+
+	return d, nil
 }

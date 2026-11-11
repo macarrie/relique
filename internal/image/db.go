@@ -301,3 +301,62 @@ func Count() (uint64, error) {
 
 	return count, nil
 }
+func (img *Image) Delete() error {
+	tx, err := db.Handler().Begin()
+	if err != nil {
+		return fmt.Errorf("cannot start transaction to delete image: %w", err)
+	}
+	// Defers are stacked, defer are executed in reverse order of stacking
+	defer func() {
+		if err != nil {
+			slog.With(
+				slog.String("uuid", img.Uuid),
+				slog.Any("error", err),
+			).Debug("Rollback image delete")
+			tx.Rollback()
+		}
+	}()
+
+	// Only the uuid is used: Delete can be called on a partially loaded struct
+	slog.With(slog.String("uuid", img.Uuid)).Debug("Deleting image from database")
+
+	query, args, err := sq.Delete("images").Where("uuid = ?", img.Uuid).ToSql()
+	if err != nil {
+		return fmt.Errorf("cannot build sql query: %w", err)
+	}
+
+	result, err := tx.Exec(query, args...)
+	if err != nil {
+		return fmt.Errorf("cannot delete image from db: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("cannot get number of deleted rows: %w", err)
+	}
+	if rowsAffected != 1 {
+		err = fmt.Errorf("no image with UUID '%s' found in db", img.Uuid)
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("cannot commit image delete transaction: %w", err)
+	}
+
+	return nil
+}
+
+func Exists(uuid string) (bool, error) {
+	var count uint64
+
+	query, args, err := sq.Select("COUNT(*)").From("images").Where("uuid = ?", uuid).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("cannot build sql query: %w", err)
+	}
+
+	if err := db.Handler().QueryRow(query, args...).Scan(&count); err != nil {
+		return false, fmt.Errorf("cannot check image existence in db: %w", err)
+	}
+
+	return count > 0, nil
+}

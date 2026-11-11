@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Card from '../components/card';
 import StatusBadge from '../components/status_badge';
 import Job from '../types/job';
@@ -12,6 +12,7 @@ import ClientCard from '../components/client_card';
 import ImageList from '../components/image_list';
 import Const from '../types/const';
 import TextPlaceholder from '../components/text_placeholder';
+import JobRemoveModal from '../components/job_remove_modal';
 
 function JobDetails() {
     const { job_uuid } = useParams();
@@ -19,6 +20,9 @@ function JobDetails() {
     let [img, setImage] = useState<Image>({} as Image);
     let [loading, setLoading] = useState<boolean>(true);
     let [imgLoading, setImgLoading] = useState<boolean>(true);
+    const [removeOpen, setRemoveOpen] = useState<boolean>(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         function getJob() {
@@ -53,9 +57,14 @@ function JobDetails() {
                 setImage(response.data);
                 setImgLoading(false);
             }).catch(error => {
+                setImage({} as Image);
+                setImgLoading(false);
+                // Restore jobs never have an image, and the image of a backup job can have been removed
+                if (error.response?.status === 404) {
+                    return;
+                }
                 console.log("Cannot get image details", error);
                 Utils.notify(Const.CRITICAL, "Image details loading", "Cannot get image details: " + error)
-                setImage({} as Image);
             });
         }
 
@@ -77,7 +86,21 @@ function JobDetails() {
                     <span className="text-l ml-4 code">
                         {j.uuid}
                     </span>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-error ml-4"
+                        disabled={loading || !j.done}
+                        title={j.done ? "Delete job" : "Job is still running and cannot be deleted"}
+                        onClick={() => setRemoveOpen(true)}>
+                        <i className="ri-delete-bin-line"></i>
+                        Delete
+                    </button>
                 </div>
+                <JobRemoveModal
+                    job={removeOpen ? j : null}
+                    onClose={() => setRemoveOpen(false)}
+                    onRemoved={() => navigate("/jobs")}
+                />
 
                 <div className="grid grid-cols-2 gap-4 m-4">
                     <Card>
@@ -169,6 +192,8 @@ function JobDetails() {
                     paginated={false}
                     sorted={false}
                     loading={imgLoading}
+                    deletable={true}
+                    onDeleted={(_uuid: string, jobRemoved: boolean) => jobRemoved ? navigate("/jobs") : setImage({} as Image)}
                 />
             </Card>
 

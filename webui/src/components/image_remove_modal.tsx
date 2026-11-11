@@ -1,0 +1,100 @@
+import { useEffect, useState } from "react";
+import { AxiosError, AxiosResponse } from "axios";
+
+import Job from "../types/job";
+import Image from "../types/image";
+import Const from "../types/const";
+import API from "../utils/api";
+import Utils from "../utils/utils";
+import RemoveModal from "./remove_modal";
+import TextPlaceholder from "./text_placeholder";
+
+// Asks confirmation before removing an image, with a recap of what is removed and what is kept.
+// onRemoved receives the image uuid and whether the job that generated it was removed too.
+type Props = {
+    image: Image | null,
+    onClose: () => void,
+    onRemoved: (uuid: string, jobRemoved: boolean) => void,
+};
+
+function ImageRemoveModal({ image, onClose, onRemoved }: Props) {
+    const [linkedJob, setLinkedJob] = useState<Job | null>(null);
+    const [linkedLoading, setLinkedLoading] = useState<boolean>(false);
+    const [cleanJob, setCleanJob] = useState<boolean>(false);
+
+    useEffect(() => {
+        setCleanJob(false);
+        setLinkedJob(null);
+        if (!image) {
+            return;
+        }
+
+        // Images share their uuid with the job that generated them
+        setLinkedLoading(true);
+        API.jobs.get(image.uuid).then((response: AxiosResponse<Job>) => {
+            setLinkedJob(response.data);
+        }).catch(() => {
+            setLinkedJob(null);
+        }).finally(() => {
+            setLinkedLoading(false);
+        });
+    }, [image]);
+
+    function remove(): Promise<unknown> {
+        if (!image) {
+            return Promise.resolve();
+        }
+
+        const jobRemoved = cleanJob && linkedJob !== null;
+        return API.images.delete(image.uuid, jobRemoved).then(() => {
+            Utils.notify(Const.OK, "Image removed", jobRemoved ? "Image and its job have been removed" : "Image has been removed");
+            onRemoved(image.uuid, jobRemoved);
+        }).catch((error: AxiosError<{ error?: string }>) => {
+            console.log("Cannot remove image", error);
+            Utils.notify(Const.CRITICAL, "Cannot remove image", error.response?.data?.error ?? error.toString());
+            throw error;
+        });
+    }
+
+    return (
+        <RemoveModal
+            open={image !== null}
+            title="Image removal"
+            confirmLabel={cleanJob && linkedJob ? "Delete image and job" : "Delete image"}
+            confirmDisabled={linkedLoading}
+            onConfirm={remove}
+            onClose={onClose}
+        >
+            <p>
+                The following image will be removed. Its backup data (<b>{Utils.formatSize(image?.size_on_disk ?? 0)}</b>) will
+                be permanently deleted from repository <b>{image?.repository?.name}</b>:
+            </p>
+            <table className="table table-sm">
+                <tbody>
+                    <tr><td>ID</td><td className="code">{image?.uuid}</td></tr>
+                    <tr><td>Client</td><td>{image?.client?.name}</td></tr>
+                    <tr><td>Module</td><td>{image?.module?.name}</td></tr>
+                    <tr><td>Date</td><td>{image && Utils.formatDate(image.created_at)}</td></tr>
+                    <tr><td>Size</td><td>{Utils.formatSize(image?.size_on_disk ?? 0)}</td></tr>
+                </tbody>
+            </table>
+
+            {linkedLoading && <TextPlaceholder />}
+            {!linkedLoading && linkedJob && (
+                <div className="space-y-2">
+                    <label className="label cursor-pointer text-base-content">
+                        <input type="checkbox" className="checkbox checkbox-error checkbox-sm" checked={cleanJob} onChange={e => setCleanJob(e.target.checked)} />
+                        Also remove the job that generated this image
+                    </label>
+                    {!cleanJob && (
+                        <p className="text-sm text-base-content/70">
+                            The job is kept in the job history, with its logs and statistics.
+                        </p>
+                    )}
+                </div>
+            )}
+        </RemoveModal>
+    );
+}
+
+export default ImageRemoveModal;
