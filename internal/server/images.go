@@ -59,3 +59,29 @@ func webAPIGetImageStats(c *gin.Context) {
 		"total_size": totalSize,
 	})
 }
+
+func webAPIDeleteImage(c *gin.Context) {
+	uuid := c.Param("uuid")
+	cleanJob := c.Query("clean_job") == "true"
+
+	img, err := api.ImageGet(uuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", uuid),
+		).Error("Cannot find image in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	if err := api.ImageRemove(uuid, cleanJob); err != nil {
+		img.GetLog().With(
+			slog.Any("error", err),
+			slog.Bool("clean_job", cleanJob),
+		).Error("Cannot remove image")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

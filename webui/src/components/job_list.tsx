@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 
-import { createColumnHelper } from "@tanstack/react-table";
+import { CellContext, createColumnHelper } from "@tanstack/react-table";
 import { Column } from "react-table";
 import StatusBadge from "../components/status_badge";
 import Job from "../types/job";
 import Utils from "../utils/utils";
 import JobUtils from "../utils/job";
 import Table from "../components/table";
-import React from "react";
+import React, { useState } from "react";
+import JobRemoveModal from "./job_remove_modal";
 import TableUtils from "../utils/table";
 
 function JobList({
@@ -18,7 +19,12 @@ function JobList({
     paginated = true,
     data = {} as Job[],
     loading = true,
+    // Display a delete button on each row
+    deletable = false,
+    // Called after a successful removal from a row delete button
+    onDeleted = undefined as ((uuid: string, imageRemoved: boolean) => void) | undefined,
 }) {
+    const [toRemove, setToRemove] = useState<Job | null>(null);
 
     function uuidDisplay(id: string) {
         if (!id) {
@@ -70,7 +76,37 @@ function JobList({
         }),
     ];
 
+    if (deletable) {
+        columns.push(columnHelper.display({
+            id: 'actions',
+            header: () => (<div></div>),
+            cell: (cell: CellContext<Job, unknown>) => {
+                const job = cell.row.original;
+                return (
+                    <div className="text-right">
+                        <button
+                            type="button"
+                            className="btn btn-ghost btn-xs text-error"
+                            disabled={!job.done}
+                            title={job.done ? "Delete job" : "Job is still running and cannot be deleted"}
+                            onClick={() => setToRemove(job)}>
+                            <i className="ri-delete-bin-line text-base"></i>
+                        </button>
+                    </div>
+                );
+            },
+        }) as typeof columns[number]);
+    }
+
     return (
+        <>
+        {deletable && (
+            <JobRemoveModal
+                job={toRemove}
+                onClose={() => setToRemove(null)}
+                onRemoved={(uuid: string, linkedRemoved: boolean) => onDeleted?.(uuid, linkedRemoved)}
+            />
+        )}
         <Table
             title={title}
             actions={actions}
@@ -80,6 +116,7 @@ function JobList({
             paginated={paginated}
             sorted={sorted}
         />
+        </>
     );
 }
 

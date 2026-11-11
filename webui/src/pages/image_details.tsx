@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Card from '../components/card';
 import Image from '../types/image';
 import API from '../utils/api';
@@ -11,6 +11,7 @@ import Job from '../types/job';
 import JobList from '../components/job_list';
 import Const from '../types/const';
 import TextPlaceholder from '../components/text_placeholder';
+import ImageRemoveModal from '../components/image_remove_modal';
 
 function ImageDetails() {
     const { img_uuid } = useParams();
@@ -18,6 +19,9 @@ function ImageDetails() {
     let [job, setJob] = useState<Job>({} as Job);
     let [loading, setLoading] = useState<boolean>(true);
     let [jobLoading, setJobLoading] = useState<boolean>(true);
+    const [removeOpen, setRemoveOpen] = useState<boolean>(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         function getImage() {
@@ -52,9 +56,14 @@ function ImageDetails() {
                 setJob(response.data);
                 setJobLoading(false);
             }).catch(error => {
+                setJob({} as Job);
+                setJobLoading(false);
+                // The job that generated the image can have been removed while keeping the image
+                if (error.response?.status === 404) {
+                    return;
+                }
                 console.log("Cannot get job details", error);
                 Utils.notify(Const.CRITICAL, "Cannot get job details", error.toString())
-                setJob({} as Job);
             });
         }
 
@@ -76,7 +85,20 @@ function ImageDetails() {
                     <span className="text-l ml-4 code">
                         {img.uuid}
                     </span>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-error ml-4"
+                        disabled={loading}
+                        onClick={() => setRemoveOpen(true)}>
+                        <i className="ri-delete-bin-line"></i>
+                        Delete
+                    </button>
                 </div>
+                <ImageRemoveModal
+                    image={removeOpen ? img : null}
+                    onClose={() => setRemoveOpen(false)}
+                    onRemoved={() => navigate("/images")}
+                />
 
                 <div className="grid md:grid-cols-2 gap-4 m-4">
                     <Card>
@@ -138,10 +160,12 @@ function ImageDetails() {
                 <JobList
                     title="Generated from job"
                     actions={false}
-                    data={[job]}
+                    data={job?.uuid ? [job] : []}
                     paginated={false}
                     sorted={false}
                     loading={jobLoading}
+                    deletable={true}
+                    onDeleted={(_uuid: string, imageRemoved: boolean) => imageRemoved ? navigate("/images") : setJob({} as Job)}
                 />
             </Card>
         </>

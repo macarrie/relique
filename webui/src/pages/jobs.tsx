@@ -37,6 +37,8 @@ function Jobs() {
                     paginated={true}
                     sorted={true}
                     loading={loading}
+                    deletable={true}
+                    onDeleted={(uuid: string) => setJobs(prev => prev.filter(j => j.uuid !== uuid))}
                 />
             </Card>
         </>

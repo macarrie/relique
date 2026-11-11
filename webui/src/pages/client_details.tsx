@@ -229,6 +229,8 @@ function ClientDetails() {
                     paginated={true}
                     sorted={true}
                     loading={imgsLoading}
+                    deletable={true}
+                    onDeleted={(uuid: string) => setImages(prev => prev.filter(img => img.uuid !== uuid))}
                 />
             </Card>
 

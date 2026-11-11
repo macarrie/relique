@@ -34,6 +34,9 @@ export default class API {
             let sp = new URLSearchParams(params)
             return API.handler().get('/jobs/' + uuid + '/logs?' + sp.toString());
         },
+        delete: function (uuid: string, cleanImage = false) {
+            return API.handler().delete('/jobs/' + uuid, { params: { clean_image: cleanImage } });
+        },
     };
 
     static clients = {
@@ -75,6 +78,9 @@ export default class API {
         },
         stats: function () {
             return API.handler().get('/images/stats');
+        },
+        delete: function (uuid: string, cleanJob = false) {
+            return API.handler().delete('/images/' + uuid, { params: { clean_job: cleanJob } });
         },
     };
 
