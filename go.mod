@@ -18,7 +18,7 @@ require (
 	github.com/lmittmann/tint v1.0.5
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-sqlite3 v1.14.22
-	github.com/pelletier/go-toml v1.9.5
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/samber/lo v1.47.0
 	github.com/spf13/cobra v1.8.1
