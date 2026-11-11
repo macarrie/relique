@@ -12,9 +12,11 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-var regexNumberOfFiles = regexp.MustCompile(`Number of files: (?P<nb>\d+) \(reg: (?P<reg>\d+)(, dir: (?P<dir>\d+))?\)`)
-var regexNumberOfCreatedFiles = regexp.MustCompile(`Number of created files: (?P<nb>\d+) \(reg: (?P<reg>\d+)\)`)
-var regexNumberOfDeletedFiles = regexp.MustCompile(`Number of deleted files: (?P<nb>\d+)`)
+// File counts can contain thousands separators ("1,234"). The log is not comma-stripped before matching these
+// regexes because the "(reg: X, dir: Y)" part contains a literal comma, so captured values are stripped instead.
+var regexNumberOfFiles = regexp.MustCompile(`Number of files: (?P<nb>[\d,]+) \(reg: (?P<reg>[\d,]+)(, dir: (?P<dir>[\d,]+))?\)`)
+var regexNumberOfCreatedFiles = regexp.MustCompile(`Number of created files: (?P<nb>[\d,]+) \(reg: (?P<reg>[\d,]+)\)`)
+var regexNumberOfDeletedFiles = regexp.MustCompile(`Number of deleted files: (?P<nb>[\d,]+)`)
 var regexTotalFileSize = regexp.MustCompile(`Total file size: (?P<size>[\d,]+) bytes`)
 var regexTotalTransferredFileSize = regexp.MustCompile(`Total transferred file size: (?P<size>[\d,]+) bytes`)
 var regexLiteralData = regexp.MustCompile(`Literal data: (?P<size>[\d,]+) bytes`)
@@ -79,26 +81,26 @@ func (s *Stats) GetFromRsyncLog(path string) error {
 
 	nbFiles := getMatchMap(regexNumberOfFiles, logContents)
 	if nbOfFiles, ok := nbFiles["nb"]; ok {
-		s.NumberOfFiles, _ = strconv.Atoi(nbOfFiles)
+		s.NumberOfFiles, _ = strconv.Atoi(stripCommas(nbOfFiles))
 	}
 	if nbOfRegularFiles, ok := nbFiles["reg"]; ok {
-		s.NumberOfRegularFiles, _ = strconv.Atoi(nbOfRegularFiles)
+		s.NumberOfRegularFiles, _ = strconv.Atoi(stripCommas(nbOfRegularFiles))
 	}
 	if nbOfDirectories, ok := nbFiles["dir"]; ok {
-		s.NumberOfDirectories, _ = strconv.Atoi(nbOfDirectories)
+		s.NumberOfDirectories, _ = strconv.Atoi(stripCommas(nbOfDirectories))
 	}
 
 	nbCreatedFiles := getMatchMap(regexNumberOfCreatedFiles, logContents)
 	if nbOfCreatedFiles, ok := nbCreatedFiles["nb"]; ok {
-		s.NumberOfCreatedFiles, _ = strconv.Atoi(nbOfCreatedFiles)
+		s.NumberOfCreatedFiles, _ = strconv.Atoi(stripCommas(nbOfCreatedFiles))
 	}
 	if nbOfCreatedRegularFiles, ok := nbCreatedFiles["reg"]; ok {
-		s.NumberOfCreatedRegularFiles, _ = strconv.Atoi(nbOfCreatedRegularFiles)
+		s.NumberOfCreatedRegularFiles, _ = strconv.Atoi(stripCommas(nbOfCreatedRegularFiles))
 	}
 
 	nbDeletedFiles := getMatchMap(regexNumberOfDeletedFiles, logContents)
 	if nbOfDeletedFiles, ok := nbDeletedFiles["nb"]; ok {
-		s.NumberOfDeletedFiles, _ = strconv.Atoi(nbOfDeletedFiles)
+		s.NumberOfDeletedFiles, _ = strconv.Atoi(stripCommas(nbOfDeletedFiles))
 	}
 
 	totalFileSizeResults := getMatchMap(regexTotalFileSize, stripCommas(logContents))

@@ -62,7 +62,7 @@ func (j *Job) SetupBackup() error {
 		j.Client.SSHUser = client.DEFAULT_SSH_USER
 	}
 
-	if j.Client.SSHPort != 0 {
+	if j.Client.SSHPort == 0 {
 		j.Client.SSHPort = client.DEFAULT_SSH_PORT
 	}
 
@@ -285,19 +285,28 @@ func (j *Job) Start() error {
 	j.GetLog().Debug("Starting job sync tasks")
 
 	ticker := time.NewTicker(1 * time.Second)
+	done := make(chan struct{})
 	var wg sync.WaitGroup
+	var syncStatusMutex sync.Mutex
 	syncHasIncomplete := false
 	syncHasError := false
 
-	for i, _ := range j.Tasks {
-		wg.Add(1)
-
-		go func(task *rsync_task.RsyncTask) {
-			for {
-				<-ticker.C
-				task.GetProgressLog().Info("File sync in progress")
+	// Log progress of every task periodically until all tasks are finished
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				for i := range j.Tasks {
+					j.Tasks[i].GetProgressLog().Info("File sync in progress")
+				}
 			}
-		}(&j.Tasks[i])
+		}
+	}()
+
+	for i := range j.Tasks {
+		wg.Add(1)
 
 		go func(task *rsync_task.RsyncTask) {
 			defer wg.Done()
@@ -314,13 +323,14 @@ func (j *Job) Start() error {
 				// 23 - Partial transfer due to error
 				// 24 - Partial transfer due to vanished source files
 				// 25 - The --max-delete limit stopped deletions
-				if exitErr, ok := err.(*exec.ExitError); ok {
-					if exitErr.ExitCode() >= 23 || exitErr.ExitCode() <= 25 {
-						syncHasIncomplete = true
-					} else {
-						syncHasError = true
-					}
+				syncStatusMutex.Lock()
+				if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() >= 23 && exitErr.ExitCode() <= 25 {
+					syncHasIncomplete = true
+				} else {
+					// Any other exit code, or a failure to start rsync at all
+					syncHasError = true
 				}
+				syncStatusMutex.Unlock()
 			}
 
 			logStruct := task.Task.Log()
@@ -341,6 +351,7 @@ func (j *Job) Start() error {
 
 	wg.Wait()
 	ticker.Stop()
+	close(done)
 
 	for i, _ := range j.Tasks {
 		// Print progress at least once at the end with sync stats
