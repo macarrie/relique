@@ -1,21 +1,18 @@
 import { Link } from "react-router-dom";
 
-import { CellContext, createColumnHelper } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import Image from "../types/image";
 import Utils from "../utils/utils";
 import Table from "./table";
-import TableUtils from "../utils/table";
-import { Column } from "react-table";
+import TableUtils, { TableColumns } from "../utils/table";
 import { useState } from "react";
 import ImageRemoveModal from "./image_remove_modal";
 
 function ImageList({
-    title = "",
     actions = true,
-    custom_actions = [],
     sorted = true,
     paginated = true,
-    data = {} as Image[],
+    data = [] as Image[],
     loading = true,
     // Display a delete button on each row
     deletable = false,
@@ -24,42 +21,34 @@ function ImageList({
 }) {
     const [toRemove, setToRemove] = useState<Image | null>(null);
 
-    function uuidDisplay(id: string) {
-        if (!id) {
-            return "unknown"
-        }
-
-        return id.split("-")[0]
-    }
-
     const columnHelper = createColumnHelper<Image>()
-    const columns = [
+    const columns: TableColumns<Image> = [
         columnHelper.accessor((img: Image) => img.uuid, {
-            header: () => (<div className="w-full">ID</div>),
+            header: () => "ID",
             id: 'id',
-            cell: (cell: any) => (<div className="code link-hover"><Link to={`/images/${cell.getValue()}`}>{uuidDisplay(cell.getValue())}</Link></div>),
+            cell: (cell) => (<Link to={`/images/${cell.getValue()}`} className="code text-link">{Utils.shortID(cell.getValue())}</Link>),
             enableSorting: false,
         }),
         columnHelper.accessor((img: Image) => img.client?.name, {
-            header: () => (<div>Client</div>),
+            header: () => "Client",
             id: 'client_name',
-            cell: (cell: any) => (<div><Link to={`/clients/${cell.getValue()}`} className="link link-primary link-hover">{cell.getValue()}</Link></div>)
+            cell: (cell) => (<Link to={`/clients/${cell.getValue()}`} className="text-link">{cell.getValue()}</Link>)
         }),
         columnHelper.accessor((img: Image) => img.module?.name, {
-            header: () => (<div>Module</div>),
+            header: () => "Module",
             id: 'module_name',
-            cell: (cell: any) => (<div><span className="badge badge-soft badge-neutral badge-sm">{cell.getValue()}</span></div>),
+            cell: (cell) => cell.getValue(),
         }),
         columnHelper.accessor('created_at', {
-            header: () => (<div>Date</div>),
+            header: () => "Date",
             id: 'created_at',
-            cell: (cell: any) => (<div>{Utils.formatDate(cell.getValue())}</div>),
+            cell: (cell) => (<span className="tabular-nums">{Utils.formatDate(cell.getValue())}</span>),
             sortingFn: 'datetime',
         }),
         columnHelper.accessor('size_on_disk', {
-            header: () => (<div>Size</div>),
+            header: () => "Size",
             id: 'size_on_disk',
-            cell: (cell: any) => (<div>{Utils.formatSize(cell.getValue())}</div>),
+            cell: (cell) => (<span className="tabular-nums">{Utils.formatSize(cell.getValue())}</span>),
         }),
     ];
 
@@ -67,7 +56,7 @@ function ImageList({
         columns.push(columnHelper.display({
             id: 'actions',
             header: () => (<div></div>),
-            cell: (cell: CellContext<Image, unknown>) => (
+            cell: (cell) => (
                 <div className="text-right">
                     <button
                         type="button"
@@ -78,7 +67,7 @@ function ImageList({
                     </button>
                 </div>
             ),
-        }) as typeof columns[number]);
+        }));
     }
 
     return (
@@ -91,12 +80,10 @@ function ImageList({
             />
         )}
         <Table
-            title={title}
             actions={actions}
-            custom_actions={custom_actions}
-            data={loading ? [{}, {}, {}] : data}
-            columns={loading ? TableUtils.GetPlaceholderColumns(columns as Column[]) : columns}
-            paginated={paginated}
+            data={loading ? TableUtils.GetPlaceholderRows<Image>() : data}
+            columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
+            paginated={paginated && !loading}
             sorted={sorted}
         />
         </>

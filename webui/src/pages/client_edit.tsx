@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Card from '../components/card';
+import PageHeader from '../components/page_header';
+import Section from '../components/section';
 import Const from '../types/const';
 import Client from '../types/client';
 import API from '../utils/api';
@@ -12,37 +13,28 @@ import lo from 'lodash';
 
 function ClientEdit() {
     const { client_name } = useParams();
-    let [client, setClient] = useState<Client>({} as Client);
-    let [mods, setModules] = useState<Module[]>([]);
-    let [formErrors, setFormErrors] = useState<string[]>([]);
+    const [client, setClient] = useState<Client>({} as Client);
+    const [mods, setModules] = useState<Module[]>([]);
 
     // true if edition, false if creation
-    let [editMode, setEditMode] = useState<Boolean>(false);
-    let [_, setLoading] = useState<boolean>(true);
+    const editMode = client_name !== undefined;
 
-    let navigate = useNavigate();
+    const navigate = useNavigate();
 
     useEffect(() => {
-        console.log(client_name)
-        if (client_name !== undefined) {
-            setEditMode(true)
-        }
-
         function getClient() {
-            setLoading(true);
             if (client_name === undefined) {
                 console.log("Client name undefined, cannot get client details");
                 return;
             }
 
-            API.clients.get(client_name).then((response: any) => {
-                let c: Client = response.data
+            API.clients.get(client_name).then((response) => {
+                const c: Client = response.data
                 c.state_is_loading = true;
                 c.ssh_alive = Const.UNKNOWN;
                 c.ssh_alive_message = "";
                 setClient(c);
                 setModules(c.modules ?? []);
-                setLoading(false);
             }).catch(error => {
                 console.log("Cannot get client details", error);
                 Utils.notify(Const.CRITICAL, "Cannot get client details", error.toString())
@@ -53,21 +45,22 @@ function ClientEdit() {
         getClient();
     }, [client_name])
 
-    function updateFormErrors() {
-        let errors: string[] = [];
+    function getFormErrors(): Record<string, string> {
+        const errors: Record<string, string> = {};
         if (lo.isEmpty(client.name)) {
-            errors.push("Empty client name")
+            errors.name = "A client name is required";
         }
         if (lo.isEmpty(client.address)) {
-            errors.push("Empty client address")
+            errors.address = "An address is required";
+        }
+        if (mods.some((m: Module) => lo.isEmpty(m.name))) {
+            errors.modules = "Every module needs a name";
         }
 
-        setFormErrors(errors)
+        return errors;
     }
 
-    useEffect(() => {
-        updateFormErrors();
-    }, [client, mods])
+    const formErrors = getFormErrors();
 
     function addModule() {
         setModules([
@@ -89,12 +82,12 @@ function ClientEdit() {
         }))
     }
 
-    function removeModule(mod: Module) {
-        setModules(mods.filter(m => m.name !== mod.name));
+    function removeModule(index: number) {
+        setModules(mods.filter((_m, i) => i !== index));
     }
 
     function reloadConfig() {
-        API.config.reload().then((_: any) => {
+        API.config.reload().then(() => {
             Utils.notify(Const.OK, "Configuration reloaded", "Redirecting to client details");
             navigate(`/clients/${client?.name}`);
         }).catch(error => {
@@ -105,10 +98,9 @@ function ClientEdit() {
 
     function createClient(e: React.MouseEvent<HTMLButtonElement>) {
         e.preventDefault();
-        let toSend: Client = client;
-        toSend.modules = mods
+        const toSend: Client = { ...client, modules: mods };
 
-        API.clients.create(toSend).then((_: any) => {
+        API.clients.create(toSend).then(() => {
             Utils.notify(Const.OK, "Client created", "Reloading configuration")
             reloadConfig()
         }).catch(error => {
@@ -119,10 +111,9 @@ function ClientEdit() {
 
     function saveClient(e: React.MouseEvent<HTMLButtonElement>) {
         e.preventDefault();
-        let toSend: Client = client;
-        toSend.modules = mods
+        const toSend: Client = { ...client, modules: mods };
 
-        API.clients.update(toSend).then((_: any) => {
+        API.clients.update(toSend).then(() => {
             Utils.notify(Const.OK, "Client saved", "Reloading configuration")
             reloadConfig()
         }).catch(error => {
@@ -132,7 +123,7 @@ function ClientEdit() {
     }
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let value: any
+        let value: string | number
         if (e.target.type == "number") {
             value = parseInt(e.target.value)
         } else {
@@ -145,130 +136,72 @@ function ClientEdit() {
         })
     }
 
+    const hasErrors = Object.keys(formErrors).length !== 0;
+
     return (
         <>
-            <Card>
-                <div className="px-6 py-4 flex items-center">
-                    <h3 className="flex-grow font-bold">
-                        General info
-                    </h3>
+            <PageHeader
+                title={editMode ? <><span className="font-normal text-muted">Edit client</span> {client_name}</> : "New client"}
+                actions={<>
+                    <Link to={editMode ? `/clients/${client_name}` : "/clients"} className="btn btn-sm">
+                        Cancel
+                    </Link>
+                    <button className="btn btn-sm btn-primary" onClick={editMode ? saveClient : createClient} disabled={hasErrors}>
+                        {editMode ? "Save changes" : "Create client"}
+                    </button>
+                </>}
+            />
 
-                    {editMode ? (
-                        <div className='space-x-2'>
-                            <Link to={`/clients/${client_name}`} className="cursor-pointer text-slate-500">
-                                <div className="btn btn-sm">
-                                    Close without saving
-                                </div>
-                            </Link>
-                            <button className='btn btn-success btn-sm' onClick={saveClient} disabled={formErrors.length != 0}>Save</button>
-                        </div>
-                    ) : (
-                        <div className=''>
-                            <button className='btn btn-success btn-sm' onClick={createClient} disabled={formErrors.length != 0}>Create</button>
-                        </div>
-                    )}
-                </div>
-                <div className='grid grid-cols-2 m-4 gap-4'>
-                    <form className='space-y-2'>
+            <Section title="Connection">
+                <form className="grid lg:grid-cols-2 gap-x-6 gap-y-1 max-w-5xl" onSubmit={(e) => e.preventDefault()}>
+                    <fieldset className="fieldset">
+                        <label className="label" htmlFor="client-name">Name</label>
+                        <input id="client-name" name="name" type="text" className={`input w-full disabled:bg-base-300/60 disabled:text-base-content/70 ${formErrors.name && client.name !== undefined ? "input-error" : ""}`} required placeholder="web-01" value={client.name ?? ""} onChange={onChange} disabled={editMode ? true : false} />
+                        {editMode
+                            ? <p className="label">The name cannot be changed after creation</p>
+                            : formErrors.name && client.name !== undefined && <p className="text-error">{formErrors.name}</p>}
+                    </fieldset>
+
+                    <fieldset className="fieldset">
+                        <label className="label" htmlFor="client-address">Address</label>
+                        <input id="client-address" name="address" type="text" className={`input w-full font-mono ${formErrors.address && client.address !== undefined ? "input-error" : ""}`} required placeholder="IP or FQDN" value={client.address ?? ""} onChange={onChange} />
+                        {formErrors.address && client.address !== undefined && <p className="text-error">{formErrors.address}</p>}
+                    </fieldset>
+
+                    <div className="grid grid-cols-2 gap-x-6">
                         <fieldset className="fieldset">
-                            <label className="label">Name</label>
-                            <div className="input validator">
-                                {editMode ? (
-                                    <input name="name" type="text" required placeholder="Client name" value={client.name} disabled />
-                                ) : (
-                                    <input name="name" type="text" required placeholder="Client name" value={client.name} onChange={onChange} />
-                                )}
-                                <span className="badge badge-outline badge-xs">Required</span>
-                            </div>
+                            <label className="label" htmlFor="client-ssh-user">SSH user</label>
+                            <input id="client-ssh-user" name="ssh_user" type="text" className="input w-full disabled:bg-base-300/60 disabled:text-base-content/70 font-mono" placeholder={Const.DEFAULT_CLIENT_SSH_USER} value={client.ssh_user ?? ""} onChange={onChange} />
                         </fieldset>
 
                         <fieldset className="fieldset">
-                            <label className="label">Address</label>
-                            <div className="input validator">
-                                <input name="address" type="text" required placeholder="IP or FQDN" value={client.address} onChange={onChange} />
-                                <span className="badge badge-outline badge-xs">Required</span>
-                            </div>
+                            <label className="label" htmlFor="client-ssh-port">SSH port</label>
+                            <input id="client-ssh-port" name="ssh_port" type="number" className="input w-full disabled:bg-base-300/60 disabled:text-base-content/70 font-mono" placeholder={String(Const.DEFAULT_CLIENT_SSH_PORT)} value={client.ssh_port || ""} onChange={onChange} />
                         </fieldset>
-
-                        <fieldset className="fieldset">
-                            <label className="label">SSH user</label>
-                            <input name="ssh_user" type="text" className="input" placeholder="relique" value={client.ssh_user} onChange={onChange} />
-                        </fieldset>
-
-                        <fieldset className="fieldset">
-                            <label className="label">SSH port</label>
-                            <input name="ssh_port" type="number" className="input" placeholder="22" value={client.ssh_port} onChange={onChange} />
-                        </fieldset>
-                    </form>
-                    <div className="space-y-2">
-                        <h3 className='font-bold'>Summary</h3>
-                        <table className='table'>
-                            <tbody>
-                                {formErrors.map((err: string) => (
-                                    <tr>
-                                        <td className='alert alert-soft alert-error'>
-                                            {err}
-                                        </td>
-                                    </tr>
-
-                                ))}
-                                {editMode ? (
-                                <>
-                                    <tr>
-                                        <td>
-                                            Editing client <span className="badge badge-neutral badge-soft">{client?.name}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        {(mods ?? []).length > (client?.modules ?? []).length && (
-                                            <td>
-                                                Adding <span className='code'>{mods.length ?? 0}</span> modules
-                                            </td>
-                                        )} 
-                                        {(mods ?? []).length < (client?.modules ?? []).length && (
-                                            <td>
-                                                Removing <span className='code'>{client?.modules.length - mods.length}</span> modules
-                                            </td>
-                                        )} 
-                                    </tr>
-                                </>
-                                ) : (
-                                <>
-                                    <tr>
-                                        <td>
-                                            Creating client <span className="badge badge-neutral badge-soft">{client?.name}</span> with address
-                                            <span className='code ml-2'>{client?.address || 'unknown'}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            Adding <span className='code'>{mods.length ?? 0}</span> modules
-                                        </td>
-                                    </tr>
-                                </>
-                                )}
-                            </tbody>
-                        </table>
                     </div>
-                </div>
-            </Card>
+                </form>
+            </Section>
 
-            <Card>
-                <div className="px-6 py-4 flex items-center">
-                    <h3 className="flex-grow font-bold">
-                        Modules
-                    </h3>
-
-                    <div className=''>
-                        <button className='btn btn-sm' onClick={addModule}>Add</button>
-                    </div>
+            <Section
+                title="Modules"
+                description={mods.length === 0 ? "No module configured yet." : undefined}
+                actions={
+                    <button className="btn btn-sm" onClick={addModule}>
+                        <i className="ri-add-line"></i>
+                        Add module
+                    </button>
+                }>
+                <div className="grid lg:grid-cols-2 gap-x-10 gap-y-10 max-w-5xl">
+                    {mods.map((m: Module, index: number) => (
+                        <ModuleForm
+                            key={index}
+                            id={`module-${index}`}
+                            onChange={(mod: Module) => updateModule(index, mod)}
+                            onDeleteRequest={() => removeModule(index)}
+                            module={m} />
+                    ))}
                 </div>
-                <div className='grid grid-cols-2 gap-4 m-4'>
-                    {mods.map((m: Module, index: number) => {
-                        return <ModuleForm className="border-dashed p-4" key={index} onChange={(mod: Module) => updateModule(index, mod)} onDeleteRequest={(mod :Module) => removeModule(mod)} module={m} />
-                    })}
-                </div>
-            </Card>
+            </Section>
         </>
     );
 }

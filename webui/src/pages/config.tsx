@@ -1,34 +1,36 @@
 import { useEffect, useState } from "react";
+import Config from "../types/config";
 
-import Card from "../components/card";
 import API from "../utils/api";
 import Const from "../types/const";
 import Utils from "../utils/utils";
-import TextPlaceholder from "../components/text_placeholder";
+import PageHeader from "../components/page_header";
+import Section from "../components/section";
+import PropertyList from "../components/property_list";
 
-function Config() {
-    let [serverConfig, setConfig] = useState<any>({});
-    let [loading, setLoading] = useState<boolean>(true);
+function ConfigPage() {
+    const [serverConfig, setConfig] = useState<Config>({} as Config);
+    const [loading, setLoading] = useState<boolean>(true);
 
     function reloadConfig() {
-        API.config.reload().then((_: any) => {
-            Utils.notify(Const.OK, "Config reloaded", "Configuration has been reloaded on server")
+        API.config.reload().then(() => {
+            Utils.notify(Const.OK, "Configuration reloaded", "")
             getConfig();
         }).catch(error => {
-            console.log("Cannot create client", error);
-            Utils.notify(Const.CRITICAL, "Cannot create client", error.toString())
+            console.log("Cannot reload config", error);
+            Utils.notify(Const.CRITICAL, "Cannot reload configuration", error.toString())
         });
     }
 
     function getConfig() {
         setLoading(true);
-        API.config.get().then((response: any) => {
+        API.config.get().then((response) => {
             setConfig(response.data ?? {});
             setLoading(false);
         }).catch(error => {
             console.log("Cannot get relique config", error);
             Utils.notify(Const.CRITICAL, "Cannot get config from server", error.toString())
-            setConfig({});
+            setConfig({} as Config);
         });
     }
 
@@ -36,119 +38,39 @@ function Config() {
         getConfig();
     }, [])
 
+    const cfg = serverConfig ?? {};
+
     return (
         <>
-            <Card>
-                <div className="p-4 flex flex-row items-center mb-2">
-                    <div className="flex-grow font-bold align-middle">Configuration paths</div>
-                    <div className="btn btn-sm" onClick={reloadConfig}>Reload config</div>
-                </div>
-                <div role="alert" className="alert alert-info alert-soft mx-4 mb-2">
-                    <span>Non absolute paths are relative to the configuration file used</span>
-                </div>
-                <table className="table">
-                    <tbody>
-                        <tr>
-                            <td>Current configuration file</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.current_file}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Database</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.client_cfg_path}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Catalog</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.catalog_path}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Clients</td>
-                            <td className="code">
-                                {serverConfig?.client_cfg_path}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Repositories</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.repo_cfg_path}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Modules</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.module_install_path}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </Card>
-            <Card>
-                <div className="p-4 flex flex-row items-center mb-2">
-                    <div className="flex-grow font-bold align-middle">Web UI settings</div>
-                </div>
-                <table className="table">
-                    <tbody>
-                        <tr>
-                            <td>Bind address</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.webui?.bind_addr}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Port</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.webui?.port}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>SSL cert</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.webui?.ssl_cert}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>SSL key</td>
-                            <td className="code">
-                                {loading && (
-                                    <TextPlaceholder />
-                                )}
-                                {serverConfig?.webui?.ssl_key}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </Card>
+            <PageHeader
+                title="Configuration"
+                actions={
+                    <button className="btn btn-sm" onClick={reloadConfig}>
+                        <i className="ri-refresh-line"></i>
+                        Reload configuration
+                    </button>
+                }
+            />
+            <Section title="Paths" description="Relative paths are resolved from the directory of the configuration file.">
+                <PropertyList loading={loading} items={[
+                    { label: "Configuration file", value: cfg.current_file, mono: true },
+                    { label: "Database", value: cfg.db_path, mono: true },
+                    { label: "Catalog", value: cfg.catalog_path, mono: true },
+                    { label: "Clients", value: cfg.client_cfg_path, mono: true },
+                    { label: "Repositories", value: cfg.repo_cfg_path, mono: true },
+                    { label: "Modules", value: cfg.module_install_path, mono: true },
+                ]} />
+            </Section>
+            <Section title="Web UI">
+                <PropertyList loading={loading} items={[
+                    { label: "Bind address", value: cfg.webui?.bind_addr, mono: true },
+                    { label: "Port", value: cfg.webui?.port, mono: true },
+                    { label: "SSL certificate", value: cfg.webui?.ssl_cert, mono: true },
+                    { label: "SSL key", value: cfg.webui?.ssl_key, mono: true },
+                ]} />
+            </Section>
         </>
     );
 }
 
-export default Config;
+export default ConfigPage;

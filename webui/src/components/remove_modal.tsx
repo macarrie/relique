@@ -35,15 +35,15 @@ function RemoveModal({
 
     return (
         <dialog ref={dialog} className="modal" onClose={() => { if (open) onClose(); }}>
-            <div className="modal-box max-w-2xl">
-                <h3 className="font-bold text-lg">{title}</h3>
-                <div className="py-4 space-y-4">
+            <div className="modal-box max-w-2xl space-y-3">
+                <h3 className="font-display text-lg font-semibold">{title}</h3>
+                <div className="space-y-4">
                     {children}
                     <p className="font-semibold text-error">This action is not recoverable.</p>
                 </div>
                 <div className="modal-action">
-                    <button type="button" className="btn" disabled={removing} onClick={onClose}>Cancel</button>
-                    <button type="button" className="btn btn-error" disabled={removing || confirmDisabled} onClick={confirm}>
+                    <button type="button" className="btn btn-sm" disabled={removing} onClick={onClose}>Cancel</button>
+                    <button type="button" className="btn btn-sm btn-error" disabled={removing || confirmDisabled} onClick={confirm}>
                         {removing && <span className="loading loading-spinner loading-sm"></span>}
                         <i className="ri-delete-bin-line"></i>
                         {confirmLabel}

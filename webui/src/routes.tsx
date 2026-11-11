@@ -21,12 +21,12 @@ const routes = [
     },
     {
         path: "/dashboard",
-        name: "Overview",
+        name: "Dashboard",
         elt: () => <Dashboard />
     },
     {
         path: "/jobs",
-        name: "All jobs",
+        name: "Jobs",
         elt: () => <Jobs />
     },
     {
@@ -36,12 +36,12 @@ const routes = [
     },
     {
         path: "/clients",
-        name: "All clients",
+        name: "Clients",
         elt: () => <Clients />
     },
     {
         path: "/clients/new",
-        name: "Create client",
+        name: "New client",
         elt: () => <ClientEdit />
     },
     {
@@ -56,7 +56,7 @@ const routes = [
     },
     {
         path: "/modules",
-        name: "All modules",
+        name: "Modules",
         elt: () => <Modules />
     },
     {
@@ -66,7 +66,7 @@ const routes = [
     },
     {
         path: "/images",
-        name: "All images",
+        name: "Images",
         elt: () => <Images />
     },
     {
@@ -76,7 +76,7 @@ const routes = [
     },
     {
         path: "/repositories",
-        name: "All repositories",
+        name: "Repositories",
         elt: () => <Repositories />
     },
     {

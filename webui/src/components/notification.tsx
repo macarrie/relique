@@ -9,13 +9,9 @@ function Notification({
     data,
 }: CustomNotificationProps) {
     return (
-        <div className="">
-            <h3 className="font-bold">
-                {data.title}
-            </h3>
-            <div className="flex items-center justify-between">
-                <p className="text-sm">{data.content}</p>
-            </div>
+        <div className="font-sans text-sm text-base-content">
+            <p className="font-semibold">{data.title}</p>
+            {data.content && <p className="text-muted break-words">{data.content}</p>}
         </div>
     );
 }

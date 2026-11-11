@@ -3,9 +3,41 @@ import Notification from "../components/notification";
 import Const from "../types/const";
 
 export default class Utils {
+    // Returns "—" for missing values and Go zero times (0001-01-01T00:00:00Z)
     static formatDate = function (d: string): string {
-        let obj = new Date(d);
+        if (!d) {
+            return "—";
+        }
+        const obj = new Date(d);
+        if (isNaN(obj.getTime()) || obj.getFullYear() <= 1) {
+            return "—";
+        }
         return obj.toLocaleString();
+    }
+
+    static formatDuration = function (start: string, end: string): string {
+        const s = new Date(start), e = new Date(end);
+        if (!start || !end || isNaN(s.getTime()) || isNaN(e.getTime()) || s.getFullYear() <= 1 || e.getFullYear() <= 1) {
+            return "";
+        }
+        let secs = Math.max(0, Math.round((e.getTime() - s.getTime()) / 1000));
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        secs = secs % 60;
+        if (h > 0) {
+            return `${h}h ${m}m`;
+        }
+        if (m > 0) {
+            return `${m}m ${secs}s`;
+        }
+        return `${secs}s`;
+    }
+
+    static shortID = function (id: string): string {
+        if (!id) {
+            return "unknown";
+        }
+        return id.split("-")[0];
     }
     static formatSize = function (bytes: number, si = false, dp = 1) {
         const thresh = si ? 1000 : 1024;

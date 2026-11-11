@@ -1,10 +1,14 @@
 import { Link, matchPath, useLocation, useMatch } from "react-router-dom";
 import routes from "../routes";
-import * as _ from "lodash";
 
-function useCrumbs() {
-    let location = useLocation();
-    let default_breadcrumbs = [
+type Crumb = {
+    name: string,
+    path: string,
+};
+
+function useCrumbs(): Crumb[] {
+    const location = useLocation();
+    const default_breadcrumbs: Crumb[] = [
         {
             name: "Home",
             path: "/"
@@ -15,67 +19,52 @@ function useCrumbs() {
         }
     ]
 
-    let matchedRoute = routes.find((r: any) => {
+    const matchedRoute = routes.find((r) => {
         if (r.path === "*") {
             return false;
         }
 
-        let match = matchPath(r.path, location.pathname);
+        const match = matchPath(r.path, location.pathname);
         return match !== null;
     }) || { path: "/404" };
 
-    let urlMatch = useMatch(matchedRoute.path);
+    const urlMatch = useMatch(matchedRoute.path);
     if (urlMatch === null) {
         return default_breadcrumbs;
     }
 
-    let currentPath = matchedRoute.path;
-    return _.cloneDeep(routes).filter((route: any) => currentPath.includes(route.path))
-        .map((item: any) => {
-            let toReplace = item.path;
-            // @ts-ignore
-            Object.entries(urlMatch.params).forEach(([param, value], _) => {
+    const currentPath = matchedRoute.path;
+    return routes.filter((route) => currentPath.includes(route.path))
+        .map((route): Crumb => {
+            let path = route.path;
+            Object.entries(urlMatch.params).forEach(([param, value]) => {
                 if (value !== undefined) {
-                    toReplace = toReplace.replace(":" + param, value.toString())
+                    path = path.replace(":" + param, value.toString())
                 }
             });
-            item.path = toReplace;
-            return item;
+            return { name: route.name, path: path };
         })
 }
 
 function Breadcrumb() {
-    let breadcrumbs = useCrumbs();
+    const breadcrumbs = useCrumbs();
 
-    function renderCrumb(nav: any) {
-        if (nav.path === "/") {
-            return (
-                <li key={nav.path}>
-                    <div className="text-xl mr-2">
-                        <i className="ri-home-2-line"></i>
-                    </div>
-                    <Link to={nav.path} className="">
-                        {nav.name}
-                    </Link>
-                </li>
-            );
-        }
-
+    function renderCrumb(nav: Crumb) {
         return (
-            <li aria-current="page" key={nav.path}>
-                <Link to={nav.path} className="link-hover text-base-content/70">{nav.name}</Link>
+            <li key={nav.path}>
+                <Link to={nav.path} className="hover:text-base-content hover:underline underline-offset-2">{nav.name}</Link>
             </li>
         )
     }
 
-    function renderCrumbsLine(crumbs: any) {
+    function renderCrumbsLine(crumbs: Crumb[]) {
         return <>
-            {crumbs.map((item: any) => renderCrumb(item))}
+            {crumbs.map((item) => renderCrumb(item))}
         </>
     }
 
     return (
-        <div className="breadcrumbs text-sm">
+        <div className="breadcrumbs p-0 text-xs text-muted">
             <ul>
                 {renderCrumbsLine(breadcrumbs)}
             </ul>

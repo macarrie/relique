@@ -1,16 +1,26 @@
-import { Column } from "react-table";
+import { ColumnDef } from "@tanstack/react-table";
 import * as _ from "lodash";
 
-export default class TableUtils {
-    static GetPlaceholderColumns = function <T extends Object>(columns: Array<Column<T>>): Array<Column<T>> {
-        let copy = _.cloneDeep(columns);
+// Columns built with createColumnHelper have heterogeneous value types, so the
+// value type parameter has to be `any` (as recommended by the TanStack docs).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TableColumns<T> = ColumnDef<T, any>[];
 
-        return copy.map((col: Column<T>) => {
-            col.accessor = () => "";
-            //@ts-ignore
-            col.cell = (cell: any) => <div className=""><div className="h-2 w-3/4 skeleton"></div></div>;
-            return col;
-        });
+const PLACEHOLDER_ROWS = 3;
+
+export default class TableUtils {
+    // Replace every column accessor and cell renderer so that the table can be
+    // rendered with empty placeholder rows while data is loading
+    static GetPlaceholderColumns = function <T>(columns: TableColumns<T>): TableColumns<T> {
+        return columns.map((col) => ({
+            ...col,
+            accessorFn: () => "",
+            cell: () => <span className="skeleton inline-block h-3 w-3/4 align-middle"></span>,
+        }));
+    };
+
+    static GetPlaceholderRows = function <T>(): T[] {
+        return Array.from({ length: PLACEHOLDER_ROWS }, () => ({}) as T);
     };
 
     static getPaginationItems = function (

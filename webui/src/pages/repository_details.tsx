@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
-import Card from '../components/card';
 import API from '../utils/api';
 import Repository from '../types/repository';
-import RepositoryCard from '../components/repository_card';
 import Const from '../types/const';
 import Utils from '../utils/utils';
+import PageHeader from '../components/page_header';
+import Section from '../components/section';
+import RepositoryProperties from '../components/repository_properties';
 
 function RepositoryDetails() {
     const { repo_name } = useParams();
-    let [repo, setRepo] = useState<Repository>({} as Repository);
-    let [loading, setLoading] = useState<boolean>(true);
+    const [repo, setRepo] = useState<Repository>({} as Repository);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getModule() {
@@ -20,7 +21,7 @@ function RepositoryDetails() {
                 return;
             }
 
-            API.repos.get(repo_name).then((response: any) => {
+            API.repos.get(repo_name).then((response) => {
                 setRepo(response.data);
                 setLoading(false);
             }).catch(error => {
@@ -35,16 +36,14 @@ function RepositoryDetails() {
 
     return (
         <>
-            <Card>
-                <div className="px-6 py-4 flex">
-                    <h3 className="flex-grow font-bold">
-                        Repository details
-                    </h3>
-                </div>
-                <div className="m-4">
-                    <RepositoryCard loading={loading} repo={repo} />
-                </div>
-            </Card>
+            <PageHeader
+                title={<><span className="font-normal text-muted">Repository</span> {repo.name}</>}
+                loading={loading}
+                meta={!loading && <span>{repo.type} repository{repo.default && ", used by default"}</span>}
+            />
+            <Section title="Settings">
+                <RepositoryProperties loading={loading} repo={repo} />
+            </Section>
         </>
     );
 }

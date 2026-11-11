@@ -11,7 +11,7 @@ type Image = {
     number_of_files: boolean,
     number_of_folders: string,
     size_on_disk: number,
-    created_at: any,
+    created_at: string,
 };
 
 export default Image;

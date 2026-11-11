@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-import Card from "../components/card";
+import PageHeader from "../components/page_header";
+import Section from "../components/section";
 import API from "../utils/api";
 import Job from "../types/job";
 import JobList from "../components/job_list";
@@ -8,13 +9,13 @@ import Const from "../types/const";
 import Utils from "../utils/utils";
 
 function Jobs() {
-    let [jobs, setJobs] = useState<Job[]>([]);
-    let [loading, setLoading] = useState<boolean>(true);
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         function getJobList() {
             setLoading(true);
-            API.jobs.list({ limit: 10000 }).then((response: any) => {
+            API.jobs.list({ limit: 10000 }).then((response) => {
                 setJobs(response.data.data ?? []);
                 setLoading(false);
             }).catch(error => {
@@ -29,9 +30,9 @@ function Jobs() {
 
     return (
         <>
-            <Card>
+            <PageHeader title="Jobs" />
+            <Section>
                 <JobList
-                    title="All jobs"
                     actions={true}
                     data={jobs}
                     paginated={true}
@@ -40,7 +41,7 @@ function Jobs() {
                     deletable={true}
                     onDeleted={(uuid: string) => setJobs(prev => prev.filter(j => j.uuid !== uuid))}
                 />
-            </Card>
+            </Section>
         </>
     );
 }

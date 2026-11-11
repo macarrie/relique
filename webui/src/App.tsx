@@ -29,7 +29,7 @@ function App() {
 
       <ToastContainer
         position="top-right"
-        theme="colored"
+        theme="light"
       />
     </BrowserRouter >
   );
