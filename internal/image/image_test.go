@@ -325,3 +325,55 @@ func TestApplySearchParams(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteAndExists(t *testing.T) {
+	r := setupTestEnv(t)
+	img := saveTestImage(t, r, "mod")
+	other := saveTestImage(t, r, "mod")
+
+	exists, err := Exists(img.Uuid)
+	if err != nil || !exists {
+		t.Fatalf("Exists() before delete = %v, %v, want true", exists, err)
+	}
+
+	if err := img.Delete(); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+
+	exists, err = Exists(img.Uuid)
+	if err != nil || exists {
+		t.Errorf("Exists() after delete = %v, %v, want false", exists, err)
+	}
+	if exists, _ := Exists(other.Uuid); !exists {
+		t.Errorf("Delete() must not remove other images")
+	}
+
+	if err := img.Delete(); err == nil {
+		t.Errorf("Delete() of an already deleted image should return an error")
+	}
+	unknown := Image{Uuid: "does-not-exist"}
+	if err := unknown.Delete(); err == nil {
+		t.Errorf("Delete() of an unknown image should return an error")
+	}
+}
+
+func TestSearchBefore(t *testing.T) {
+	r := setupTestEnv(t)
+	old := New(testClient(), testModule("mod"), r)
+	old.CreatedAt = time.Now().Add(-100 * 24 * time.Hour)
+	if _, err := old.Save(); err != nil {
+		t.Fatal(err)
+	}
+	writeCatalog(t, old)
+	saveTestImage(t, r, "mod")
+
+	// Same format as the one used by the CLI --older-than flag
+	before := time.Now().Add(-90 * 24 * time.Hour).UTC().Format("2006-01-02 15:04:05")
+	imgs, err := Search(api_helpers.PaginationParams{}, api_helpers.ImageSearch{Before: before}, "")
+	if err != nil {
+		t.Fatalf("Search() error = %v", err)
+	}
+	if len(imgs) != 1 || imgs[0].Uuid != old.Uuid {
+		t.Errorf("Search() with Before returned %d images, want only the old one", len(imgs))
+	}
+}

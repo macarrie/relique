@@ -204,13 +204,13 @@ func (j *Job) SetupRestore() error {
 		return fmt.Errorf("cannot setup job logs folder: %w", err)
 	}
 
-	restoreSourceJob, err := GetByUuid(j.RestoreImageUuid)
+	restoreSourceImage, err := image.GetByUuid(j.RestoreImageUuid)
 	if err != nil {
-		return fmt.Errorf("cannot get restore source job from db: %w", err)
+		return fmt.Errorf("cannot get restore source image from db: %w", err)
 	}
-	restoreSourceFolderPath, err := restoreSourceJob.GetStorageFolderPath()
+	restoreSourceFolderPath, err := restoreSourceImage.GetStorageFolderPath()
 	if err != nil {
-		return fmt.Errorf("cannot determine job storage folder: %w", err)
+		return fmt.Errorf("cannot determine image storage folder: %w", err)
 	}
 
 	var tasks []rsync_task.RsyncTask

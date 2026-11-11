@@ -341,10 +341,13 @@ func GetPrevious(j Job, backupType backup_type.BackupType) (Job, error) {
 		slog.String("backup_type", j.BackupType.String()),
 	).Debug("Looking for previous backup job")
 
+	// Only jobs whose image still exists can be used as a diff reference: the image data is used as rsync --link-dest
 	request := sq.Select(
-		"uuid",
+		"jobs.uuid",
 	).From(
 		"jobs",
+	).Join(
+		"images ON images.uuid = jobs.uuid",
 	).Where(
 		"jobs.backup_type = ?", backupType.Type,
 	).Where(
@@ -405,4 +408,64 @@ func GetPrevious(j Job, backupType backup_type.BackupType) (Job, error) {
 	}
 
 	return jobFromDB, nil
+}
+
+func (j *Job) Delete() error {
+	tx, err := db.Handler().Begin()
+	if err != nil {
+		return fmt.Errorf("cannot start transaction to delete job: %w", err)
+	}
+	// Defers are stacked, defer are executed in reverse order of stacking
+	defer func() {
+		if err != nil {
+			slog.With(
+				slog.String("uuid", j.Uuid),
+				slog.Any("error", err),
+			).Debug("Rollback job delete")
+			tx.Rollback()
+		}
+	}()
+
+	// Only the uuid is used: Delete can be called on a partially loaded struct
+	slog.With(slog.String("uuid", j.Uuid)).Debug("Deleting job from database")
+
+	query, args, err := sq.Delete("jobs").Where("uuid = ?", j.Uuid).ToSql()
+	if err != nil {
+		return fmt.Errorf("cannot build sql query: %w", err)
+	}
+
+	result, err := tx.Exec(query, args...)
+	if err != nil {
+		return fmt.Errorf("cannot delete job from db: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("cannot get number of deleted rows: %w", err)
+	}
+	if rowsAffected != 1 {
+		err = fmt.Errorf("no job with UUID '%s' found in db", j.Uuid)
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("cannot commit job delete transaction: %w", err)
+	}
+
+	return nil
+}
+
+func Exists(uuid string) (bool, error) {
+	var count uint64
+
+	query, args, err := sq.Select("COUNT(*)").From("jobs").Where("uuid = ?", uuid).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("cannot build sql query: %w", err)
+	}
+
+	if err := db.Handler().QueryRow(query, args...).Scan(&count); err != nil {
+		return false, fmt.Errorf("cannot check job existence in db: %w", err)
+	}
+
+	return count > 0, nil
 }
