@@ -1,11 +1,13 @@
 package server
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/macarrie/relique/api"
+	"github.com/macarrie/relique/internal/job"
 )
 
 func webAPIListJobs(c *gin.Context) {
@@ -67,4 +69,43 @@ func webAPIDeleteJob(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func webAPIPostJobRetry(c *gin.Context) {
+	uuid := c.Param("uuid")
+
+	if _, err := api.JobGet(uuid); err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", uuid),
+		).Error("Cannot find job in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	retry, err := api.JobRetrySetup(uuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", uuid),
+		).Error("Cannot retry job")
+		if errors.Is(err, job.ErrRestoreNotRetryable) || errors.Is(err, job.ErrJobNotFinished) {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, retry)
+
+	// The job can run for a long time: run it in background so the client can follow it from the new job details
+	go func(j job.Job) {
+		if err := api.JobRetryRun(&j); err != nil {
+			j.GetLog().With(
+				slog.Any("error", err),
+				slog.String("original_uuid", uuid),
+			).Error("Error during retried job")
+		}
+	}(retry)
 }

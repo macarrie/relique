@@ -1,11 +1,13 @@
 package job
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,6 +52,58 @@ func NewRestore(img image.Image, targetClient client.Client, restorePaths map[st
 		RestoreImageUuid:   img.Uuid,
 		CustomRestorePaths: restorePaths,
 	}
+}
+
+// ErrRestoreNotRetryable is returned when trying to retry a restore job. Restores overwrite data
+// on the target client so they must be started again manually by the user
+var ErrRestoreNotRetryable = errors.New("restore jobs are not retried automatically because they overwrite data on the target client")
+
+// ErrJobNotFinished is returned when trying to retry a job that is still pending or running
+var ErrJobNotFinished = errors.New("job is not finished")
+
+// NewRetry builds a new pending job reusing the parameters of a finished backup job
+func (j *Job) NewRetry() (Job, error) {
+	if !j.Done {
+		return Job{}, fmt.Errorf("cannot retry job '%s' with status '%s': %w", j.Uuid, j.Status.String(), ErrJobNotFinished)
+	}
+
+	switch j.JobType.Type {
+	case job_type.Backup:
+		return NewBackup(j.Client, j.Module, j.Repository), nil
+	case job_type.Restore:
+		return Job{}, fmt.Errorf("cannot retry job '%s': %w", j.Uuid, ErrRestoreNotRetryable)
+	default:
+		return Job{}, fmt.Errorf("cannot retry job '%s' of type '%s'", j.Uuid, j.JobType.String())
+	}
+}
+
+// RestoreCommand returns the relique CLI command that starts a restore with the same parameters as this restore job.
+// Custom restore paths are not recorded with the job and cannot be included in the command
+func (j *Job) RestoreCommand() string {
+	args := []string{
+		"relique", "restore",
+		"--image", shellQuote(j.RestoreImageUuid),
+		"--to", shellQuote(j.Client.Name),
+	}
+	for _, include := range j.Module.Include {
+		args = append(args, "--include", shellQuote(include))
+	}
+	for _, exclude := range j.Module.Exclude {
+		args = append(args, "--exclude", shellQuote(exclude))
+	}
+	if j.Module.ExcludeCVS {
+		args = append(args, "--exclude-cvs")
+	}
+
+	return strings.Join(args, " ")
+}
+
+// shellQuote single-quotes a value when it contains characters interpreted by the shell
+func shellQuote(s string) string {
+	if s != "" && !strings.ContainsAny(s, " \t\n'\"\\$`!*?[]{}()<>|&;#~") {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func (j *Job) SetupBackup() error {

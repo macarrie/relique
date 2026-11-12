@@ -61,7 +61,9 @@ export default class Utils {
         return bytes.toFixed(dp) + ' ' + units[u];
     }
 
-    static notify = function (status: number, title: string, content: string) {
+    // options.autoClose overrides the display time (ms) of the notification.
+    // options.onClose is called once the notification is closed, after its display time or when dismissed by the user
+    static notify = function (status: number, title: string, content: string, options: { autoClose?: number, onClose?: () => void } = {}) {
         let func
         switch (status) {
             case Const.OK: {
@@ -86,7 +88,9 @@ export default class Utils {
             data: {
                 title: title,
                 content: content,
-            }
+            },
+            ...(options.autoClose !== undefined && { autoClose: options.autoClose }),
+            onClose: options.onClose,
         })
     }
 }

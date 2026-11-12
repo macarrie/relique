@@ -13,6 +13,7 @@ import PropertyList from '../components/property_list';
 import ClientProperties from '../components/client_properties';
 import ModuleProperties from '../components/module_properties';
 import JobRemoveModal from '../components/job_remove_modal';
+import JobRetryButton from '../components/job_retry_button';
 
 function JobDetails() {
     const { job_uuid } = useParams();
@@ -86,13 +87,16 @@ function JobDetails() {
                     </>
                 )}
                 actions={
-                    <button type="button" className="btn btn-sm btn-ghost text-error"
-                        disabled={loading || !j.done}
-                        title={j.done ? "Delete job" : "Job is still running and cannot be deleted"}
-                        onClick={() => setRemoveOpen(true)}>
-                        <i className="ri-delete-bin-line"></i>
-                        Delete
-                    </button>
+                    <>
+                        <JobRetryButton key={j.uuid} job={j} disabled={loading} />
+                        <button type="button" className="btn btn-sm btn-ghost text-error"
+                            disabled={loading || !j.done}
+                            title={j.done ? "Delete job" : "Job is still running and cannot be deleted"}
+                            onClick={() => setRemoveOpen(true)}>
+                            <i className="ri-delete-bin-line"></i>
+                            Delete
+                        </button>
+                    </>
                 }
             />
             <JobRemoveModal

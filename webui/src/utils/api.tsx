@@ -37,6 +37,10 @@ export default class API {
         delete: function (uuid: string, cleanImage = false) {
             return API.handler().delete('/jobs/' + uuid, { params: { clean_image: cleanImage } });
         },
+        // Starts a new job with the same parameters. Responds with the new job before it finishes
+        retry: function (uuid: string) {
+            return API.handler().post('/jobs/' + uuid + '/retry');
+        },
     };
 
     static clients = {
