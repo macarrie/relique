@@ -36,9 +36,24 @@ func JobGet(uuid string) (job.Job, error) {
 	return j, nil
 }
 
-// JobRetry starts a new job with the same parameters as the finished job identified by uuid.
+// JobRetry starts a new job with the same parameters as the finished job identified by uuid and waits for its end.
 // The new job is returned even if its run fails, so callers can reference it
 func JobRetry(uuid string) (job.Job, error) {
+	retry, err := JobRetrySetup(uuid)
+	if err != nil {
+		return retry, err
+	}
+
+	if err := JobRetryRun(&retry); err != nil {
+		return retry, err
+	}
+
+	return retry, nil
+}
+
+// JobRetrySetup prepares a retry of the finished job identified by uuid.
+// The new job is set up and saved in database but not started: use JobRetryRun to run it
+func JobRetrySetup(uuid string) (job.Job, error) {
 	original, err := job.GetByUuid(uuid)
 	if err != nil {
 		return job.Job{}, fmt.Errorf("cannot get job from db: %w", err)
@@ -52,11 +67,20 @@ func JobRetry(uuid string) (job.Job, error) {
 	retry.GetLog().With(
 		slog.String("original_uuid", original.Uuid),
 	).Info("Retrying job")
-	if err := runBackup(&retry); err != nil {
-		return retry, fmt.Errorf("error during retried job: %w", err)
+	if err := retry.SetupBackup(); err != nil {
+		return retry, fmt.Errorf("cannot setup retried job: %w", err)
 	}
 
 	return retry, nil
+}
+
+// JobRetryRun runs a job prepared by JobRetrySetup
+func JobRetryRun(retry *job.Job) error {
+	if err := startBackup(retry); err != nil {
+		return fmt.Errorf("error during retried job: %w", err)
+	}
+
+	return nil
 }
 
 func JobExists(uuid string) (bool, error) {

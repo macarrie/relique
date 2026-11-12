@@ -32,8 +32,8 @@ func TestJobRetryNotDone(t *testing.T) {
 	r := setupRemoveTestEnv(t)
 	a := createJob(t, r, job_type.Backup, false, false)
 
-	if _, err := JobRetry(a.uuid); err == nil {
-		t.Errorf("JobRetry() of a running job should return an error")
+	if _, err := JobRetry(a.uuid); !errors.Is(err, job.ErrJobNotFinished) {
+		t.Errorf("JobRetry() of a running job error = %v, want %v", err, job.ErrJobNotFinished)
 	}
 	if got := jobCount(t); got != 1 {
 		t.Errorf("job count = %d after refused retry, want 1", got)

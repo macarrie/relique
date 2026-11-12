@@ -39,6 +39,7 @@ function Jobs() {
                     sorted={true}
                     loading={loading}
                     deletable={true}
+                    retryable={true}
                     onDeleted={(uuid: string) => setJobs(prev => prev.filter(j => j.uuid !== uuid))}
                 />
             </Section>

@@ -22,6 +22,11 @@ func runBackup(j *job.Job) error {
 		return fmt.Errorf("cannot setup job:  %w", err)
 	}
 
+	return startBackup(j)
+}
+
+// startBackup runs a backup job that has already been set up
+func startBackup(j *job.Job) error {
 	if err := ClientSSHPing(j.Client); err != nil {
 		j.EndTime = time.Now()
 		j.Status.Status = job_status.Error

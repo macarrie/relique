@@ -58,10 +58,13 @@ func NewRestore(img image.Image, targetClient client.Client, restorePaths map[st
 // on the target client so they must be started again manually by the user
 var ErrRestoreNotRetryable = errors.New("restore jobs are not retried automatically because they overwrite data on the target client")
 
+// ErrJobNotFinished is returned when trying to retry a job that is still pending or running
+var ErrJobNotFinished = errors.New("job is not finished")
+
 // NewRetry builds a new pending job reusing the parameters of a finished backup job
 func (j *Job) NewRetry() (Job, error) {
 	if !j.Done {
-		return Job{}, fmt.Errorf("cannot retry job '%s' with status '%s' because it is not finished", j.Uuid, j.Status.String())
+		return Job{}, fmt.Errorf("cannot retry job '%s' with status '%s': %w", j.Uuid, j.Status.String(), ErrJobNotFinished)
 	}
 
 	switch j.JobType.Type {

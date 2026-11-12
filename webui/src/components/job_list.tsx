@@ -8,6 +8,7 @@ import Utils from "../utils/utils";
 import JobUtils from "../utils/job";
 import Table from "./table";
 import JobRemoveModal from "./job_remove_modal";
+import JobRetryButton from "./job_retry_button";
 import TableUtils, { TableColumns } from "../utils/table";
 
 function JobList({
@@ -20,6 +21,8 @@ function JobList({
     deletable = false,
     // Called after a successful removal from a row delete button
     onDeleted = undefined as ((uuid: string, imageRemoved: boolean) => void) | undefined,
+    // Display a retry button on each backup job row
+    retryable = false,
 }) {
     const [toRemove, setToRemove] = useState<Job | null>(null);
 
@@ -65,22 +68,25 @@ function JobList({
         }),
     ];
 
-    if (deletable) {
+    if (deletable || retryable) {
         columns.push(columnHelper.display({
             id: 'actions',
             header: () => (<div></div>),
             cell: (cell) => {
                 const job = cell.row.original;
                 return (
-                    <div className="text-right">
-                        <button
-                            type="button"
-                            className="btn btn-ghost btn-xs text-error"
-                            disabled={!job.done}
-                            title={job.done ? "Delete job" : "Job is still running and cannot be deleted"}
-                            onClick={() => setToRemove(job)}>
-                            <i className="ri-delete-bin-line text-base"></i>
-                        </button>
+                    <div className="flex justify-end gap-1">
+                        {retryable && <JobRetryButton job={job} compact />}
+                        {deletable && (
+                            <button
+                                type="button"
+                                className="btn btn-ghost btn-xs text-error"
+                                disabled={!job.done}
+                                title={job.done ? "Delete job" : "Job is still running and cannot be deleted"}
+                                onClick={() => setToRemove(job)}>
+                                <i className="ri-delete-bin-line text-base"></i>
+                            </button>
+                        )}
                     </div>
                 );
             },
