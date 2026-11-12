@@ -1,10 +1,12 @@
 package job
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -158,6 +160,114 @@ func TestNewRestore(t *testing.T) {
 			}
 			if j.Module.Name != tt.wantModuleName {
 				t.Errorf("NewRestore() module name = %v, want %v", j.Module.Name, tt.wantModuleName)
+			}
+		})
+	}
+}
+
+func TestNewRetry(t *testing.T) {
+	r := repo.RepoLocalNew("local", "/tmp/storage", true)
+	mod := testModule("mod", backup_type.Diff)
+	mod.Exclude = []string{"*.tmp"}
+
+	newJob := func(jobType uint8, done bool) Job {
+		j := NewBackup(testClient(), mod, &r)
+		j.JobType = job_type.New(jobType)
+		j.BackupType = backup_type.New(backup_type.Full)
+		j.Done = done
+		j.Status = job_status.New(job_status.Error)
+		return j
+	}
+
+	tests := []struct {
+		name        string
+		job         Job
+		wantErr     bool
+		wantErrType error
+	}{
+		{name: "finished_backup", job: newJob(job_type.Backup, true), wantErr: false},
+		{name: "unfinished_backup", job: newJob(job_type.Backup, false), wantErr: true},
+		{name: "finished_restore", job: newJob(job_type.Restore, true), wantErr: true, wantErrType: ErrRestoreNotRetryable},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.job.NewRetry()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("NewRetry() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErrType != nil && !errors.Is(err, tt.wantErrType) {
+				t.Errorf("NewRetry() error = %v, want %v", err, tt.wantErrType)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			if got.Uuid == "" || got.Uuid == tt.job.Uuid {
+				t.Errorf("NewRetry() uuid = %v, want a new uuid", got.Uuid)
+			}
+			if got.JobType.Type != job_type.Backup {
+				t.Errorf("NewRetry() job type = %v, want backup", got.JobType.String())
+			}
+			if got.Status.Status != job_status.Pending || got.Done {
+				t.Errorf("NewRetry() status = %v (done %v), want pending and not done", got.Status.String(), got.Done)
+			}
+			if got.BackupType.Type != backup_type.Diff {
+				t.Errorf("NewRetry() backup type = %v, want module backup type", got.BackupType.String())
+			}
+			if !reflect.DeepEqual(got.Client, tt.job.Client) {
+				t.Errorf("NewRetry() client = %v, want %v", got.Client, tt.job.Client)
+			}
+			if !reflect.DeepEqual(got.Module, tt.job.Module) {
+				t.Errorf("NewRetry() module = %v, want %v", got.Module, tt.job.Module)
+			}
+			if got.Repository != tt.job.Repository {
+				t.Errorf("NewRetry() repository = %v, want %v", got.Repository, tt.job.Repository)
+			}
+		})
+	}
+}
+
+func TestRestoreCommand(t *testing.T) {
+	tests := []struct {
+		name string
+		mod  module.Module
+		want string
+	}{
+		{
+			name: "minimal",
+			mod:  testModule("mod", backup_type.Full),
+			want: "relique restore --image img-uuid --to test_client",
+		},
+		{
+			name: "include_exclude_cvs",
+			mod: module.Module{
+				Name:       "mod",
+				Include:    []string{"/etc"},
+				Exclude:    []string{"*.tmp", "my cache"},
+				ExcludeCVS: true,
+			},
+			want: "relique restore --image img-uuid --to test_client --include /etc --exclude '*.tmp' --exclude 'my cache' --exclude-cvs",
+		},
+		{
+			name: "single_quote",
+			mod:  module.Module{Name: "mod", Exclude: []string{"it's"}},
+			want: `relique restore --image img-uuid --to test_client --exclude 'it'\''s'`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			j := Job{
+				JobType:          job_type.New(job_type.Restore),
+				Client:           testClient(),
+				Module:           tt.mod,
+				RestoreImageUuid: "img-uuid",
+			}
+			got := j.RestoreCommand()
+			if got != tt.want {
+				t.Errorf("RestoreCommand() = %v, want %v", got, tt.want)
+			}
+			if strings.Contains(got, "--yes") || strings.Contains(got, " -y") {
+				t.Errorf("RestoreCommand() must never skip restore confirmation: %v", got)
 			}
 		})
 	}

@@ -13,11 +13,16 @@ import (
 
 func BackupStart(c client.Client, m module.Module, r repo.Repository) error {
 	j := job.NewBackup(c, m, r)
+	return runBackup(&j)
+}
+
+// runBackup sets up and runs a pending backup job
+func runBackup(j *job.Job) error {
 	if err := j.SetupBackup(); err != nil {
 		return fmt.Errorf("cannot setup job:  %w", err)
 	}
 
-	if err := ClientSSHPing(c); err != nil {
+	if err := ClientSSHPing(j.Client); err != nil {
 		j.EndTime = time.Now()
 		j.Status.Status = job_status.Error
 		j.Done = true
