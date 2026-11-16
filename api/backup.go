@@ -6,6 +6,7 @@ import (
 
 	"github.com/macarrie/relique/internal/client"
 	"github.com/macarrie/relique/internal/job"
+	"github.com/macarrie/relique/internal/job_event_type"
 	"github.com/macarrie/relique/internal/job_status"
 	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/repo"
@@ -19,15 +20,18 @@ func BackupStart(c client.Client, m module.Module, r repo.Repository) error {
 // runBackup sets up and runs a pending backup job
 func runBackup(j *job.Job) error {
 	if err := j.SetupBackup(); err != nil {
-		return fmt.Errorf("cannot setup job:  %w", err)
+		err = fmt.Errorf("cannot setup job:  %w", err)
+		j.RecordError(err)
+		return err
 	}
 
-	return startBackup(j)
+	return startJob(j)
 }
 
-// startBackup runs a backup job that has already been set up
-func startBackup(j *job.Job) error {
+// startJob checks that the job client is reachable then runs a job that has already been set up
+func startJob(j *job.Job) error {
 	if err := ClientSSHPing(j.Client); err != nil {
+		j.RecordEvent(job_event_type.ClientPingError, fmt.Sprintf("Client %s is unreachable: %s", j.Client.String(), err))
 		j.EndTime = time.Now()
 		j.Status.Status = job_status.Error
 		j.Done = true
@@ -35,12 +39,16 @@ func startBackup(j *job.Job) error {
 		if _, err := j.Save(); err != nil {
 			return fmt.Errorf("cannot save job info after failed client ping: %w", err)
 		}
-		return fmt.Errorf("cannot start backup on unreachable client:  %w", err)
+		// Already recorded as a client_ping_error event: no generic job_error needed
+		return fmt.Errorf("cannot start %s on unreachable client:  %w", j.JobType.String(), err)
 	}
+	j.RecordEvent(job_event_type.ClientPing, fmt.Sprintf("Client %s is reachable", j.Client.String()))
 
 	j.GetLog().Info("Starting job file sync")
 	if err := j.Start(); err != nil {
-		return fmt.Errorf("error encountered during job execution: %w", err)
+		err = fmt.Errorf("error encountered during job execution: %w", err)
+		j.RecordError(err)
+		return err
 	}
 
 	return nil

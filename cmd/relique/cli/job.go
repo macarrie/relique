@@ -13,10 +13,10 @@ import (
 	"github.com/macarrie/relique/internal/config"
 	"github.com/macarrie/relique/internal/db"
 	"github.com/macarrie/relique/internal/job"
+	"github.com/macarrie/relique/internal/job_event"
 	"github.com/macarrie/relique/internal/job_status"
 	"github.com/macarrie/relique/internal/job_type"
 	"github.com/macarrie/relique/internal/utils"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +26,9 @@ var jobListSearchClient string
 var jobListSearchType string
 var jobListSearchBackupType string
 var jobListSearchStatus string
+
+var jobShowOutput utils.OutputFormat
+var jobShowEvents bool
 
 var jobRemoveOlderThan string
 var jobRemoveSearchModule string
@@ -221,12 +224,76 @@ func init() {
 				os.Exit(1)
 			}
 
-			out, err := toml.Marshal(j)
+			var events []job_event.JobEvent
+			if jobShowEvents {
+				events, err = api.JobEvents(j.Uuid)
+				if err != nil {
+					slog.With(
+						slog.String("job", j.Uuid),
+						slog.Any("error", err),
+					).Error("Cannot get job events")
+					os.Exit(1)
+				}
+			}
+
+			if jobShowOutput.IsRaw() {
+				var data interface{} = j
+				if jobShowEvents {
+					data = jobWithEvents{Job: j, Events: events}
+				}
+				if err := jobShowOutput.WriteRaw(os.Stdout, data); err != nil {
+					slog.Error("Cannot display job details", slog.Any("error", err))
+					os.Exit(1)
+				}
+				return
+			}
+
+			render, err := utils.RenderTemplateToMarkdown("job_details", jobDetailsTemplate, newJobDetailsView(j, events, jobShowEvents))
 			if err != nil {
 				slog.Error("Cannot display job details", slog.Any("error", err))
 				os.Exit(1)
 			}
-			fmt.Printf("\n%v\n", string(out))
+			fmt.Print(render)
+		},
+	}
+	utils.AddOutputFormatFlags(jobShowCmd, &jobShowOutput)
+	jobShowCmd.Flags().BoolVarP(&jobShowEvents, "events", "", false, "Also display the events recorded during the job")
+
+	jobEventsCmd := &cobra.Command{
+		Use:   "events",
+		Short: "Job events related commands",
+	}
+
+	jobEventsShowCmd := &cobra.Command{
+		Use:   "show UUID",
+		Short: "Show the events recorded during a job",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			events, err := api.JobEvents(args[0])
+			if err != nil {
+				slog.With(
+					slog.String("job", args[0]),
+					slog.Any("error", err),
+				).Error("Cannot get job events")
+				os.Exit(1)
+			}
+
+			tab := tabular.New()
+			tab.Col("time", "Time", 20)
+			tab.Col("type", "Type", 18)
+			tab.Col("description", "Description", 60)
+
+			format := tab.Print("time", "type", "description")
+			for _, e := range events {
+				fmt.Printf(
+					format,
+					utils.FormatDatetime(e.Time),
+					e.Type.String(),
+					e.Description,
+				)
+			}
+
+			fmt.Printf("\n%d events\n", len(events))
 		},
 	}
 
@@ -307,6 +374,8 @@ For a restore job, the equivalent 'relique restore' command is displayed instead
 	rootCmd.AddCommand(jobCmd)
 	jobCmd.AddCommand(jobListCmd)
 	jobCmd.AddCommand(jobShowCmd)
+	jobCmd.AddCommand(jobEventsCmd)
+	jobEventsCmd.AddCommand(jobEventsShowCmd)
 	jobCmd.AddCommand(jobRemoveCmd)
 	jobCmd.AddCommand(jobRetryCmd)
 }

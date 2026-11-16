@@ -32,39 +32,39 @@ var regexSpeedup = regexp.MustCompile(`total size is .*\s*speedup is\s*(?P<nb>[\
 // Stats contains rsync job statistics
 type Stats struct {
 	// Number of files is the count  of  all  "files"  (in  the  generic  sense),  which  includes directories, symlinks, etc.
-	NumberOfFiles int `toml:"number_of_files"`
+	NumberOfFiles int `json:"number_of_files" toml:"number_of_files"`
 	// Number of regular files handled (excluding directories, symlinks, etc...)
-	NumberOfRegularFiles int `toml:"number_of_regular_files"`
+	NumberOfRegularFiles int `json:"number_of_regular_files" toml:"number_of_regular_files"`
 	// Number of directories handled (excluding directories, symlinks, etc...)
-	NumberOfDirectories int `toml:"number_of_directories"`
+	NumberOfDirectories int `json:"number_of_directories" toml:"number_of_directories"`
 	// Number of deleted files on destination
-	NumberOfDeletedFiles int `toml:"number_of_deleted_files"`
+	NumberOfDeletedFiles int `json:"number_of_deleted_files" toml:"number_of_deleted_files"`
 	// Number of created files on destination
-	NumberOfCreatedFiles int `toml:"number_of_created_files"`
+	NumberOfCreatedFiles int `json:"number_of_created_files" toml:"number_of_created_files"`
 	// Number of created files on destination (excluding folders and symlinks, etc...)
-	NumberOfCreatedRegularFiles int `toml:"number_of_created_regular_files"`
+	NumberOfCreatedRegularFiles int `json:"number_of_created_regular_files" toml:"number_of_created_regular_files"`
 	// Total file size is the total sum of all file sizes in the transfer.  This  does  not  count any size for directories or special files, but does include the size of symlinks.
-	TotalFileSize int64 `toml:"total_file_size"`
+	TotalFileSize int64 `json:"total_file_size" toml:"total_file_size"`
 	// Total  transferred  file  size is the total sum of all files sizes for just the transferred files.
-	TotalTransferredFileSize int64 `toml:"total_transferred_file_size"`
+	TotalTransferredFileSize int64 `json:"total_transferred_file_size" toml:"total_transferred_file_size"`
 	// Literal data is how much unmatched file-update data we had to send to the receiver  for  it to recreate the updated files.
-	LiteralData int64 `toml:"literal_data"`
+	LiteralData int64 `json:"literal_data" toml:"literal_data"`
 	// Matched data is how much data the receiver got locally when recreating the updated files.
-	MatchedData int64 `toml:"matched_data"`
+	MatchedData int64 `json:"matched_data" toml:"matched_data"`
 	// File list size (in bytes)
-	FileListSize int64 `toml:"file_list_size"`
+	FileListSize int64 `json:"file_list_size" toml:"file_list_size"`
 	// Time to generate file list (in seconds)
-	FileListGenerationTime float64 `toml:"file_list_generation_time"`
+	FileListGenerationTime float64 `json:"file_list_generation_time" toml:"file_list_generation_time"`
 	// Time to transfer file list (in seconds)
-	FileListTransferTime float64 `toml:"file_list_transfer_time"`
+	FileListTransferTime float64 `json:"file_list_transfer_time" toml:"file_list_transfer_time"`
 	// Total  bytes sent is the count of all the bytes that rsync sent from the client side to the server side.
-	TotalBytesSent int64 `toml:"total_bytes_sent"`
+	TotalBytesSent int64 `json:"total_bytes_sent" toml:"total_bytes_sent"`
 	// Total bytes received is the count of all non-message  bytes  that  rsync  received  by  the client  side from the server side.  "Non-message" bytes means that we don’t count the bytes for a verbose message that the server sent to us, which makes the stats more consistent.
-	TotalBytesReceived int64 `toml:"total_bytes_received"`
+	TotalBytesReceived int64 `json:"total_bytes_received" toml:"total_bytes_received"`
 	// Transfer speed rate (in bytes/second)
-	TransferSpeed float64 `toml:"-"`
+	TransferSpeed float64 `json:"transfer_speed" toml:"-"`
 	// Transfer speedup thanks to rsync diff algorithm
-	TransferSpeedup float64 `toml:"-"`
+	TransferSpeedup float64 `json:"transfer_speedup" toml:"-"`
 }
 
 func (s *Stats) GetFromRsyncLog(path string) error {

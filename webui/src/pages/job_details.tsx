@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Status from '../components/status';
 import Job from '../types/job';
@@ -14,6 +14,11 @@ import ClientProperties from '../components/client_properties';
 import ModuleProperties from '../components/module_properties';
 import JobRemoveModal from '../components/job_remove_modal';
 import JobRetryButton from '../components/job_retry_button';
+import JobEventTimeline from '../components/job_event_timeline';
+import JobEvent from '../types/job_event';
+
+// Events of a running job are reloaded at this interval (ms)
+const EVENTS_REFRESH_INTERVAL = 10000;
 
 function JobDetails() {
     const { job_uuid } = useParams();
@@ -22,29 +27,85 @@ function JobDetails() {
     const [loading, setLoading] = useState<boolean>(true);
     const [imgLoading, setImgLoading] = useState<boolean>(true);
     const [removeOpen, setRemoveOpen] = useState<boolean>(false);
+    const [events, setEvents] = useState<JobEvent[]>([]);
+    const [eventsLoading, setEventsLoading] = useState<boolean>(true);
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        function getJob() {
-            setLoading(true);
-            if (job_uuid === undefined) {
-                console.log("Job uuid undefined, cannot get job details");
-                return;
-            }
-
-            API.jobs.get(job_uuid).then((response) => {
-                setJob(response.data);
-                setLoading(false);
-            }).catch(error => {
-                console.log("Cannot get job details", error);
-                Utils.notify(Const.CRITICAL, "Cannot get job details", error.toString())
-                setJob({} as Job);
-            });
+    const getJob = useCallback(() => {
+        if (job_uuid === undefined) {
+            console.log("Job uuid undefined, cannot get job details");
+            return;
         }
 
-        getJob();
-    }, [job_uuid])
+        API.jobs.get(job_uuid).then((response) => {
+            setJob(response.data);
+            setLoading(false);
+        }).catch(error => {
+            console.log("Cannot get job details", error);
+            Utils.notify(Const.CRITICAL, "Cannot get job details", error.toString())
+            setJob({} as Job);
+        });
+    }, [job_uuid]);
+
+    useEffect(() => {
+        function initJob() {
+            setLoading(true);
+            getJob();
+        }
+
+        initJob();
+    }, [getJob])
+
+    // Resolves with the loaded events, or an empty list when they cannot be loaded
+    const loadEvents = useCallback((): Promise<JobEvent[]> => {
+        if (job_uuid === undefined) {
+            return Promise.resolve([]);
+        }
+
+        return API.jobs.events(job_uuid).then((response) => {
+            const loaded: JobEvent[] = response.data ?? [];
+            setEvents(loaded);
+            setEventsLoading(false);
+            return loaded;
+        }).catch(error => {
+            setEventsLoading(false);
+            // Unknown job: the job details request already reports it
+            if (error.response?.status !== 404) {
+                console.log("Cannot get job events", error);
+                Utils.notify(Const.CRITICAL, "Job events loading", "Cannot get job events: " + error)
+            }
+            return [];
+        });
+    }, [job_uuid]);
+
+    useEffect(() => {
+        function initEvents() {
+            setEventsLoading(true);
+            setEvents([]);
+            loadEvents();
+        }
+
+        initEvents();
+    }, [loadEvents])
+
+    // While the job runs, only its events are reloaded. Once an event marks the end of the job,
+    // the job is reloaded once to update its status and actions, which stops the refresh
+    useEffect(() => {
+        if (loading || j.done) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            loadEvents().then((loaded) => {
+                if (loaded.some((e) => JobUtils.isTerminalEvent(e.type))) {
+                    getJob();
+                }
+            });
+        }, EVENTS_REFRESH_INTERVAL);
+
+        return () => clearInterval(timer);
+    }, [loading, j.done, loadEvents, getJob])
 
     useEffect(() => {
         function getImage() {
@@ -125,6 +186,10 @@ function JobDetails() {
 
             <Section title={<>Module {!loading && <span className="font-normal text-muted">{j.module?.name}</span>}</>}>
                 <ModuleProperties module={j.module} loading={loading} />
+            </Section>
+
+            <Section title="Events" description={!loading && !j.done ? "Refreshed every 10 seconds while the job runs" : undefined}>
+                <JobEventTimeline events={events} jobStart={j.start_time} loading={eventsLoading} />
             </Section>
         </>
     );

@@ -1,12 +1,5 @@
 import Const from "../types/const";
-
-const STATUS_COLORS: Record<number, { text: string, dot: string }> = {
-    [Const.OK]: { text: "text-success", dot: "bg-success" },
-    [Const.WARNING]: { text: "text-warning", dot: "bg-warning" },
-    [Const.CRITICAL]: { text: "text-error", dot: "bg-error" },
-    [Const.INFO]: { text: "text-info", dot: "bg-info" },
-    [Const.UNKNOWN]: { text: "text-muted", dot: "bg-base-300" },
-};
+import STATUS_COLORS from "../utils/status_colors";
 
 // Status is always conveyed by a text label; the dot only reinforces it.
 // variant="dot" hides the label visually (kept for screen readers and as tooltip).

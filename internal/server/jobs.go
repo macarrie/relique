@@ -39,6 +39,39 @@ func webAPIGetJob(c *gin.Context) {
 	c.JSON(http.StatusOK, job)
 }
 
+func webAPIGetJobEvents(c *gin.Context) {
+	uuid := c.Param("uuid")
+
+	exists, err := api.JobExists(uuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", uuid),
+		).Error("Cannot check job existence")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		slog.With(
+			slog.String("uuid", uuid),
+		).Error("Cannot find job in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	events, err := api.JobEvents(uuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", uuid),
+		).Error("Cannot get job events")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, events)
+}
+
 func webAPIDeleteJob(c *gin.Context) {
 	uuid := c.Param("uuid")
 	cleanImage := c.Query("clean_image") == "true"

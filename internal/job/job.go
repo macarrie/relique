@@ -16,6 +16,7 @@ import (
 	"github.com/macarrie/relique/internal/backup_type"
 	"github.com/macarrie/relique/internal/client"
 	"github.com/macarrie/relique/internal/image"
+	"github.com/macarrie/relique/internal/job_event_type"
 	"github.com/macarrie/relique/internal/job_status"
 	"github.com/macarrie/relique/internal/job_type"
 	"github.com/macarrie/relique/internal/module"
@@ -123,6 +124,7 @@ func (j *Job) SetupBackup() error {
 	if _, err := j.Save(); err != nil {
 		return fmt.Errorf("cannot save job info to database before start: %w", err)
 	}
+	j.RecordEvent(job_event_type.JobStart, fmt.Sprintf("%s job started (%s)", j.JobType.String(), j.BackupType.String()))
 
 	if j.BackupType.Type == backup_type.Diff {
 		j.GetLog().Debug("Looking for previous diff jobs to compute diff from")
@@ -130,6 +132,7 @@ func (j *Job) SetupBackup() error {
 		if diffErr == nil {
 			j.PreviousJobUuid = previousDiffJob.Uuid
 			j.PreviousJob = &previousDiffJob
+			j.RecordEvent(job_event_type.DiffReference, fmt.Sprintf("Using previous diff job %s as reference", previousDiffJob.Uuid))
 			j.GetLog().With(
 				slog.String("previous_job_uuid", j.PreviousJobUuid),
 			).Debug("Previous diff job found for diff computation")
@@ -140,11 +143,13 @@ func (j *Job) SetupBackup() error {
 			if err == nil {
 				j.PreviousJobUuid = previousFullJob.Uuid
 				j.PreviousJob = &previousFullJob
+				j.RecordEvent(job_event_type.DiffReference, fmt.Sprintf("No previous diff job found, using previous full job %s as reference", previousFullJob.Uuid))
 				j.GetLog().With(
 					slog.String("previous_job_uuid", j.PreviousJobUuid),
 				).Info("No previous diff backup job found when registering job. The image generated during the previous full backup is used as reference.")
 			} else {
 				j.BackupType.Type = backup_type.Full
+				j.RecordEvent(job_event_type.FallbackToFull, "No previous diff or full job found, backup type changed to full")
 				j.GetLog().With(
 					slog.String("previous_job_uuid", j.PreviousJobUuid),
 				).Info("No previous diff or full backup job found when registering job. This job backup type is changed to 'full'")
@@ -237,12 +242,16 @@ func (j *Job) SetupBackup() error {
 		return fmt.Errorf("cannot save job info to database after setup complete: %w", err)
 	}
 
-	// TODO: Add job setup event
+	j.RecordEvent(job_event_type.JobSetup, fmt.Sprintf("Job setup complete with %d sync(s)", len(j.Tasks)))
 	return nil
 }
 
 func (j *Job) SetupRestore() error {
 	j.GetLog().Debug("Starting job setup")
+
+	j.Status.Status = job_status.Active
+	j.StartTime = time.Now()
+	j.RecordEvent(job_event_type.JobStart, fmt.Sprintf("%s job started from image %s", j.JobType.String(), j.RestoreImageUuid))
 
 	if j.JobType.Type == job_type.Restore && j.RestoreImageUuid == "" {
 		return fmt.Errorf("restore job has no target image UUID to restore data from")
@@ -331,7 +340,7 @@ func (j *Job) SetupRestore() error {
 		return fmt.Errorf("cannot save job info to database after setup complete: %w", err)
 	}
 
-	// TODO: Add job setup event
+	j.RecordEvent(job_event_type.JobSetup, fmt.Sprintf("Job setup complete with %d sync(s)", len(j.Tasks)))
 	return nil
 }
 
@@ -369,8 +378,11 @@ func (j *Job) Start() error {
 				slog.String("cmd", task.Task.Rsync.Cmd.String()),
 			).Debug("Running rsync command")
 
+			j.RecordEvent(job_event_type.SyncStart, fmt.Sprintf("Sync started for path %s", task.BackupPath))
+			syncFailed := false
 			if err := task.Task.Run(); err != nil {
 				slog.With(slog.Any("error", err)).Error("Error encountered during task run")
+				syncFailed = true
 
 				// Rsync exit codes 23,24,25 mean that some files still may have been transferred even if exit code is != 0.
 				// Treating those exit codes as partial success/error
@@ -380,9 +392,11 @@ func (j *Job) Start() error {
 				syncStatusMutex.Lock()
 				if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() >= 23 && exitErr.ExitCode() <= 25 {
 					syncHasIncomplete = true
+					j.RecordEvent(job_event_type.SyncError, fmt.Sprintf("Sync incomplete for path %s (rsync exit code %d): %s", task.BackupPath, exitErr.ExitCode(), err))
 				} else {
 					// Any other exit code, or a failure to start rsync at all
 					syncHasError = true
+					j.RecordEvent(job_event_type.SyncError, fmt.Sprintf("Sync failed for path %s: %s", task.BackupPath, err))
 				}
 				syncStatusMutex.Unlock()
 			}
@@ -400,6 +414,15 @@ func (j *Job) Start() error {
 				slog.With(slog.Any("error", err)).Error("Cannot get task stats")
 			}
 
+			if !syncFailed {
+				j.RecordEvent(job_event_type.SyncEnd, fmt.Sprintf(
+					"Sync complete for path %s: %d elements, %d bytes total, %d bytes transferred",
+					task.BackupPath,
+					task.Task.Stats.NumberOfFiles,
+					task.Task.Stats.TotalFileSize,
+					task.Task.Stats.LiteralData,
+				))
+			}
 		}(&j.Tasks[i])
 	}
 
@@ -440,6 +463,7 @@ func (j *Job) Start() error {
 	if _, err := j.Save(); err != nil {
 		return fmt.Errorf("cannot save job info to database after completion: %w", err)
 	}
+	j.RecordEvent(job_event_type.JobEnd, fmt.Sprintf("Job finished with status %s in %s", j.Status.String(), utils.FormatDuration(j.Duration())))
 
 	catalogPath := j.GetCatalogPath()
 	storagePath, err := j.GetStorageFolderPath()
@@ -458,10 +482,14 @@ func (j *Job) Start() error {
 			img := image.New(j.Client, j.Module, j.Repository)
 			img.Uuid = j.Uuid
 			if err := img.FillStats(jobStats, storagePath); err != nil {
+				j.RecordEvent(job_event_type.ImageError, fmt.Sprintf("Cannot get image stats: %s", err))
 				return fmt.Errorf("cannot get image stats: %w", err)
 			}
 			if _, err := img.Save(); err != nil {
 				slog.With(slog.Any("error", err)).Error("Cannot save generated image to database")
+				j.RecordEvent(job_event_type.ImageError, fmt.Sprintf("Cannot save image to database: %s", err))
+			} else {
+				j.RecordEvent(job_event_type.ImageCreated, fmt.Sprintf("Image %s created", img.Uuid))
 			}
 		} else {
 			j.GetLog().Info("No image generated for unsuccessful job")

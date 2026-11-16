@@ -17,7 +17,7 @@ func TestInit(t *testing.T) {
 	}
 
 	// Schema must have been applied
-	for _, table := range []string{"jobs", "images"} {
+	for _, table := range []string{"jobs", "images", "job_events"} {
 		var name string
 		err := Handler().QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&name)
 		if err != nil {
