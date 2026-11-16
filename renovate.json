@@ -1,7 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "baseBranches": ["master"],
+  "baseBranchPatterns": [
+    "master"
+  ],
   "enabledManagers": ["gomod", "npm"],
   "labels": ["dependencies"],
   "schedule": ["before 6am on monday"],
