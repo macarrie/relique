@@ -24,30 +24,30 @@ const (
 
 type Job struct {
 	// Database ID
-	ID int64
+	ID int64 `json:"-" toml:"-"`
 
-	Uuid       string                 `json:"uuid"`
-	Client     client.Client          `json:"client"`
-	Module     module.Module          `json:"module"`
-	Status     job_status.JobStatus   `json:"status"`
-	Done       bool                   `json:"done"`
-	BackupType backup_type.BackupType `json:"backup_type"`
-	JobType    job_type.JobType       `json:"job_type"`
-	StartTime  time.Time              `json:"start_time"`
-	EndTime    time.Time              `json:"end_time"`
-	Repository repo.Repository        `json:"repository"`
+	Uuid       string                 `json:"uuid" toml:"uuid"`
+	Client     client.Client          `json:"client" toml:"client"`
+	Module     module.Module          `json:"module" toml:"module"`
+	Status     job_status.JobStatus   `json:"status" toml:"status"`
+	Done       bool                   `json:"done" toml:"done"`
+	BackupType backup_type.BackupType `json:"backup_type" toml:"backup_type"`
+	JobType    job_type.JobType       `json:"job_type" toml:"job_type"`
+	StartTime  time.Time              `json:"start_time" toml:"start_time"`
+	EndTime    time.Time              `json:"end_time" toml:"end_time"`
+	Repository repo.Repository        `json:"repository" toml:"repository"`
 
-	Tasks              []rsync_task.RsyncTask `json:"-"`
-	PreviousJobUuid    string                 `json:"previous_job_uuid"`
-	RestoreImageUuid   string                 `json:"restore_image_uuid"`
-	PreviousJob        *Job                   `json:"previous_job"`
-	Stats              rsync_lib.Stats        `json:"stats"`
-	CustomRestorePaths map[string]string      `json:"custom_restore_paths"`
+	Tasks              []rsync_task.RsyncTask `json:"-" toml:"-"`
+	PreviousJobUuid    string                 `json:"previous_job_uuid" toml:"previous_job_uuid"`
+	RestoreImageUuid   string                 `json:"restore_image_uuid" toml:"restore_image_uuid"`
+	PreviousJob        *Job                   `json:"previous_job" toml:"previous_job"`
+	Stats              rsync_lib.Stats        `json:"stats" toml:"stats"`
+	CustomRestorePaths map[string]string      `json:"custom_restore_paths" toml:"custom_restore_paths"`
 
 	// For DB storage
-	ClientName string `json:"-"`
-	ModuleName string `json:"-"`
-	RepoName   string `json:"-"`
+	ClientName string `json:"-" toml:"-"`
+	ModuleName string `json:"-" toml:"-"`
+	RepoName   string `json:"-" toml:"-"`
 }
 
 func (j *Job) GetLog() *slog.Logger {

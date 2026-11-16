@@ -12,6 +12,7 @@ import (
 	"github.com/macarrie/relique/internal/backup_type"
 	"github.com/macarrie/relique/internal/client"
 	"github.com/macarrie/relique/internal/db"
+	"github.com/macarrie/relique/internal/job_event"
 	"github.com/macarrie/relique/internal/module"
 	"github.com/macarrie/relique/internal/repo"
 	rsync_lib "github.com/macarrie/relique/internal/rsync_task/lib"
@@ -428,6 +429,10 @@ func (j *Job) Delete() error {
 
 	// Only the uuid is used: Delete can be called on a partially loaded struct
 	slog.With(slog.String("uuid", j.Uuid)).Debug("Deleting job from database")
+
+	if err = job_event.DeleteByJobUuid(tx, j.Uuid); err != nil {
+		return fmt.Errorf("cannot delete job events: %w", err)
+	}
 
 	query, args, err := sq.Delete("jobs").Where("uuid = ?", j.Uuid).ToSql()
 	if err != nil {

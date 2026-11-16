@@ -7,6 +7,8 @@ import (
 	"github.com/macarrie/relique/internal/api_helpers"
 	"github.com/macarrie/relique/internal/image"
 	"github.com/macarrie/relique/internal/job"
+	"github.com/macarrie/relique/internal/job_event"
+	"github.com/macarrie/relique/internal/job_event_type"
 )
 
 func JobList(p api_helpers.PaginationParams, s api_helpers.JobSearch) (api_helpers.PaginatedResponse[job.Job], error) {
@@ -67,8 +69,11 @@ func JobRetrySetup(uuid string) (job.Job, error) {
 	retry.GetLog().With(
 		slog.String("original_uuid", original.Uuid),
 	).Info("Retrying job")
+	retry.RecordEvent(job_event_type.JobRetry, fmt.Sprintf("Retry of job %s", original.Uuid))
 	if err := retry.SetupBackup(); err != nil {
-		return retry, fmt.Errorf("cannot setup retried job: %w", err)
+		err = fmt.Errorf("cannot setup retried job: %w", err)
+		retry.RecordError(err)
+		return retry, err
 	}
 
 	return retry, nil
@@ -76,11 +81,29 @@ func JobRetrySetup(uuid string) (job.Job, error) {
 
 // JobRetryRun runs a job prepared by JobRetrySetup
 func JobRetryRun(retry *job.Job) error {
-	if err := startBackup(retry); err != nil {
+	if err := startJob(retry); err != nil {
 		return fmt.Errorf("error during retried job: %w", err)
 	}
 
 	return nil
+}
+
+// JobEvents returns the events of a job in the order they happened
+func JobEvents(uuid string) ([]job_event.JobEvent, error) {
+	exists, err := job.Exists(uuid)
+	if err != nil {
+		return nil, fmt.Errorf("cannot check job existence: %w", err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("no job with UUID '%s' found in db", uuid)
+	}
+
+	events, err := job_event.ListByJobUuid(uuid)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get job events from db: %w", err)
+	}
+
+	return events, nil
 }
 
 func JobExists(uuid string) (bool, error) {

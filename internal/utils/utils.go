@@ -57,6 +57,14 @@ func FormatDatetime(t time.Time) string {
 	return t.Format("2006/01/02 15:04:05")
 }
 
+// FormatBytes returns a human readable size for signed byte counts such as rsync stats
+func FormatBytes(n int64) string {
+	if n < 0 {
+		return "---"
+	}
+	return humanize.Bytes(uint64(n))
+}
+
 func FormatDuration(d time.Duration) string {
 	return d.String()
 }
@@ -73,14 +81,20 @@ func SerializeToFile[S interface{}](data S, destinationFile string) error {
 	return nil
 }
 
+// TemplateFuncs returns the helpers available in CLI markdown templates
+func TemplateFuncs() template.FuncMap {
+	return template.FuncMap{
+		"join":      strings.Join,
+		"file_size": humanize.Bytes,
+		"bytes":     FormatBytes,
+		"datetime":  FormatDatetime,
+	}
+}
+
 func RenderTemplateToMarkdown(templateName string, tpl string, data interface{}) (string, error) {
 	var tplRender bytes.Buffer
 	t := template.Must(
-		template.New(templateName).Funcs(template.FuncMap{
-			"join":      strings.Join,
-			"file_size": humanize.Bytes,
-			"datetime":  FormatDatetime,
-		}).Parse(tpl),
+		template.New(templateName).Funcs(TemplateFuncs()).Parse(tpl),
 	)
 	if err := t.Execute(&tplRender, data); err != nil {
 		return "", fmt.Errorf("cannot render template: %w", err)
