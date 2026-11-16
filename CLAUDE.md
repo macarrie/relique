@@ -95,3 +95,17 @@ Adding an HTTP endpoint: add the route in `internal/server/routes.go` under the 
 - Conventional-commit style subjects with scope: `feat(cli): …`, `fix(docker): …`, `feat(webui): …`.
 - Main branch is `master`; feature work happens on branches and merges through PRs. Do not commit directly in the `master` branch.
 - Release commits are `Release vX.Y.Z` made with `make release`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked as local markdown files under `.scratch/<feature>/` (gitignored). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line in each issue file. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
