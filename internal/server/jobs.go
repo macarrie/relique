@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/macarrie/relique/api"
 	"github.com/macarrie/relique/internal/job"
 )
@@ -70,6 +71,52 @@ func webAPIGetJobEvents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, events)
+}
+
+func webAPIGetJobLogs(c *gin.Context) {
+	jobUuid := c.Param("uuid")
+
+	if _, err := uuid.Parse(jobUuid); err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", jobUuid),
+		).Error("Invalid job uuid")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	exists, err := api.JobExists(jobUuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", jobUuid),
+		).Error("Cannot check job existence")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		slog.With(
+			slog.String("uuid", jobUuid),
+		).Error("Cannot find job in database")
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	logs, err := api.JobLogs(jobUuid)
+	if err != nil {
+		slog.With(
+			slog.Any("error", err),
+			slog.String("uuid", jobUuid),
+		).Error("Cannot get job logs")
+		if errors.Is(err, api.ErrInvalidUuid) {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, logs)
 }
 
 func webAPIDeleteJob(c *gin.Context) {

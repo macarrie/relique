@@ -29,10 +29,9 @@ export default class API {
         get: function (uuid: string) {
             return API.handler().get('/jobs/' + uuid);
         },
-        getLogs: function (uuid: string, backup_path: string) {
-            const params = { "bp": backup_path };
-            const sp = new URLSearchParams(params)
-            return API.handler().get('/jobs/' + uuid + '/logs?' + sp.toString());
+        // rsync logs of the job, one entry per synced path. Only the end of large logs is returned
+        logs: function (uuid: string) {
+            return API.handler().get('/jobs/' + encodeURIComponent(uuid) + '/logs');
         },
         delete: function (uuid: string, cleanImage = false) {
             return API.handler().delete('/jobs/' + uuid, { params: { clean_image: cleanImage } });

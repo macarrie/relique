@@ -1,10 +1,14 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
+
 	"github.com/macarrie/relique/internal/api_helpers"
+	"github.com/macarrie/relique/internal/consts"
 	"github.com/macarrie/relique/internal/image"
 	"github.com/macarrie/relique/internal/job"
 	"github.com/macarrie/relique/internal/job_event"
@@ -104,6 +108,30 @@ func JobEvents(uuid string) ([]job_event.JobEvent, error) {
 	}
 
 	return events, nil
+}
+
+// ErrInvalidUuid is returned when a uuid given by a user is not a valid UUID
+var ErrInvalidUuid = errors.New("invalid uuid")
+
+// JobLogs returns the rsync logs of a job. Log files location is computed only from the job uuid,
+// which must be a valid UUID of a job present in db
+func JobLogs(jobUuid string) ([]job.JobLog, error) {
+	parsed, err := uuid.Parse(jobUuid)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get job logs: %w", ErrInvalidUuid)
+	}
+
+	j, err := job.GetByUuid(parsed.String())
+	if err != nil {
+		return nil, fmt.Errorf("cannot get job from db: %w", err)
+	}
+
+	logs, err := j.GetLogs(consts.JOB_LOG_MAX_BYTES)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read job logs: %w", err)
+	}
+
+	return logs, nil
 }
 
 func JobExists(uuid string) (bool, error) {

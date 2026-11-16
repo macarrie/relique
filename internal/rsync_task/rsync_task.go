@@ -17,11 +17,22 @@ type RsyncTask struct {
 	BackupPath   string
 }
 
+const (
+	LOG_FILE_PREFIX       = "rsync_log_"
+	LOG_ERROR_FILE_PREFIX = "rsync_log_error_"
+	LOG_FILE_SUFFIX       = ".log"
+)
+
+// LogName returns the sanitized name used in log file names for a backup path
+func LogName(backupPath string) string {
+	return sanitize.Accents(sanitize.BaseName(backupPath))
+}
+
 func newBackup(source string, destination string, logsRootFolder string, backupPath string, options rsync_lib.RsyncOptions) RsyncTask {
 	return RsyncTask{
 		Task:         *rsync_lib.NewTask(source, destination, options),
-		LogFile:      filepath.Clean(fmt.Sprintf("%s/rsync_log_%s.log", logsRootFolder, sanitize.Accents(sanitize.BaseName(backupPath)))),
-		LogErrorFile: filepath.Clean(fmt.Sprintf("%s/rsync_log_error_%s.log", logsRootFolder, sanitize.Accents(sanitize.BaseName(backupPath)))),
+		LogFile:      filepath.Clean(fmt.Sprintf("%s/%s%s%s", logsRootFolder, LOG_FILE_PREFIX, LogName(backupPath), LOG_FILE_SUFFIX)),
+		LogErrorFile: filepath.Clean(fmt.Sprintf("%s/%s%s%s", logsRootFolder, LOG_ERROR_FILE_PREFIX, LogName(backupPath), LOG_FILE_SUFFIX)),
 		BackupPath:   backupPath,
 	}
 }
