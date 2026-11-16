@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { MouseEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     flexRender,
     SortingState,
@@ -52,7 +53,14 @@ type TableProps<T> = {
     columns: TableColumns<T>,
     data: T[],
     defaultPageSize?: number,
+    // When set, clicking anywhere on a row navigates to the returned path.
+    // Rows should still contain a real link to the same target for keyboard
+    // and screen reader users.
+    rowLink?: (row: T) => string,
 };
+
+// Interactive elements inside a row keep their own click behavior
+const INTERACTIVE_SELECTOR = "a, button, input, select, textarea, label, summary, [role=button]";
 
 function Table<T>({
     actions = true,
@@ -62,7 +70,9 @@ function Table<T>({
     columns,
     data,
     defaultPageSize = Const.DEFAULT_PAGE_SIZE,
+    rowLink,
 }: TableProps<T>) {
+    const navigate = useNavigate();
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: defaultPageSize,
@@ -111,6 +121,21 @@ function Table<T>({
     const totalRows = table.getPrePaginationRowModel().rows.length;
     const firstRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
     const lastRow = pageIndex * pageSize + table.getRowModel().rows.length;
+
+    const onRowClick = (e: MouseEvent<HTMLTableRowElement>, row: T) => {
+        if (!rowLink) return;
+        // Let nested links/buttons handle their own clicks
+        if ((e.target as HTMLElement).closest(INTERACTIVE_SELECTOR)) return;
+        // Don't navigate when the user is selecting text in the row
+        if (window.getSelection()?.toString()) return;
+
+        const path = rowLink(row);
+        if (e.ctrlKey || e.metaKey || e.button === 1) {
+            window.open(path, "_blank", "noopener");
+        } else {
+            navigate(path);
+        }
+    };
 
     return (
         <div className="space-y-2">
@@ -176,7 +201,11 @@ function Table<T>({
                             </td></tr>
                         ) : (
                             table.getRowModel().rows.map(row => (
-                                <tr className="border-b border-base-300 hover:bg-base-content/[0.04]" key={row.id}>
+                                <tr
+                                    className={`border-b border-base-300 hover:bg-base-content/[0.04] ${rowLink ? "cursor-pointer" : ""}`}
+                                    key={row.id}
+                                    onClick={rowLink ? (e) => onRowClick(e, row.original) : undefined}
+                                    onAuxClick={rowLink ? (e) => { if (e.button === 1) onRowClick(e, row.original); } : undefined}>
                                     {row.getVisibleCells().map(cell => (
                                         <td className="px-3 py-2 align-middle whitespace-nowrap" key={cell.id}>
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}

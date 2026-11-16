@@ -85,6 +85,7 @@ function ImageList({
             columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
             paginated={paginated && !loading}
             sorted={sorted}
+            rowLink={loading ? undefined : (i: Image) => `/images/${i.uuid}`}
         />
         </>
     );

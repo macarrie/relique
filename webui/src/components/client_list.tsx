@@ -55,6 +55,7 @@ function ClientList({
             columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
             paginated={paginated && !loading}
             sorted={sorted}
+            rowLink={loading ? undefined : (c: Client) => `/clients/${c.name}`}
         />
     );
 }

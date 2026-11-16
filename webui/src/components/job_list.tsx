@@ -108,6 +108,7 @@ function JobList({
             columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
             paginated={paginated && !loading}
             sorted={sorted}
+            rowLink={loading ? undefined : (j: Job) => `/jobs/${j.uuid}`}
         />
         </>
     );
