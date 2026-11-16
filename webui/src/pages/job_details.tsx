@@ -16,6 +16,8 @@ import JobRemoveModal from '../components/job_remove_modal';
 import JobRetryButton from '../components/job_retry_button';
 import JobEventTimeline from '../components/job_event_timeline';
 import JobEvent from '../types/job_event';
+import JobLogs from '../components/job_logs';
+import JobLog from '../types/job_log';
 
 // Events of a running job are reloaded at this interval (ms)
 const EVENTS_REFRESH_INTERVAL = 10000;
@@ -29,6 +31,8 @@ function JobDetails() {
     const [removeOpen, setRemoveOpen] = useState<boolean>(false);
     const [events, setEvents] = useState<JobEvent[]>([]);
     const [eventsLoading, setEventsLoading] = useState<boolean>(true);
+    const [logs, setLogs] = useState<JobLog[]>([]);
+    const [logsLoading, setLogsLoading] = useState<boolean>(true);
 
     const navigate = useNavigate();
 
@@ -106,6 +110,35 @@ function JobDetails() {
 
         return () => clearInterval(timer);
     }, [loading, j.done, loadEvents, getJob])
+
+    // Logs are written when each sync ends: they are loaded again once the job is done
+    const loadLogs = useCallback(() => {
+        if (job_uuid === undefined) {
+            return;
+        }
+
+        setLogsLoading(true);
+        API.jobs.logs(job_uuid).then((response) => {
+            setLogs(response.data ?? []);
+            setLogsLoading(false);
+        }).catch(error => {
+            setLogs([]);
+            setLogsLoading(false);
+            // Unknown job: the job details request already reports it
+            if (error.response?.status !== 404) {
+                console.log("Cannot get job logs", error);
+                Utils.notify(Const.CRITICAL, "Job logs loading", "Cannot get job logs: " + error)
+            }
+        });
+    }, [job_uuid]);
+
+    useEffect(() => {
+        function initLogs() {
+            loadLogs();
+        }
+
+        initLogs();
+    }, [loadLogs, j.done])
 
     useEffect(() => {
         function getImage() {
@@ -190,6 +223,17 @@ function JobDetails() {
 
             <Section title="Events" description={!loading && !j.done ? "Refreshed every 10 seconds while the job runs" : undefined}>
                 <JobEventTimeline events={events} jobStart={j.start_time} loading={eventsLoading} />
+            </Section>
+
+            <Section title="Logs"
+                description="rsync output of each synced path"
+                actions={
+                    <button type="button" className="btn btn-sm" disabled={logsLoading} onClick={loadLogs}>
+                        <i className="ri-refresh-line"></i>
+                        Reload
+                    </button>
+                }>
+                <JobLogs logs={logs} loading={logsLoading} />
             </Section>
         </>
     );

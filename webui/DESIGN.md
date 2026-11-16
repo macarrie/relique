@@ -110,6 +110,7 @@ The radius is `0.25rem` on fields and buttons and `0.375rem` on boxes (tiles, mo
 | `YesNo` | Boolean values | Red/green "true"/"false" |
 | `EmptyValue` | A muted "None" (or a custom label) for missing data | Leave cells blank or use italics |
 | `TextPlaceholder` | Skeleton line while loading | Show spinners for whole sections |
+| Tabs (daisyUI `tabs tabs-border`) | Switching between parallel content of the same kind inside a tile, one tab per item (e.g. the logs of each backup path in `JobLogs`). Use `role="tablist"`/`"tab"`/`"tabpanel"` with `aria-selected`, and arrow-key navigation. Technical labels (paths) add `code`; a status hint on a tab is an icon with a tooltip and an `aria-label` | Use `tabs-box` or `tabs-lift`. Use tabs for unrelated content (use separate tiles) or for page navigation |
 
 ### Actions
 
