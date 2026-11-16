@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/InVisionApp/tabular v0.3.0
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/glamour/v2 v2.0.1
 	github.com/dustin/go-humanize v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-git/go-git/v5 v5.19.3
