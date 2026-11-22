@@ -39,6 +39,7 @@ function ModuleList({
             columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
             paginated={paginated && !loading}
             sorted={sorted}
+            rowLink={loading ? undefined : (m: Module) => `/modules/${m.name}`}
         />
     );
 }

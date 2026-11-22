@@ -44,6 +44,7 @@ function RepoList({
             columns={loading ? TableUtils.GetPlaceholderColumns(columns) : columns}
             paginated={paginated && !loading}
             sorted={sorted}
+            rowLink={loading ? undefined : (r: Repository) => `/repositories/${r.name}`}
         />
     );
 }
